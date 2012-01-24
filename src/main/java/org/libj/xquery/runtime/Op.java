@@ -50,7 +50,7 @@ public class Op {
         double dy = y instanceof Integer ? (Integer) y : (Double) y;
         return dx / dy;
     }
-    
+
     public static Object list(Object x, Object y) {
         int start = (Integer)x;
         int end = (Integer)y;

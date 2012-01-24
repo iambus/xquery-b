@@ -177,7 +177,12 @@ public class Parser extends LLkParser {
             ast.addChild(primary());
         }
         match(RPAREN);
-        return ast;
+        if (ast.getChildren().size() == 1) {
+            return ast.nth(1);
+        }
+        else {
+            return ast;
+        }
     }
 
     private AST node() throws IOException {

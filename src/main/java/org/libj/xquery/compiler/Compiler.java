@@ -1,16 +1,39 @@
 package org.libj.xquery.compiler;
 
 import org.libj.xquery.XQuery;
+import org.libj.xquery.lexer.Lexer;
 import org.libj.xquery.parser.AST;
 
+import org.libj.xquery.parser.Parser;
 import org.objectweb.asm.*;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 
-public class Compiler implements Opcodes {
+public class Compiler {
+    public static AST compileToAST(Reader reader) throws IOException {
+        Lexer lexer = new Lexer(reader);
+        Parser parser = new Parser(lexer);
+        return parser.xquery();
+    }
+    
+    public static AST compileToAST(String xquery) throws IOException {
+        return compileToAST(new StringReader(xquery));
+    }
+
+    public static AST compileToAST(FileInputStream input) throws IOException {
+        Reader reader = new InputStreamReader(input);
+        return compileToAST(reader);
+    }
+
+    public static AST compileToAST(File path) throws IOException {
+        FileInputStream input = new FileInputStream(path);
+        try {
+            return compileToAST(input);
+        } finally {
+            input.close();
+        }
+    }
+    
     public static byte[] compileToByteArray(AST ast, String className) {
         Assembler assembler = new Assembler(className, ast);
         return assembler.toByteArray();
@@ -45,6 +68,10 @@ public class Compiler implements Opcodes {
         return compileToXQuery(ast, randomClassName());
     }
     
+    public static Object eval(String xquery) throws IOException {
+        return compileToXQuery(compileToAST(xquery)).eval();
+    }
+    
     public static class DefaultClassLoader extends ClassLoader {
         public Class<?> define(String className, byte[] bytecode) {
             return super.defineClass(className, bytecode, 0, bytecode.length);
@@ -62,4 +89,5 @@ public class Compiler implements Opcodes {
     public static String randomID() {
         return java.util.UUID.randomUUID().toString().replace('-', '_');
     }
+
 }
