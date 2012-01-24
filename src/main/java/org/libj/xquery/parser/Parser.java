@@ -29,6 +29,8 @@ public class Parser extends LLkParser {
                 return variable();
             case XPATH:
                 return xpath();
+            case LPAREN:
+                return list();
             case WORD:
                 if (LA(2) == LPAREN) {
                     return call();
@@ -46,14 +48,6 @@ public class Parser extends LLkParser {
                 return let();
             case IF:
                 return ifExpr();
-            case NUMBER:
-                return number();
-            case STRING:
-                return string();
-            case VARIABLE:
-                return variable();
-            case XPATH:
-                return xpath();
             case TAGOPEN:
                 return node();
             default:
@@ -112,7 +106,23 @@ public class Parser extends LLkParser {
         ast.addChild(expr());
         while (LA(1) == COMMA) {
             match(COMMA);
-            ast.addChild(expr());
+            ast.addChild(primaryExpr());
+        }
+        match(RPAREN);
+        return ast;
+    }
+
+    private AST list() throws IOException {
+        AST ast = new AST(LIST);
+        match(LPAREN);
+        if (LA(1) == RPAREN) {
+            match(RPAREN);
+            return ast;
+        }
+        ast.addChild(expr());
+        while (LA(1) == COMMA) {
+            match(COMMA);
+            ast.addChild(primaryExpr());
         }
         match(RPAREN);
         return ast;

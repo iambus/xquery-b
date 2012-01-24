@@ -51,6 +51,7 @@ public class TokenType {
     public static final int DECLARES = 202;
     public static final int NODE = 203;
     public static final int CALL = 204;
+    public static final int LIST = 205;
 
     private static Map<Integer, String> types;
 

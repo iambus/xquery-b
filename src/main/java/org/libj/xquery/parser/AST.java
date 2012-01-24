@@ -25,7 +25,11 @@ public class AST {
     public int getNodeType() {
         return token.type;
     }
-    
+
+    public String getNodeText() {
+        return token.text;
+    }
+
     public void addChild(AST t) {
         if (children == null) {
             children = new ArrayList<AST>();
@@ -39,6 +43,10 @@ public class AST {
 
     public AST nth(int i) { // i starts from 1
         return children.get(i-1);
+    }
+    
+    public List<AST> getChildren() {
+        return children;
     }
 
     public boolean isNil() {
@@ -65,6 +73,9 @@ public class AST {
         builder.append("(");
         if (token.type == CALL) {
             builder.append("funcall");
+        }
+        else if (token.type == LIST) {
+            builder.append("list");
         }
         else if (token.type == FOR || token.type == LET ||
                  token.type == AND || token.type == OR ||
