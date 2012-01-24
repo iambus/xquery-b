@@ -85,8 +85,8 @@ public class Lexer extends LL1Reader {
                 case '<':
                     return readTag();
                 default:
-                    if (isIDStart()) {
-                        return readID();
+                    if (isWordStart()) {
+                        return readWord();
                     }
                     else if ('0' <= c && c <= '9') {
                         return readNumber();
@@ -99,13 +99,51 @@ public class Lexer extends LL1Reader {
         return t(EOF, "<EOF>");
     }
 
-    private Token readID() throws IOException {
+    private Token readWord() throws IOException {
         StringBuilder builder = new StringBuilder();
         do {
             builder.append((char)c);
             consume();
-        } while (isIDPart());
-        return t(ID, builder.toString());
+        } while (isWordPart());
+        String text = builder.toString();
+        int type = WORD;
+        if (text.equals("declare")) {
+            type = DECLARE;
+        }
+        else if (text.equals("let")) {
+            type = LET;
+        }
+        else if (text.equals("for")) {
+            type = FOR;
+        }
+        else if (text.equals("in")) {
+            type = IN;
+        }
+        else if (text.equals("as")) {
+            type = AS;
+        }
+        else if (text.equals("if")) {
+            type = IF;
+        }
+        else if (text.equals("then")) {
+            type = THEN;
+        }
+        else if (text.equals("else")) {
+            type = ELSE;
+        }
+        else if (text.equals("where")) {
+            type = WHERE;
+        }
+        else if (text.equals("return")) {
+            type = RETURN;
+        }
+        else if (text.equals("and")) {
+            type = AND;
+        }
+        else if (text.equals("or")) {
+            type = OR;
+        }
+        return t(type, text);
     }
 
     private Token readNumber() throws IOException {
@@ -141,7 +179,12 @@ public class Lexer extends LL1Reader {
 
     private Token readXPath() throws IOException {
         String xpath = new XPathLexer(this).getXPath();
-        return t(XPATH, xpath);
+        if (xpath.indexOf('/') == -1) {
+            return t(VARIABLE, xpath);
+        }
+        else {
+            return t(XPATH, xpath);
+        }
     }
 
     private Token readTag() throws IOException {
@@ -154,7 +197,14 @@ public class Lexer extends LL1Reader {
             }
             consume();
         }
-        return t(TAG, builder.toString());
+        String text = builder.toString();
+        if (text.indexOf('/') == 1) {
+            // TODO: FIXME: support < /x>, <x/>
+            return t(TAGCLOSE, builder.toString());
+        }
+        else {
+            return t(TAGOPEN, builder.toString());
+        }
     }
 
     private void skipWhitespaces() throws IOException {
@@ -183,11 +233,11 @@ public class Lexer extends LL1Reader {
         }
     }
 
-    private boolean isIDStart() {
+    private boolean isWordStart() {
         return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
     }
 
-    private boolean isIDPart() {
+    private boolean isWordPart() {
         return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == ':' || c == '_' || c == '-';
     }
 

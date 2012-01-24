@@ -9,11 +9,15 @@ public class Token {
         this.text = text;
     }
     public String toString() {
-        return String.format("[%d]%s", type, text);
+        return String.format("<%s:%s>", TokenType.toTypeName(type), text);
     }
     
     public static Token t(int type, String text) {
         return new Token(type, text);
+    }
+
+    public static Token t(int type) {
+        return t(type, null);
     }
 
 }

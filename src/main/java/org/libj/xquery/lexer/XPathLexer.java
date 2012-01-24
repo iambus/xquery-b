@@ -38,8 +38,8 @@ public class XPathLexer {
                     return;
                 default:
                     append();
+                    reader.consume();
             }
-            reader.consume();
         }
     }
 
