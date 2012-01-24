@@ -121,7 +121,14 @@ public class Parser extends LLkParser {
     }
 
     private AST value() throws IOException {
-        return primary();
+        AST ast = primary();
+        while (LA(1) == LBRACKET) {
+            match(LBRACKET);
+            AST index = primary();
+            match(RBRACKET);
+            ast = binary(ast, Token.t(INDEX), index);
+        }
+        return ast;
     }
 
     private AST binary(AST left, Token op, AST right) throws IOException {

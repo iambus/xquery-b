@@ -60,4 +60,25 @@ public class Op {
         }
         return list;
     }
+
+    public static Object at(Object x, Object i) {
+        int index = (Integer) i;
+        if (x instanceof List) {
+            List<Object> list = (List<Object>) x;
+            if (1 <= index && index <= list.size()) {
+                return list.get(index - 1);
+            }
+            else {
+                return "";
+            }
+        }
+        else {
+            if (index == 1) {
+                return x;
+            }
+            else {
+                return "";
+            }
+        }
+    }
 }

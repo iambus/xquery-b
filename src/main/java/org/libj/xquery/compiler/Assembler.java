@@ -85,7 +85,7 @@ public class Assembler implements Opcodes {
             case LIST:
                 visitList(expr);
                 break;
-            case PLUS: case MINUS: case MULTIPLY: case DIV: case TO:
+            case PLUS: case MINUS: case MULTIPLY: case DIV: case TO: case INDEX:
                 visitOp(expr);
                 break;
             case VARIABLE:
@@ -220,6 +220,9 @@ public class Assembler implements Opcodes {
                 break;
             case TO:
                 op = "list";
+                break;
+            case INDEX:
+                op = "at";
                 break;
             default:
                 throw new RuntimeException("Not Implemented: "+toTypeName(type));

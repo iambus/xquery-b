@@ -15,6 +15,12 @@ public class Main {
             System.out.print(String.format("(: %d :) ", ++n));
             System.out.flush();
             String line = in.readLine();
+            if (line == null) {
+                break;
+            }
+            if (line.matches("\\s*")) {
+                continue;
+            }
             try {
                 System.out.println(Compiler.eval(line));
             }
