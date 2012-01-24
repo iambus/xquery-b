@@ -16,10 +16,11 @@ public class Parser extends LLkParser {
         AST ast = new AST(PROG);
         ast.addChild(declares());
         ast.addChild(expr());
+        match(EOF);
         return ast;
     }
 
-    private AST primaryExpr() throws IOException {
+    private AST primary() throws IOException {
         switch (LA(1)) {
             case NUMBER:
                 return number();
@@ -31,6 +32,11 @@ public class Parser extends LLkParser {
                 return xpath();
             case LPAREN:
                 return list();
+            case LBRACK:
+                match(LBRACK);
+                AST ast = expr();
+                match(RBRACK);
+                return ast;
             case WORD:
                 if (LA(2) == LPAREN) {
                     return call();
@@ -58,25 +64,71 @@ public class Parser extends LLkParser {
     private AST or() throws IOException {
         AST ast = and();
         while (LA(1) == OR) {
-            AST andNode = new AST(OR);
-            andNode.addChild(ast);
-            match(OR);
-            andNode.addChild(and());
-            ast = andNode;
+            ast = binary(ast, consume(), and());
         }
         return ast;
     }
 
     private AST and() throws IOException {
-        AST ast = primaryExpr();
+        AST ast = compare();
         while (LA(1) == AND) {
-            AST andNode = new AST(AND);
-            andNode.addChild(ast);
-            match(AND);
-            andNode.addChild(primaryExpr());
-            ast = andNode;
+            ast = binary(ast, consume(), compare());
         }
         return ast;
+    }
+
+    private AST compare() throws IOException {
+        AST ast = range();
+        if (LA(1) == EQ) {
+            ast = binary(ast, consume(), range());
+        }
+        return ast;
+    }
+
+    private AST range() throws IOException {
+        AST ast = add();
+        while (LA(1) == PLUS || LA(1) == MINUS) {
+            ast = binary(ast, consume(), add());
+        }
+        return ast;
+    }
+
+    private AST add() throws IOException {
+        AST ast = multiply();
+        if (LA(1) == TO) {
+            ast = binary(ast, consume(), multiply());
+        }
+        return ast;
+    }
+
+    private AST multiply() throws IOException {
+        AST ast = unary();
+        while (LA(1) == MULTIPLY || LA(1) == DIV) {
+            ast = binary(ast, consume(), unary());
+        }
+        return ast;
+    }
+
+    private AST unary() throws IOException {
+        if (LA(1) == NEGATIVE) {
+            AST ast = new AST(consume());
+            ast.addChild(value());
+            return ast;
+        }
+        else {
+            return value();
+        }
+    }
+
+    private AST value() throws IOException {
+        return primary();
+    }
+
+    private AST binary(AST left, Token op, AST right) throws IOException {
+        AST root = new AST(op);
+        root.addChild(left);
+        root.addChild(right);
+        return root;
     }
 
     private AST ifExpr() {
@@ -106,7 +158,7 @@ public class Parser extends LLkParser {
         ast.addChild(expr());
         while (LA(1) == COMMA) {
             match(COMMA);
-            ast.addChild(primaryExpr());
+            ast.addChild(primary());
         }
         match(RPAREN);
         return ast;
@@ -122,7 +174,7 @@ public class Parser extends LLkParser {
         ast.addChild(expr());
         while (LA(1) == COMMA) {
             match(COMMA);
-            ast.addChild(primaryExpr());
+            ast.addChild(primary());
         }
         match(RPAREN);
         return ast;

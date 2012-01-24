@@ -5,6 +5,7 @@ import org.libj.xquery.XQuery;
 import org.libj.xquery.parser.AST;
 import static org.libj.xquery.lexer.TokenType.*;
 
+import org.libj.xquery.runtime.Op;
 import org.objectweb.asm.*;
 
 import java.util.ArrayList;
@@ -27,9 +28,12 @@ public class Assembler implements Opcodes {
     }
     
     private static final String QUERY_BASE = XQuery.class.getName().replace('.', '/');
+
     private static final String QUERY_CALLBACK = Callback.class.getName().replace('.', '/');
 //    private static final String QUERY_LIST = CallbackList.class.getName().replace('.', '/');
     private static final String QUERY_LIST = ArrayList.class.getName().replace('.', '/');
+
+    private static final String RUNTIME_OP = Op.class.getName().replace('.', '/');
 
     private void visitClass() {
         cw.visit(V1_5, ACC_PUBLIC + ACC_SUPER, className.replace('.', '/'), null,
@@ -78,6 +82,12 @@ public class Assembler implements Opcodes {
             case FOR:
                 visitFor(expr);
                 break;
+            case LIST:
+                visitList(expr);
+                break;
+            case PLUS: case MINUS: case MULTIPLY: case DIV: case TO:
+                visitOp(expr);
+                break;
             case VARIABLE:
                 mv.visitVarInsn(ALOAD, resolve(expr.getNodeText()));
                 break;
@@ -85,24 +95,43 @@ public class Assembler implements Opcodes {
                 mv.visitLdcInsn(expr.getNodeText());
                 break;
             case NUMBER:
-                int n = Integer.parseInt(expr.getNodeText());
-                if (-0x80 <= n && n <= 0x7f) {
-                    mv.visitIntInsn(BIPUSH, n);
-                }
-                else if (-0x8000 <= n && n <= 0x7fff) {
-                    mv.visitIntInsn(SIPUSH, n);
-                }
-                else {
-                    mv.visitLdcInsn(n);
-                }
-                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;");
-                break;
-            case LIST:
-                visitList(expr);
+                visitNumber(expr.getNodeText());
                 break;
             default:
                 throw new RuntimeException("Not Implemented: "+toTypeName(expr.getNodeType()));
         }
+    }
+
+    private void visitNumber(String text) {
+        if (text.indexOf('.') == -1) {
+            visitInt(text);
+        }
+        else {
+            visitDouble(text);
+        }
+    }
+
+    private void visitInt(String text) {
+        int n = Integer.parseInt(text);
+        if (-0x80 <= n && n <= 0x7f) {
+            mv.visitIntInsn(BIPUSH, n);
+        }
+        else if (-0x8000 <= n && n <= 0x7fff) {
+            mv.visitIntInsn(SIPUSH, n);
+        }
+        else {
+            mv.visitLdcInsn(n);
+        }
+        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;");
+    }
+
+    private void visitDouble(String text) {
+        double d = Double.parseDouble(text);
+        // TODO: optimize:
+        // mv.visitInsn(DCONST_0);
+        // mv.visitInsn(DCONST_1);
+        mv.visitLdcInsn(d);
+        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;");
     }
 
     private void visitList(AST expr) {
@@ -162,7 +191,7 @@ public class Assembler implements Opcodes {
         AST varExpr = expr.nth(2);
         AST body = expr.nth(3);
         if (expr.nth(4) != null && !expr.nth(4).isNil()) {
-            throw new RuntimeException("Not Implemented: "+expr.nth(4));
+            throw new RuntimeException("Not Implemented where: "+expr.nth(4));
         }
 
         int index = define(variable);
@@ -171,6 +200,34 @@ public class Assembler implements Opcodes {
         visitExpr(body);
 
         popScope();
+    }
+
+    private void visitOp(AST expr) {
+        int type = expr.getNodeType();
+        String op;
+        switch (type) {
+            case PLUS:
+                op = "add";
+                break;
+            case MINUS:
+                op = "subtract";
+                break;
+            case MULTIPLY:
+                op = "multiply";
+                break;
+            case DIV:
+                op = "div";
+                break;
+            case TO:
+                op = "list";
+                break;
+            default:
+                throw new RuntimeException("Not Implemented: "+toTypeName(type));
+        }
+        for (AST operand: expr.getChildren()) {
+            visitExpr(operand);
+        }
+        mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, op, "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
     }
 
     //////////////////////////////////////////////////

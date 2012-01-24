@@ -34,6 +34,7 @@ public class XPathLexer {
                 case '\r':
                 case ']':
                 case ')':
+                case '}':
                 case ',':
                     return;
                 default:

@@ -35,10 +35,12 @@ public class LLkParser {
             throw new LexerException("Expecting " + (TokenType.toTypeName(x)) + "; found " + LT(1));
         }
     }
-    public void consume() throws IOException {
+    public Token consume() throws IOException {
+        Token t = lookahead[p];
         lookahead[p] = lexer.nextToken();
 //        System.out.println(lookahead[p]);
         p = (p+1) % k;
+        return t;
     }
     public Token consume(int x) throws IOException {
         Token t = lookahead[p];

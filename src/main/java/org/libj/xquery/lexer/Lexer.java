@@ -143,6 +143,12 @@ public class Lexer extends LL1Reader {
         else if (text.equals("or")) {
             type = OR;
         }
+        else if (text.equals("div")) {
+            type = DIV;
+        }
+        else if (text.equals("to")) {
+            type = TO;
+        }
         return t(type, text);
     }
 

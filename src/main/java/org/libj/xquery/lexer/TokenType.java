@@ -46,6 +46,8 @@ public class TokenType {
 
     public static final int AND = 121;
     public static final int OR = 122;
+    public static final int TO = 123;
+    public static final int NEGATIVE = 124;
 
     public static final int PROG = 201;
     public static final int DECLARES = 202;
