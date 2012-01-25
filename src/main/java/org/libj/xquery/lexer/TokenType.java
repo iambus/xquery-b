@@ -14,7 +14,8 @@ public class TokenType {
     public static final int XPATH = 5;
     public static final int TAGOPEN = 6;
     public static final int TAGCLOSE = 7;
-    public static final int TEXT = 8; // text node
+    public static final int TAGUNIT = 8;
+    public static final int TEXT = 9; // text node
 
     public static final int LPAREN = 11;
     public static final int RPAREN = 12;

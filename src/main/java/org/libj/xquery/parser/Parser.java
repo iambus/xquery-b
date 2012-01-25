@@ -55,6 +55,7 @@ public class Parser extends LLkParser {
             case IF:
                 return ifExpr();
             case TAGOPEN:
+            case TAGUNIT:
                 return node();
             default:
                 return or();
@@ -194,9 +195,10 @@ public class Parser extends LLkParser {
     }
 
     private AST node() throws IOException {
-        AST ast = new AST(NODE);
-        Token tag = consume(TAGOPEN);
-        ast.addChild(tag);
+        if (LA(1) == TAGUNIT) {
+            return new AST(new Token(NODE, consume().text));
+        }
+        AST ast = new AST(new Token(NODE, consume(TAGOPEN).text));
         while (LA(1) != TAGCLOSE) {
             ast.addChild(nodeExpr());
         }
@@ -207,7 +209,7 @@ public class Parser extends LLkParser {
 
     private AST nodeExpr() throws IOException {
         switch (LA(1)) {
-            case TAGOPEN:
+            case TAGOPEN: case TAGUNIT:
                 return node();
             case LBRACK:
                 match(LBRACK);

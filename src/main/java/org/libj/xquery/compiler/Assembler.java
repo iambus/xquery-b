@@ -2,6 +2,8 @@ package org.libj.xquery.compiler;
 
 import org.libj.xquery.Callback;
 import org.libj.xquery.XQuery;
+import org.libj.xquery.lexer.Token;
+import org.libj.xquery.lexer.XMLLexer;
 import org.libj.xquery.lib.Fn;
 import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.AST;
@@ -18,7 +20,7 @@ public class Assembler implements Opcodes {
 //    private ClassWriter cw = new ClassWriter(0);
     private ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
     private String className;
-    
+
     private Scope scope;
     private int locals = 1;
 
@@ -35,7 +37,7 @@ public class Assembler implements Opcodes {
         namespace.importDefault("fn");
         visitClass();
     }
-    
+
     private static final String QUERY_BASE = XQuery.class.getName().replace('.', '/');
 
     private static final String QUERY_CALLBACK = Callback.class.getName().replace('.', '/');
@@ -138,6 +140,9 @@ public class Assembler implements Opcodes {
                 break;
             case NUMBER:
                 visitNumber(expr.getNodeText());
+                break;
+            case NODE:
+                visitNode(expr);
                 break;
             default:
                 throw new RuntimeException("Not Implemented: "+toTypeName(expr.getNodeType()));
@@ -272,6 +277,67 @@ public class Assembler implements Opcodes {
         invokeFunction("op:" + op, expr.getChildren(), 0);
     }
 
+    private void visitNode(AST expr) {
+        ArrayList<AST> list = new ArrayList<AST>();
+        flattenNode(expr, list);
+        list = mergeStringNode(list);
+        newObject("java/lang/StringBuilder");
+        for (AST element: list) {
+            if (element.getNodeType() == STRING) {
+                pushConst(element.getNodeText());
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+            }
+            else {
+                visitExpr(element);
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
+            }
+        }
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;");
+    }
+
+    private void flattenNode(AST expr, ArrayList<AST> list) {
+        if (expr.getNodeType()==NODE) {
+            String tag = expr.getNodeText();
+            list.add(new AST(new Token(STRING, tag)));
+            if (expr.getChildren() != null) {
+                for (AST x : expr.getChildren()) {
+                    flattenNode(x, list);
+                }
+            }
+            if (!tag.matches(".*/\\s*>")) {
+                list.add(new AST(new Token(STRING, "</"+XMLLexer.parseTagName(tag)+">")));
+            }
+        } else {
+            list.add(expr);
+        }
+    }
+
+    private ArrayList<AST> mergeStringNode(ArrayList<AST> source) {
+        ArrayList<AST> target = new ArrayList<AST>();
+        StringBuilder buffer = new StringBuilder();
+        for (int i = 0; i < source.size(); i++) {
+            AST node = source.get(i);
+            if (node.getNodeType() == STRING) {
+                if (buffer.length() == 0 && i + 1 < source.size() && source.get(i+1).getNodeType()!=STRING) {
+                    target.add(node);
+                }
+                else {
+                    buffer.append(node.getNodeText());
+                }
+            }
+            else {
+                if (buffer.length() != 0) {
+                    target.add(new AST(new Token(STRING, buffer.toString())));
+                }
+                target.add(node);
+            }
+        }
+        if (buffer.length() != 0) {
+            target.add(new AST(new Token(STRING, buffer.toString())));
+        }
+        return target;
+    }
+
     //////////////////////////////////////////////////
     /// eval(Callback)
     //////////////////////////////////////////////////
@@ -325,6 +391,9 @@ public class Assembler implements Opcodes {
         }
     }
 
+    private void pushConst(Object o) {
+        mv.visitLdcInsn(o);
+    }
     private void newObject(String className) {
         mv.visitTypeInsn(NEW, className);
         mv.visitInsn(DUP);
@@ -415,7 +484,7 @@ public class Assembler implements Opcodes {
         }
         scope = scope.getEnclosingScope();
     }
-    
+
     private int defineAnonymous() {
         return locals++;
     }

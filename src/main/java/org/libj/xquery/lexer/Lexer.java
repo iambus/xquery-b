@@ -211,6 +211,9 @@ public class Lexer extends LL1Reader {
             // TODO: FIXME: support < /x>, <x/>
             return t(TAGCLOSE, builder.toString());
         }
+        else if (text.matches(".*/>")) {
+            return t(TAGUNIT, builder.toString());
+        }
         else {
             return t(TAGOPEN, builder.toString());
         }
