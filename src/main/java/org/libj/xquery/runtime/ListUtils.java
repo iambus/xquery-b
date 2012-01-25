@@ -36,4 +36,23 @@ public class ListUtils {
         toString(x, buffer);
         return buffer.toString();
     }
+
+
+    public static int size(Object x) {
+        if (x instanceof Iterable) {
+            if (x instanceof List) {
+                return ((List) x).size();
+            }
+            else {
+                int total = 0;
+                for (Object y: (Iterable)x) {
+                    total += size(y);
+                }
+                return total;
+            }
+        }
+        else {
+            return 1;
+        }
+    }
 }

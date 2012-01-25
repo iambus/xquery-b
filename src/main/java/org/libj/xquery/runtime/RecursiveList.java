@@ -11,11 +11,21 @@ public class RecursiveList implements List {
     }
 
     public Object nth(int i) {
-        return list.get(i);
+        Iterator it = iterator();
+        Object v = null;
+        while (it.hasNext() && i-- >= 0) {
+            v = it.next();
+        }
+        if (i < 0 && v != null) {
+            return v;
+        }
+        else {
+            return new Nil();
+        }
     }
 
     public int size() {
-        throw new UnsupportedOperationException("size");
+        return ListUtils.size(list);
     }
     
     public void add(Object x) {
@@ -25,7 +35,8 @@ public class RecursiveList implements List {
         list.add(x);
     }
     
-    public java.util.List toNonRecursiveList() {
+    public java.util.List toNonRecursiveNonFlattenList() {
+        // non-flatten version
         return list;
     }
 

@@ -30,7 +30,8 @@ public class Range implements List {
         int v = start + i;
         if (v < start || end <= v) {
 //            throw new IndexOutOfBoundsException(String.format("Index: %d, Range: [%d, %d)", v, start, end));
-            throw new IndexOutOfBoundsException(String.format("Index: %d, Size: %d", i, size()));
+//            throw new IndexOutOfBoundsException(String.format("Index: %d, Size: %d", i, size()));
+            return new Nil();
         }
         return v;
     }

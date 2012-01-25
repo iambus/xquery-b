@@ -137,24 +137,19 @@ public class Op extends StandardStaticNamespace {
                 return list.get(index - 1);
             }
             else {
-                return "";
+                return new Nil();
             }
         }
         else if (x instanceof List) {
             List list = (List) x;
-            if (1 <= index && index <= list.size()) {
-                return list.nth(index - 1);
-            }
-            else {
-                return "";
-            }
+            return list.nth(index - 1);
         }
         else {
             if (index == 1) {
                 return x;
             }
             else {
-                return "";
+                return new Nil();
             }
         }
     }

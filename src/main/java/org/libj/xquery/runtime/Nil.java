@@ -20,7 +20,7 @@ public class Nil implements List {
     }
 
     public Object nth(int i) {
-        throw new UnsupportedOperationException("nth");
+        return this;
     }
 
     public int size() {
