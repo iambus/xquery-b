@@ -211,6 +211,8 @@ public class Parser extends LLkParser {
         switch (LA(1)) {
             case TAGOPEN: case TAGUNIT:
                 return node();
+            case TEXT:
+                return new AST(consume());
             case LBRACK:
                 match(LBRACK);
                 AST ast = expr();

@@ -283,7 +283,7 @@ public class Assembler implements Opcodes {
         list = mergeStringNode(list);
         newObject("java/lang/StringBuilder");
         for (AST element: list) {
-            if (element.getNodeType() == STRING) {
+            if (element.getNodeType() == TEXT) {
                 pushConst(element.getNodeText());
                 mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
             }
@@ -298,14 +298,14 @@ public class Assembler implements Opcodes {
     private void flattenNode(AST expr, ArrayList<AST> list) {
         if (expr.getNodeType()==NODE) {
             String tag = expr.getNodeText();
-            list.add(new AST(new Token(STRING, tag)));
+            list.add(new AST(new Token(TEXT, tag)));
             if (expr.getChildren() != null) {
                 for (AST x : expr.getChildren()) {
                     flattenNode(x, list);
                 }
             }
             if (!tag.matches(".*/\\s*>")) {
-                list.add(new AST(new Token(STRING, "</"+XMLLexer.parseTagName(tag)+">")));
+                list.add(new AST(new Token(TEXT, "</"+XMLLexer.parseTagName(tag)+">")));
             }
         } else {
             list.add(expr);

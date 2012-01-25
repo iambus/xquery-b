@@ -4,12 +4,40 @@ package org.libj.xquery.lexer;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.ArrayList;
 
 import static org.libj.xquery.lexer.Token.t;
 import static org.libj.xquery.lexer.TokenType.*;
 import static java.lang.Character.isWhitespace;
 
 public class Lexer extends LL1Reader {
+
+    private ArrayList<Integer> stack = new ArrayList<Integer>();
+    private static final int IN_CODE = 0;
+    private static final int IN_NODE = 1;
+
+    private void enterNode() {
+        stack.add(IN_NODE);
+    }
+    private void exitNode() {
+        if (stack.remove(stack.size()-1) != IN_NODE) {
+            throw new RuntimeException("Wrong node structure");
+        }
+    }
+    private void enterCode() {
+        stack.add(IN_CODE);
+    }
+    private void exitCode() {
+        if (stack.remove(stack.size()-1) != IN_CODE) {
+            throw new RuntimeException("Wrong node structure");
+        }
+    }
+    private boolean inNode() {
+        return !stack.isEmpty() && stack.get(stack.size()-1) == IN_NODE;
+    }
+    private boolean inCode() {
+        return stack.isEmpty() || stack.get(stack.size()-1) == IN_CODE;
+    }
 
     public Lexer(Reader reader) throws IOException {
         super(reader);
@@ -21,6 +49,14 @@ public class Lexer extends LL1Reader {
     }
 
     public Token nextToken() throws IOException {
+        if (inCode()) {
+            return nextCodeToken();
+        }
+        else {
+            return nextNodeToken();
+        }
+    }
+    public Token nextCodeToken() throws IOException {
         while (!eof()) {
             switch (c) {
                 case ' ': case '\t': case '\n': case '\r':
@@ -40,9 +76,11 @@ public class Lexer extends LL1Reader {
                     consume();
                     return t(RPAREN, ")");
                 case '{':
+                    enterCode();
                     consume();
                     return t(LBRACK, "{");
                 case '}':
+                    exitCode();
                     consume();
                     return t(RBRACK, "}");
                 case '[':
@@ -99,6 +137,25 @@ public class Lexer extends LL1Reader {
         return t(EOF, "<EOF>");
     }
 
+    public Token nextNodeToken() throws IOException {
+        if (c == EOF) {
+            throw new RuntimeException("Not Implemented!");
+        }
+        if (c == '{') {
+            enterCode();
+            consume();
+            return t(LBRACK, "{");
+        }
+        if (c == '<') {
+            return readTag();
+        }
+        StringBuilder buffer = new StringBuilder();
+        while (!eof() && c != '{' && c != '<') {
+            buffer.append((char)c);
+            consume();
+        }
+        return t(TEXT, buffer.toString());
+    }
     private Token readWord() throws IOException {
         StringBuilder builder = new StringBuilder();
         do {
@@ -197,25 +254,54 @@ public class Lexer extends LL1Reader {
     }
 
     private Token readTag() throws IOException {
-        StringBuilder builder = new StringBuilder();
+        StringBuilder tag = new StringBuilder();
+        StringBuilder tagName = new StringBuilder();
+        if (c != '<') {
+            throw new RuntimeException("Not Implemented!");
+        }
+        tag.append('<');
+        consume();
+        while (isWhitespace(c)) {
+            tag.append((char) c);
+            consume();
+        }
+        boolean isOpenTag = c != '/';
+        if (c == '/') {
+            tag.append((char)c);
+            consume();
+        }
+        while (isQName()) {
+            tag.append((char)c);
+            tagName.append((char)c);
+            consume();
+        }
+        while (isWhitespace(c)) {
+            tag.append((char) c);
+            consume();
+        }
         while (c != EOF) {
-            builder.append((char)c);
+            if (c == '{') {
+                throw new RuntimeException("Not Implemented!");
+            }
+            tag.append((char) c);
             if (c == '>') {
                 consume();
                 break;
             }
             consume();
         }
-        String text = builder.toString();
-        if (text.indexOf('/') == 1) {
-            // TODO: FIXME: support < /x>, <x/>
-            return t(TAGCLOSE, builder.toString());
+        String text = tag.toString();
+        boolean isUnitTag = text.matches(".*/\\s*>");
+        if (!isOpenTag) {
+            exitNode();
+            return t(TAGCLOSE, text);
         }
-        else if (text.matches(".*/>")) {
-            return t(TAGUNIT, builder.toString());
+        else if (isUnitTag) {
+            return t(TAGUNIT, text);
         }
         else {
-            return t(TAGOPEN, builder.toString());
+            enterNode();
+            return t(TAGOPEN, text);
         }
     }
 
@@ -253,5 +339,8 @@ public class Lexer extends LL1Reader {
         return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == ':' || c == '_' || c == '-';
     }
 
+    private boolean isQName() {
+        return isWordPart(); // TODO: FIXME: not correct
+    }
 
 }
