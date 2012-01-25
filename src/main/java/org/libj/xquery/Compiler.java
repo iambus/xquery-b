@@ -1,6 +1,8 @@
-package org.libj.xquery.compiler;
+package org.libj.xquery;
 
 import org.libj.xquery.XQuery;
+import org.libj.xquery.compiler.Assembler;
+import org.libj.xquery.compiler.CompilerException;
 import org.libj.xquery.lexer.Lexer;
 import org.libj.xquery.parser.AST;
 
@@ -10,27 +12,35 @@ import org.objectweb.asm.*;
 import java.io.*;
 
 public class Compiler {
-    public static AST compileToAST(Reader reader) throws IOException {
-        Lexer lexer = new Lexer(reader);
-        Parser parser = new Parser(lexer);
-        return parser.xquery();
+    public static AST compileToAST(Reader reader) {
+        try {
+            Lexer lexer = new Lexer(reader);
+            Parser parser = new Parser(lexer);
+            return parser.xquery();
+        } catch (IOException e) {
+            throw new CompilerException(e);
+        }
     }
     
-    public static AST compileToAST(String xquery) throws IOException {
+    public static AST compileToAST(String xquery) {
         return compileToAST(new StringReader(xquery));
     }
 
-    public static AST compileToAST(FileInputStream input) throws IOException {
+    public static AST compileToAST(FileInputStream input) {
         Reader reader = new InputStreamReader(input);
         return compileToAST(reader);
     }
 
-    public static AST compileToAST(File path) throws IOException {
-        FileInputStream input = new FileInputStream(path);
+    public static AST compileToAST(File path) {
         try {
-            return compileToAST(input);
-        } finally {
-            input.close();
+            FileInputStream input = new FileInputStream(path);
+            try {
+                return compileToAST(input);
+            } finally {
+                input.close();
+            }
+        } catch (IOException e) {
+            throw new CompilerException(e);
         }
     }
     
@@ -39,13 +49,17 @@ public class Compiler {
         return assembler.toByteArray();
     }
 
-    public static void compileToFile(AST ast, String className, File path) throws IOException {
-        byte[] bytes = compileToByteArray(ast, className);
-        FileOutputStream output = new FileOutputStream(path);
+    public static void compileToFile(AST ast, String className, File path) {
         try {
-            output.write(bytes);
-        } finally {
-            output.close();
+            byte[] bytes = compileToByteArray(ast, className);
+            FileOutputStream output = new FileOutputStream(path);
+            try {
+                output.write(bytes);
+            } finally {
+                output.close();
+            }
+        } catch (IOException e) {
+            throw new CompilerException(e);
         }
     }
 
@@ -68,8 +82,12 @@ public class Compiler {
         return compileToXQuery(ast, randomClassName());
     }
     
-    public static Object eval(String xquery) throws IOException {
-        return compileToXQuery(compileToAST(xquery)).eval();
+    public static XQuery compile(String xquery) {
+        return compileToXQuery(compileToAST(xquery));
+    }
+
+    public static Object eval(String xquery) {
+        return compile(xquery).eval();
     }
     
     public static class DefaultClassLoader extends ClassLoader {

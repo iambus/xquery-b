@@ -5,8 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-import org.libj.xquery.compiler.Compiler;
-
 public class Main {
     public static void repl() throws IOException {
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
