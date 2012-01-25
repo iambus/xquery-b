@@ -7,10 +7,16 @@ It aims to generate the fastest bytecode on JVM.
 
 Quickstart
 ----------
+Use in Java:
+
 	import org.libj.xquery.Compiler;
 
 	XQuery q = Compiler.compile("string(<a>3+5 is {3+5}</a>)");
 	System.out.println(q.eval());
+
+REPL from command line:
+
+	java org.libj.xquery.Compiler
 
 Installation
 ------------
