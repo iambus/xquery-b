@@ -110,8 +110,9 @@ public class Parser extends LLkParser {
     }
 
     private AST unary() throws IOException {
-        if (LA(1) == NEGATIVE) {
-            AST ast = new AST(consume());
+        if (LA(1) == MINUS) {
+            AST ast = new AST(NEGATIVE);
+            consume();
             ast.addChild(value());
             return ast;
         }
@@ -124,7 +125,7 @@ public class Parser extends LLkParser {
         AST ast = primary();
         while (LA(1) == LBRACKET) {
             match(LBRACKET);
-            AST index = primary();
+            AST index = add();
             match(RBRACKET);
             ast = binary(ast, Token.t(INDEX), index);
         }

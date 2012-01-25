@@ -50,6 +50,19 @@ public class Op {
         return dx / dy;
     }
 
+    public static Object negative(Object x) {
+        Number n = (Number) x;
+        if (n instanceof Integer) {
+            return -(Integer)n;
+        }
+        else if (n instanceof Double) {
+            return -(Double)n;
+        }
+        else {
+            throw new RuntimeException("Not Implemented!");
+        }
+    }
+
     public static Object list(Object x, Object y) {
         int start = (Integer)x;
         int end = (Integer)y;

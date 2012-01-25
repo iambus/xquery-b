@@ -85,7 +85,7 @@ public class Assembler implements Opcodes {
             case LIST:
                 visitList(expr);
                 break;
-            case PLUS: case MINUS: case MULTIPLY: case DIV: case TO: case INDEX:
+            case PLUS: case MINUS: case MULTIPLY: case DIV: case NEGATIVE: case TO: case INDEX:
                 visitOp(expr);
                 break;
             case VARIABLE:
@@ -218,6 +218,9 @@ public class Assembler implements Opcodes {
             case DIV:
                 op = "div";
                 break;
+            case NEGATIVE:
+                op = "negative";
+                break;
             case TO:
                 op = "list";
                 break;
@@ -230,7 +233,7 @@ public class Assembler implements Opcodes {
         for (AST operand: expr.getChildren()) {
             visitExpr(operand);
         }
-        mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, op, "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+        invokeStatic(expr, RUNTIME_OP, op);
     }
 
     //////////////////////////////////////////////////
@@ -270,6 +273,17 @@ public class Assembler implements Opcodes {
         mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
         mv.visitLdcInsn(message);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V");
+    }
+
+    private void invokeStatic(AST expr, String className, String op) {
+        StringBuilder signature = new StringBuilder();
+        signature.append('(');
+        for (AST operand: expr.getChildren()) {
+            visitExpr(operand);
+            signature.append("Ljava/lang/Object;");
+        }
+        signature.append(")Ljava/lang/Object;");
+        mv.visitMethodInsn(INVOKESTATIC, className, op, signature.toString());
     }
     //////////////////////////////////////////////////
     /// analyze
