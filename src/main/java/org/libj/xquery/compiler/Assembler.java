@@ -2,6 +2,8 @@ package org.libj.xquery.compiler;
 
 import org.libj.xquery.Callback;
 import org.libj.xquery.XQuery;
+import org.libj.xquery.lib.Fn;
+import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.AST;
 import static org.libj.xquery.lexer.TokenType.*;
 
@@ -9,6 +11,7 @@ import org.libj.xquery.runtime.Op;
 import org.objectweb.asm.*;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class Assembler implements Opcodes {
     private AST ast;
@@ -19,11 +22,17 @@ public class Assembler implements Opcodes {
     private Scope scope;
     private int locals = 1;
 
+    private RootNamespace namespace = new RootNamespace();
+
     MethodVisitor mv;
 
     public Assembler(String className, AST ast) {
         this.className = className;
         this.ast = ast;
+        namespace.register("class", new JavaNamespace());
+        namespace.register("fn", new Fn());
+        namespace.register("op", new Op());
+        namespace.importDefault("fn");
         visitClass();
     }
     
@@ -67,11 +76,41 @@ public class Assembler implements Opcodes {
         mv.visitMaxs(0, 0);
         mv.visitEnd();
     }
-    
+
     private void visitAST() {
-//        AST declares = ast.nth(1);
+        AST declares = ast.nth(1);
         AST code = ast.nth(2);
+        visitDeclares(declares);
         visitExpr(code);
+    }
+
+    private void visitDeclares(AST declares) {
+        if (declares.getChildren()==null) {
+            return;
+        }
+        for (AST declare: declares.getChildren()) {
+            visitDeclare(declare);
+        }
+    }
+
+    private void visitDeclare(AST declare) {
+        if (declare.nth(1).getNodeType() == NAMESPACE) {
+            visitDeclareNamespace(declare);
+        }
+    }
+
+    private void visitDeclareNamespace(AST declare) {
+        String alias = declare.nth(2).getNodeText();
+        String uri = declare.nth(3).getNodeText();
+        if (uri.startsWith("class:")) {
+            namespace.register(alias, namespace.lookup(uri));
+        }
+        else if (uri.startsWith("http:")) {
+            namespace.register(alias, new URI(uri));
+        }
+        else {
+            throw new RuntimeException("Not Implemented declare namespace: "+uri);
+        }
     }
 
     private void visitExpr(AST expr) {
@@ -84,6 +123,9 @@ public class Assembler implements Opcodes {
                 break;
             case LIST:
                 visitList(expr);
+                break;
+            case CALL:
+                visitCall(expr);
                 break;
             case PLUS: case MINUS: case MULTIPLY: case DIV: case NEGATIVE: case TO: case INDEX:
                 visitOp(expr);
@@ -102,6 +144,11 @@ public class Assembler implements Opcodes {
         }
     }
 
+    private void visitCall(AST expr) {
+        String functionName = expr.nth(1).getNodeText();
+        invokeFunction(functionName, expr.getChildren(), 1);
+    }
+
     private void visitNumber(String text) {
         if (text.indexOf('.') == -1) {
             visitInt(text);
@@ -113,15 +160,7 @@ public class Assembler implements Opcodes {
 
     private void visitInt(String text) {
         int n = Integer.parseInt(text);
-        if (-0x80 <= n && n <= 0x7f) {
-            mv.visitIntInsn(BIPUSH, n);
-        }
-        else if (-0x8000 <= n && n <= 0x7fff) {
-            mv.visitIntInsn(SIPUSH, n);
-        }
-        else {
-            mv.visitLdcInsn(n);
-        }
+        pushConst(n);
         mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;");
     }
 
@@ -230,10 +269,7 @@ public class Assembler implements Opcodes {
             default:
                 throw new RuntimeException("Not Implemented: "+toTypeName(type));
         }
-        for (AST operand: expr.getChildren()) {
-            visitExpr(operand);
-        }
-        invokeStatic(expr, RUNTIME_OP, op);
+        invokeFunction("op:" + op, expr.getChildren(), 0);
     }
 
     //////////////////////////////////////////////////
@@ -254,12 +290,47 @@ public class Assembler implements Opcodes {
     /// helper
     //////////////////////////////////////////////////
 
+    private void pushConst(int n) {
+        switch (n) {
+            case -1:
+                mv.visitInsn(ICONST_M1);
+                return;
+            case 0:
+                mv.visitInsn(ICONST_0);
+                return;
+            case 1:
+                mv.visitInsn(ICONST_1);
+                return;
+            case 2:
+                mv.visitInsn(ICONST_2);
+                return;
+            case 3:
+                mv.visitInsn(ICONST_3);
+                return;
+            case 4:
+                mv.visitInsn(ICONST_4);
+                return;
+            case 5:
+                mv.visitInsn(ICONST_5);
+                return;
+        }
+        if (-0x80 <= n && n <= 0x7f) {
+            mv.visitIntInsn(BIPUSH, n);
+        }
+        else if (-0x8000 <= n && n <= 0x7fff) {
+            mv.visitIntInsn(SIPUSH, n);
+        }
+        else {
+            mv.visitLdcInsn(n);
+        }
+    }
+
     private void newObject(String className) {
         mv.visitTypeInsn(NEW, className);
         mv.visitInsn(DUP);
         mv.visitMethodInsn(INVOKESPECIAL, className, "<init>", "()V");
     }
-    
+
     private void newList() {
         newObject(QUERY_LIST);
     }
@@ -268,11 +339,57 @@ public class Assembler implements Opcodes {
         mv.visitMethodInsn(INVOKEVIRTUAL, QUERY_LIST, "add", "(Ljava/lang/Object;)Z");
         mv.visitInsn(POP);
     }
-    
+
     private void log(String message) {
         mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
         mv.visitLdcInsn(message);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V");
+    }
+
+    private void invokeFunction(String functionName, java.util.List<AST> arguments, int argumentIndex) {
+        Function fn = (Function) namespace.lookup(functionName);
+        if (fn instanceof StandardStaticFunction) {
+            invokeFunction((StandardStaticFunction) fn, arguments, argumentIndex);
+        }
+        else if (fn instanceof StandardStaticVarlistFunction)
+            invokeFunction((StandardStaticVarlistFunction) fn, arguments, argumentIndex);
+        else if (fn instanceof StandardStaticOverloadedFunction)
+            invokeFunction((StandardStaticOverloadedFunction) fn, arguments, argumentIndex);
+        else {
+            throw new RuntimeException("Not Implemented!");
+        }
+    }
+
+    private void invokeFunction(StandardStaticFunction fn, java.util.List<AST> arguments, int argumentIndex) {
+        int n = arguments.size() - argumentIndex;
+        if (n != fn.getParameterNumber()) {
+            throw new RuntimeException(
+                    String.format("Too % arguments. Expected: %d, actual: %s",
+                            n < fn.getParameterNumber() ? "few" : "many",
+                            fn.getParameterNumber(),
+                            n));
+        }
+        for (int i = 0; i < n; i++) {
+            visitExpr(arguments.get(i+argumentIndex));
+        }
+        mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
+    }
+
+    private void invokeFunction(StandardStaticOverloadedFunction fn, List<AST> arguments, int argumentIndex) {
+        invokeFunction(fn.getFunction(arguments.size() - argumentIndex), arguments, argumentIndex);
+    }
+
+    private void invokeFunction(StandardStaticVarlistFunction fn, java.util.List<AST> arguments, int argumentIndex) {
+        int n = arguments.size() - argumentIndex;
+        pushConst(n);
+        mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
+        for (int i = 0; i < n; i++) {
+            mv.visitInsn(DUP);
+            pushConst(i);
+            visitExpr(arguments.get(i+argumentIndex));
+            mv.visitInsn(AASTORE);
+        }
+        mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
     }
 
     private void invokeStatic(AST expr, String className, String op) {
@@ -308,7 +425,7 @@ public class Assembler implements Opcodes {
         scope.define(new Symbol(name, index));
         return index;
     }
-    
+
     private int resolve(String name) {
         Symbol s = scope.resolve(name);
         if (s == null) {
@@ -316,7 +433,7 @@ public class Assembler implements Opcodes {
         }
         return s.getIndex();
     }
-    
+
     //////////////////////////////////////////////////
     /// public API
     //////////////////////////////////////////////////

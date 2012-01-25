@@ -149,6 +149,9 @@ public class Lexer extends LL1Reader {
         else if (text.equals("to")) {
             type = TO;
         }
+        else if (text.equals("namespace")) {
+            type = NAMESPACE;
+        }
         return t(type, text);
     }
 

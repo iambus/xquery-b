@@ -1,11 +1,29 @@
 package org.libj.xquery.runtime;
 
+import org.libj.xquery.namespace.StandardStaticNamespace;
+
 import java.util.ArrayList;
 
-public class Op {
+public class Op extends StandardStaticNamespace {
+    public Op() {
+        super(Op.class.getName());
+        registerStaticFunction("asList", 1);
+        registerStaticFunction("add", 2);
+        registerStaticFunction("subtract", 2);
+        registerStaticFunction("multiply", 2);
+        registerStaticFunction("div", 2);
+        registerStaticFunction("negative", 1);
+        registerStaticFunction("list", 2);
+        registerStaticFunction("at", 2);
+    }
+
+    public static boolean isList(Object x) {
+        return x instanceof Iterable;
+    }
+
     public static Iterable<Object> asList(Object x) {
-        if (x instanceof List) {
-            return (java.util.List<Object>) x;
+        if (x instanceof Iterable) {
+            return (Iterable<Object>) x;
         }
         else {
             java.util.List<Object> list = new ArrayList<Object>(1);

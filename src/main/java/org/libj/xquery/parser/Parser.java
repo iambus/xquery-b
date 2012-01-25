@@ -204,7 +204,7 @@ public class Parser extends LLkParser {
         // TODO: check if start and end tag matches
         return ast;
     }
-    
+
     private AST nodeExpr() throws IOException {
         switch (LA(1)) {
             case TAGOPEN:
@@ -278,10 +278,28 @@ public class Parser extends LLkParser {
         }
         return ast;
     }
-    
+
     public AST declare() throws IOException {
-        AST ast = new AST(DECLARES);
-        match(DECLARE);
+        if (LA(2) == NAMESPACE) {
+            return declareNamespace();
+        }
+        else {
+            return declareAnyOther();
+        }
+    }
+
+    public AST declareNamespace() throws IOException {
+        AST ast = new AST(consume(DECLARE));
+        ast.addChild(consume(NAMESPACE));
+        ast.addChild(consume(WORD));
+        match(EQ);
+        ast.addChild(consume(STRING));
+        ast.addChild(consume(SEMI));
+        return ast;
+    }
+
+    public AST declareAnyOther() throws IOException {
+        AST ast = new AST(consume(DECLARE));
         ast.addChild(consume(WORD));
         while (LA(1) != SEMI && LA(1) != EOF) {
             ast.addChild(LT(1));
