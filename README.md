@@ -38,7 +38,7 @@ Be patient...
 Coming soon
 -----------
 1. xpath
-2. Java interop
-3. type annotation/inference
-4. Free variables
+2. type annotation/inference
+3. java interop: method overload
+4. free variables
 
