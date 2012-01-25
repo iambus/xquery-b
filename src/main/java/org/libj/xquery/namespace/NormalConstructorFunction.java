@@ -1,18 +1,18 @@
 package org.libj.xquery.namespace;
 
-import java.lang.reflect.Method;
+import java.lang.reflect.Constructor;
 
-public class NormalMethodFunction implements Function {
+public class NormalConstructorFunction implements Function {
     private String className;
-    private Method method;
+    private Constructor constructor;
     private String functionName;
     private String signature;
 
-    public NormalMethodFunction(String className, Method method) {
+    public NormalConstructorFunction(String className, Constructor constructor) {
         this.className = className.replace('.', '/');
-        this.method = method;
-        this.functionName = method.getName();
-        this.signature = Reflector.getMethodSignature(method);
+        this.constructor = constructor;
+        this.functionName = "<init>";
+        this.signature = Reflector.getConstructorSignature(constructor);
     }
 
     public String getClassName() {
@@ -29,11 +29,7 @@ public class NormalMethodFunction implements Function {
 
 
     public Class<?>[] getParameterTypes() {
-        return method.getParameterTypes();
-    }
-
-    public Class<?> getReturnType() {
-        return method.getReturnType();
+        return constructor.getParameterTypes();
     }
 
 

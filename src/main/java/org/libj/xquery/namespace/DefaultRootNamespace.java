@@ -14,7 +14,7 @@ public class DefaultRootNamespace extends RootNamespace {
 
     @Override
     public Symbol lookup(String name) {
-        if (name.indexOf('.') != -1) {
+        if (name.indexOf('.') != -1 && name.indexOf('.') < name.indexOf(':')) {
             int colon = name.indexOf(':');
             if (colon == -1) {
                 throw new RuntimeException("Not Implemented!");

@@ -3,7 +3,6 @@ package org.libj.xquery.compiler;
 import org.libj.xquery.Callback;
 import org.libj.xquery.XQuery;
 import org.libj.xquery.lexer.Token;
-import org.libj.xquery.lib.Fn;
 import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.AST;
 import static org.libj.xquery.lexer.TokenType.*;
@@ -21,7 +20,7 @@ public class Assembler implements Opcodes {
     private AST ast;
 //    private ClassWriter cw = new ClassWriter(0);
     private ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-    private String className;
+    private String compiledClassName;
 
     private Scope scope;
     private int locals = 1;
@@ -31,7 +30,7 @@ public class Assembler implements Opcodes {
     MethodVisitor mv;
 
     public Assembler(String className, AST ast) {
-        this.className = className;
+        this.compiledClassName = className;
         this.ast = ast;
         visitClass();
     }
@@ -48,7 +47,7 @@ public class Assembler implements Opcodes {
     private static final String XML_CLASS = XML.class.getName().replace('.', '/');
 
     private void visitClass() {
-        cw.visit(V1_5, ACC_PUBLIC + ACC_SUPER, className.replace('.', '/'), null,
+        cw.visit(V1_5, ACC_PUBLIC + ACC_SUPER, compiledClassName.replace('.', '/'), null,
                 "java/lang/Object",
                 new String[] {QUERY_BASE});
         visitInit();
@@ -500,6 +499,9 @@ public class Assembler implements Opcodes {
         else if (fn instanceof NormalMethodFunction) {
             invokeFunction((NormalMethodFunction) fn, arguments, argumentIndex);
         }
+        else if (fn instanceof NormalConstructorFunction) {
+            invokeFunction((NormalConstructorFunction) fn, arguments, argumentIndex);
+        }
         else {
             throw new RuntimeException("Not Implemented: " + fn);
         }
@@ -572,6 +574,25 @@ public class Assembler implements Opcodes {
         }
         Caster.castFrom(mv, fn.getReturnType());
         mv.visitMethodInsn(INVOKEVIRTUAL, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
+    }
+
+    private void invokeFunction(NormalConstructorFunction fn, java.util.List<AST> arguments, int argumentIndex) {
+        mv.visitTypeInsn(NEW, fn.getClassName());
+        mv.visitInsn(DUP);
+        int n = arguments.size() - argumentIndex;
+        Class<?>[] params = fn.getParameterTypes();
+        if (n != params.length) {
+            throw new RuntimeException(
+                    String.format("Too % arguments. Expected: %d, actual: %s",
+                            n < params.length ? "few" : "many",
+                            params.length,
+                            n));
+        }
+        for (int i = 0; i < n; i++) {
+            visitExpr(arguments.get(i+argumentIndex));
+            Caster.castTo(mv, params[i]);
+        }
+        mv.visitMethodInsn(INVOKESPECIAL, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
     }
 
     private void invokeStatic(AST expr, String className, String op) {

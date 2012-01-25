@@ -1,5 +1,6 @@
 package org.libj.xquery.namespace;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -22,23 +23,43 @@ public class Reflector {
         }
     }
 
+    public static List<Constructor> getConstructors(Class<?> clazz) {
+        ArrayList<Constructor> constructors = new ArrayList<Constructor>();
+        for (Constructor constructor: clazz.getConstructors()) {
+            constructors.add(constructor);
+        }
+        return constructors;
+    }
+
     public static boolean isPublic(Method method) {
         return Modifier.isPublic(method.getModifiers());
+    }
+
+    public static boolean isPublic(Constructor constructor) {
+        return Modifier.isPublic(constructor.getModifiers());
     }
 
     public static boolean isStatic(Method method) {
         return Modifier.isStatic(method.getModifiers());
     }
 
-    public static String getMethodSignature(Method method) {
+    public static String getMethodSignature(Class<?>[] parameterTypes, Class<?> returnType) {
         StringBuilder builder = new StringBuilder();
         builder.append('(');
-        for (Class c: method.getParameterTypes()) {
+        for (Class c: parameterTypes) {
             builder.append(getTypeSignature(c));
         }
         builder.append(')');
-        builder.append(getTypeSignature(method.getReturnType()));
+        builder.append(getTypeSignature(returnType));
         return builder.toString();
+    }
+
+    public static String getMethodSignature(Method method) {
+        return getMethodSignature(method.getParameterTypes(), method.getReturnType());
+    }
+
+    public static String getConstructorSignature(Constructor constructor) {
+        return getMethodSignature(constructor.getParameterTypes(), Void.TYPE);
     }
 
     public static String getTypeSignature(Class c) {
@@ -76,11 +97,4 @@ public class Reflector {
         }
     }
 
-    public static void x(int i){}
-    public static void x(int[] i){}
-
-    public static void main(String[] args) throws NoSuchMethodException {
-        for (Method m: getMethods(Reflector.class))
-            System.out.println(m.getName() +':'+ getMethodSignature(m));
-    }
 }
