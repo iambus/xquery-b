@@ -3,7 +3,6 @@ package org.libj.xquery.compiler;
 import org.libj.xquery.Callback;
 import org.libj.xquery.XQuery;
 import org.libj.xquery.lexer.Token;
-import org.libj.xquery.lexer.XMLLexer;
 import org.libj.xquery.lib.Fn;
 import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.AST;
@@ -493,13 +492,36 @@ public class Assembler implements Opcodes {
         else if (fn instanceof StandardStaticFunction) {
             invokeFunction((StandardStaticFunction) fn, arguments, argumentIndex);
         }
-        else if (fn instanceof StandardStaticVarlistFunction)
+        else if (fn instanceof StandardStaticVarlistFunction) {
             invokeFunction((StandardStaticVarlistFunction) fn, arguments, argumentIndex);
-        else if (fn instanceof StandardStaticOverloadedFunction)
+        }
+        else if (fn instanceof StandardStaticOverloadedFunction) {
             invokeFunction((StandardStaticOverloadedFunction) fn, arguments, argumentIndex);
+        }
+        else if (fn instanceof NormalStaticFunction) {
+            invokeFunction((NormalStaticFunction) fn, arguments, argumentIndex);
+        }
         else {
             throw new RuntimeException("Not Implemented: " + fn);
         }
+    }
+
+    private void invokeFunction(NormalStaticFunction fn, java.util.List<AST> arguments, int argumentIndex) {
+        int n = arguments.size() - argumentIndex;
+        Class<?>[] params = fn.getParameterTypes();
+        if (n != params.length) {
+            throw new RuntimeException(
+                    String.format("Too % arguments. Expected: %d, actual: %s",
+                            n < fn.getParameterNumber() ? "few" : "many",
+                            params.length,
+                            n));
+        }
+        for (int i = 0; i < n; i++) {
+            visitExpr(arguments.get(i+argumentIndex));
+            Caster.castTo(mv, params[i]);
+        }
+        Caster.castFrom(mv, fn.getReturnType());
+        mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
     }
 
     private void invokeFunction(StandardStaticFunction fn, java.util.List<AST> arguments, int argumentIndex) {

@@ -39,5 +39,6 @@ Coming soon
 -----------
 1. xpath
 2. Java interop
-3. Free variables
+3. type annotation/inference
+4. Free variables
 
