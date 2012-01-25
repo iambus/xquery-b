@@ -18,12 +18,12 @@ Installation
 
 API
 ---
-It's a very new project (started from 2012-01-23) at the time of this README is documented (2012-01-25). So there is no doc yet.
+It's a very new project (started from 2012-01-23). So there is no doc yet. Keep follow me ^_^
 
 
 Comparison
 ----------
-It's unfair to compare my project to any other XQuery implementations, because it's new! Please revisit this section a few days later...
+It's unfair to compare my project with any other XQuery implementations, because it's new! Please revisit this section a few days later...
 
 Feature Table
 ------------
