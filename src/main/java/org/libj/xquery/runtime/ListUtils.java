@@ -1,13 +1,36 @@
 package org.libj.xquery.runtime;
 
+import org.libj.xquery.xml.XML;
+import org.libj.xquery.xml.XMLUtils;
+
 import java.util.Iterator;
 
 public class ListUtils {
-    public static String toString(Iterable collection) {
-        StringBuffer buffer = new StringBuffer();
-        for (Object x: collection) {
-            buffer.append(x);
+    public static void toString(Object v, StringBuilder buffer) {
+        if (v instanceof Iterable) {
+            toString((Iterable)v, buffer);
         }
+        else if (v instanceof XML) {
+            buffer.append(v);
+        }
+        else {
+            if (buffer.length() != 0 && buffer.charAt(buffer.length()-1) != '>') {
+                buffer.append(' ');
+            }
+            buffer.append(XMLUtils.escapeXML(v.toString()));
+        }
+    }
+    public static void toString(Iterable collection, StringBuilder buffer) {
+        for (Object x: collection) {
+            toString(x, buffer);
+        }
+        buffer.toString();
+    }
+    public static String toString(Object x) {
+        StringBuilder buffer = new StringBuilder();
+        toString(x, buffer);
         return buffer.toString();
     }
+
+
 }

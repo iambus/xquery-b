@@ -41,6 +41,9 @@ public class Parser extends LLkParser {
                 if (LA(2) == LPAREN) {
                     return call();
                 }
+            case TAGOPEN:
+            case TAGUNIT:
+                return node();
             default:
                 throw new ParserException("Unexpected primary expr token: " + LT(1));
         }
@@ -54,9 +57,6 @@ public class Parser extends LLkParser {
                 return let();
             case IF:
                 return ifExpr();
-            case TAGOPEN:
-            case TAGUNIT:
-                return node();
             default:
                 return or();
         }

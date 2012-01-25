@@ -10,6 +10,8 @@ import org.libj.xquery.parser.AST;
 import static org.libj.xquery.lexer.TokenType.*;
 
 import org.libj.xquery.runtime.Op;
+import org.libj.xquery.runtime.RecursiveList;
+import org.libj.xquery.xml.XML;
 import org.objectweb.asm.*;
 
 import java.util.ArrayList;
@@ -42,9 +44,11 @@ public class Assembler implements Opcodes {
 
     private static final String QUERY_CALLBACK = Callback.class.getName().replace('.', '/');
 //    private static final String QUERY_LIST = CallbackList.class.getName().replace('.', '/');
-    private static final String QUERY_LIST = ArrayList.class.getName().replace('.', '/');
+//    private static final String QUERY_LIST = ArrayList.class.getName().replace('.', '/');
+    private static final String QUERY_LIST = RecursiveList.class.getName().replace('.', '/');
 
     private static final String RUNTIME_OP = Op.class.getName().replace('.', '/');
+    private static final String XML_CLASS = XML.class.getName().replace('.', '/');
 
     private void visitClass() {
         cw.visit(V1_5, ACC_PUBLIC + ACC_SUPER, className.replace('.', '/'), null,
@@ -279,6 +283,8 @@ public class Assembler implements Opcodes {
     }
 
     private void visitNode(AST expr) {
+        mv.visitTypeInsn(NEW, XML_CLASS);
+        mv.visitInsn(DUP);
         ArrayList<AST> list = new ArrayList<AST>();
         flattenNode(expr, list);
         list = mergeStringNode(list);
@@ -304,6 +310,7 @@ public class Assembler implements Opcodes {
 //            }
         }
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;");
+        mv.visitMethodInsn(INVOKESPECIAL, XML_CLASS, "<init>", "(Ljava/lang/String;)V");
     }
 
     private void flattenNode(AST expr, ArrayList<AST> list) {
@@ -413,8 +420,9 @@ public class Assembler implements Opcodes {
     }
 
     private void pushToList() {
-        mv.visitMethodInsn(INVOKEVIRTUAL, QUERY_LIST, "add", "(Ljava/lang/Object;)Z");
-        mv.visitInsn(POP);
+//        mv.visitMethodInsn(INVOKEVIRTUAL, QUERY_LIST, "add", "(Ljava/lang/Object;)Z");
+//        mv.visitInsn(POP);
+        mv.visitMethodInsn(INVOKEVIRTUAL, QUERY_LIST, "add", "(Ljava/lang/Object;)V");
     }
 
     private void log(String message) {

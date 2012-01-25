@@ -40,5 +40,5 @@ Coming soon
 1. xpath
 2. where clause
 3. Java interop
-4. Flatten list
+4. Free variables
 
