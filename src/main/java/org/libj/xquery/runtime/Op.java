@@ -1,15 +1,14 @@
 package org.libj.xquery.runtime;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class Op {
-    public static List<Object> asList(Object x) {
+    public static Iterable<Object> asList(Object x) {
         if (x instanceof List) {
-            return (List<Object>) x;
+            return (java.util.List<Object>) x;
         }
         else {
-            List<Object> list = new ArrayList<Object>(1);
+            java.util.List<Object> list = new ArrayList<Object>(1);
             list.add(1);
             return list;
         }
@@ -54,19 +53,24 @@ public class Op {
     public static Object list(Object x, Object y) {
         int start = (Integer)x;
         int end = (Integer)y;
-        List<Object> list = new ArrayList<Object>(end - start + 1);
-        for (int i = start; i <= end; i++) {
-            list.add(i);
-        }
-        return list;
+        return new Range(start, end+1);
     }
 
     public static Object at(Object x, Object i) {
         int index = (Integer) i;
-        if (x instanceof List) {
-            List<Object> list = (List<Object>) x;
+        if (x instanceof java.util.List) {
+            java.util.List<Object> list = (java.util.List<Object>) x;
             if (1 <= index && index <= list.size()) {
                 return list.get(index - 1);
+            }
+            else {
+                return "";
+            }
+        }
+        else if (x instanceof List) {
+            List list = (List) x;
+            if (1 <= index && index <= list.size()) {
+                return list.nth(index - 1);
             }
             else {
                 return "";
