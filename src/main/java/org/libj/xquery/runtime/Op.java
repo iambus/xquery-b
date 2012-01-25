@@ -13,6 +13,8 @@ public class Op extends StandardStaticNamespace {
         registerStaticFunction("multiply", 2);
         registerStaticFunction("div", 2);
         registerStaticFunction("negative", 1);
+        registerStaticFunction("mod", 2);
+        registerStaticFunction("eq", 2);
         registerStaticFunction("to", 2);
         registerStaticFunction("at", 2);
     }
@@ -36,8 +38,9 @@ public class Op extends StandardStaticNamespace {
     }
 
     //////////////////////////////////////////////////
-    /// Below APIs are exported to  namespace op:*
+    /// Below APIs are exported to namespace op:*
     //////////////////////////////////////////////////
+
     public static Object list(Object x) {
         return asList(x);
     }
@@ -89,6 +92,22 @@ public class Op extends StandardStaticNamespace {
         else {
             throw new RuntimeException("Not Implemented!");
         }
+    }
+
+    public static Object mod(Object x, Object y) {
+        if (x instanceof Integer && y instanceof Integer) {
+            return (Integer) x % (Integer) y;
+        }
+        double dx = x instanceof Integer ? (Integer) x : (Double) x;
+        double dy = y instanceof Integer ? (Integer) y : (Double) y;
+        return dx % dy;
+    }
+
+    public static Object eq(Object x, Object y) {
+        if (x instanceof List || y instanceof List) {
+            throw new RuntimeException("Not Implemented!");
+        }
+        return x.equals(y);
     }
 
     public static Object to(Object x, Object y) {

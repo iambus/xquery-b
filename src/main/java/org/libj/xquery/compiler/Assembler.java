@@ -133,7 +133,7 @@ public class Assembler implements Opcodes {
             case CALL:
                 visitCall(expr);
                 break;
-            case PLUS: case MINUS: case MULTIPLY: case DIV: case NEGATIVE: case TO: case INDEX:
+            case PLUS: case MINUS: case MULTIPLY: case DIV: case NEGATIVE: case MOD: case EQ: case TO: case INDEX:
                 visitOp(expr);
                 break;
             case VARIABLE:
@@ -269,6 +269,12 @@ public class Assembler implements Opcodes {
                 break;
             case NEGATIVE:
                 op = "negative";
+                break;
+            case MOD:
+                op = "mod";
+                break;
+            case EQ:
+                op = "eq";
                 break;
             case TO:
                 op = "to";
@@ -433,7 +439,10 @@ public class Assembler implements Opcodes {
 
     private void invokeFunction(String functionName, java.util.List<AST> arguments, int argumentIndex) {
         Function fn = (Function) namespace.lookup(functionName);
-        if (fn instanceof StandardStaticFunction) {
+        if (fn == null) {
+            throw new RuntimeException("Function not found: "+functionName);
+        }
+        else if (fn instanceof StandardStaticFunction) {
             invokeFunction((StandardStaticFunction) fn, arguments, argumentIndex);
         }
         else if (fn instanceof StandardStaticVarlistFunction)
@@ -441,7 +450,7 @@ public class Assembler implements Opcodes {
         else if (fn instanceof StandardStaticOverloadedFunction)
             invokeFunction((StandardStaticOverloadedFunction) fn, arguments, argumentIndex);
         else {
-            throw new RuntimeException("Not Implemented!");
+            throw new RuntimeException("Not Implemented: " + fn);
         }
     }
 

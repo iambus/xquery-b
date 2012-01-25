@@ -213,6 +213,9 @@ public class Lexer extends LL1Reader {
         else if (text.equals("div")) {
             type = DIV;
         }
+        else if (text.equals("mod")) {
+            type = MOD;
+        }
         else if (text.equals("to")) {
             type = TO;
         }

@@ -104,7 +104,7 @@ public class Parser extends LLkParser {
 
     private AST multiply() throws IOException {
         AST ast = unary();
-        while (LA(1) == MULTIPLY || LA(1) == DIV) {
+        while (LA(1) == MULTIPLY || LA(1) == DIV || LA(1) == MOD) {
             ast = binary(ast, consume(), unary());
         }
         return ast;

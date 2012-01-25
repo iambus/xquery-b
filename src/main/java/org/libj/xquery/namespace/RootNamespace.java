@@ -28,6 +28,9 @@ public class RootNamespace extends DictNamespace {
                 throw new RuntimeException("Could not find namespace "+ns[i]+" of " +name);
             }
         }
+        if (s == null) {
+            throw new RuntimeException("Unresolved symbol "+name);
+        }
         return s;
     }
 
