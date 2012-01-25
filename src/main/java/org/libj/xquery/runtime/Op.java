@@ -7,16 +7,19 @@ import java.util.ArrayList;
 public class Op extends StandardStaticNamespace {
     public Op() {
         super(Op.class.getName());
-        registerStaticFunction("asList", 1);
+        registerStaticFunction("list", 1);
         registerStaticFunction("add", 2);
         registerStaticFunction("subtract", 2);
         registerStaticFunction("multiply", 2);
         registerStaticFunction("div", 2);
         registerStaticFunction("negative", 1);
-        registerStaticFunction("list", 2);
+        registerStaticFunction("to", 2);
         registerStaticFunction("at", 2);
     }
 
+    //////////////////////////////////////////////////
+    /// non-export APIs, for Java code
+    //////////////////////////////////////////////////
     public static boolean isList(Object x) {
         return x instanceof Iterable;
     }
@@ -30,6 +33,13 @@ public class Op extends StandardStaticNamespace {
             list.add(1);
             return list;
         }
+    }
+
+    //////////////////////////////////////////////////
+    /// Below APIs are exported to  namespace op:*
+    //////////////////////////////////////////////////
+    public static Object list(Object x) {
+        return asList(x);
     }
 
     public static Object add(Object x, Object y) {
@@ -81,7 +91,7 @@ public class Op extends StandardStaticNamespace {
         }
     }
 
-    public static Object list(Object x, Object y) {
+    public static Object to(Object x, Object y) {
         int start = (Integer)x;
         int end = (Integer)y;
         return new Range(start, end+1);

@@ -70,15 +70,13 @@ public class Fn extends StandardStaticNamespace {
     }
 
     public static Object contains(Object s, Object sub) {
-        return ((String) s).contains((String) sub);
+        return ((String)s).contains((String) sub);
     }
-
     public static Object starts_with(Object s, Object sub) {
-        return ((String) s).startsWith((String) sub);
+        return ((String)s).startsWith((String) sub);
     }
-
     public static Object ends_with(Object s, Object sub) {
-        return ((String) s).endsWith((String) sub);
+        return ((String)s).endsWith((String) sub);
     }
 
     // fn:matches($input as xs:string?, $pattern as xs:string) as xs:boolean

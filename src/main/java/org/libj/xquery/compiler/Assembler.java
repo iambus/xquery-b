@@ -203,6 +203,7 @@ public class Assembler implements Opcodes {
         int iterator = defineAnonymous();
         int element = define(variable);
         visitExpr(varExpr);
+        mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asList", "(Ljava/lang/Object;)Ljava/lang/Iterable;");
         mv.visitMethodInsn(INVOKEINTERFACE, "java/lang/Iterable", "iterator", "()Ljava/util/Iterator;");
         mv.visitVarInsn(ASTORE, iterator);
 
@@ -266,7 +267,7 @@ public class Assembler implements Opcodes {
                 op = "negative";
                 break;
             case TO:
-                op = "list";
+                op = "to";
                 break;
             case INDEX:
                 op = "at";
