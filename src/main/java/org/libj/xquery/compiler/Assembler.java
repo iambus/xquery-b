@@ -9,6 +9,7 @@ import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.AST;
 import static org.libj.xquery.lexer.TokenType.*;
 
+import org.libj.xquery.runtime.Nil;
 import org.libj.xquery.runtime.Op;
 import org.libj.xquery.runtime.RecursiveList;
 import org.libj.xquery.xml.XML;
@@ -46,6 +47,7 @@ public class Assembler implements Opcodes {
 //    private static final String QUERY_LIST = CallbackList.class.getName().replace('.', '/');
 //    private static final String QUERY_LIST = ArrayList.class.getName().replace('.', '/');
     private static final String QUERY_LIST = RecursiveList.class.getName().replace('.', '/');
+    private static final String NIL = Nil.class.getName().replace('.', '/');
 
     private static final String RUNTIME_OP = Op.class.getName().replace('.', '/');
     private static final String XML_CLASS = XML.class.getName().replace('.', '/');
@@ -196,9 +198,7 @@ public class Assembler implements Opcodes {
         String variable = expr.nth(1).getNodeText();
         AST varExpr = expr.nth(2);
         AST body = expr.nth(3);
-        if (expr.nth(4) != null && !expr.nth(4).isNil()) {
-            throw new RuntimeException("Not Implemented: "+expr.nth(4));
-        }
+        AST where = expr.nth(4);
 
         newList();
         int result = defineAnonymous();
@@ -215,16 +215,33 @@ public class Assembler implements Opcodes {
         Label loop = new Label();
         mv.visitJumpInsn(GOTO, condition);
 
+        // loop iteration
         mv.visitLabel(loop);
         mv.visitVarInsn(ALOAD, iterator);
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Iterator", "next", "()Ljava/lang/Object;");
         mv.visitVarInsn(ASTORE, element);
 
-        visitExpr(body);
-        mv.visitVarInsn(ALOAD, result);
-        mv.visitInsn(SWAP);
-        pushToList();
+        // loop body
+        if (where != null && !where.isNil()) {
+            visitExpr(where);
+//            mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+//            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z");
+            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asBool", "(Ljava/lang/Object;)Z");
+            Label endif = new Label();
+            mv.visitJumpInsn(IFEQ, endif);
+            // if body
+            mv.visitVarInsn(ALOAD, result);
+            visitExpr(body);
+            pushToList();
+            // end if
+            mv.visitLabel(endif);
+        } else {
+            mv.visitVarInsn(ALOAD, result);
+            visitExpr(body);
+            pushToList();
+        }
 
+        // loop condition
         mv.visitLabel(condition);
         mv.visitVarInsn(ALOAD, iterator);
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Iterator", "hasNext", "()Z");
@@ -239,14 +256,33 @@ public class Assembler implements Opcodes {
         String variable = expr.nth(1).getNodeText();
         AST varExpr = expr.nth(2);
         AST body = expr.nth(3);
-        if (expr.nth(4) != null && !expr.nth(4).isNil()) {
-            throw new RuntimeException("Not Implemented where: "+expr.nth(4));
-        }
+        AST where = expr.nth(4);
 
         int index = define(variable);
         visitExpr(varExpr);
         mv.visitVarInsn(ASTORE, index);
-        visitExpr(body);
+
+        if (where != null && !where.isNil()) {
+            visitExpr(where);
+//            mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+//            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z");
+            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asBool", "(Ljava/lang/Object;)Z");
+            Label endif = new Label();
+            Label els = new Label();
+            mv.visitJumpInsn(IFEQ, els);
+            // if body
+            visitExpr(body);
+            mv.visitJumpInsn(GOTO, endif);
+            // else body
+            mv.visitLabel(els);
+            pushNil();
+            // end if
+            mv.visitLabel(endif);
+        }
+        else
+        {
+            visitExpr(body);
+        }
 
         popScope();
     }
@@ -415,10 +451,16 @@ public class Assembler implements Opcodes {
     private void pushConst(Object o) {
         mv.visitLdcInsn(o);
     }
+
     private void newObject(String className) {
         mv.visitTypeInsn(NEW, className);
         mv.visitInsn(DUP);
         mv.visitMethodInsn(INVOKESPECIAL, className, "<init>", "()V");
+    }
+
+
+    private void pushNil() {
+        newObject(NIL);
     }
 
     private void newList() {
@@ -434,6 +476,12 @@ public class Assembler implements Opcodes {
     private void log(String message) {
         mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
         mv.visitLdcInsn(message);
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V");
+    }
+
+    private void log() {
+        mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+        mv.visitInsn(SWAP);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V");
     }
 

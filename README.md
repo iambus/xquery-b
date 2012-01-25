@@ -38,7 +38,6 @@ Be patient...
 Coming soon
 -----------
 1. xpath
-2. where clause
-3. Java interop
-4. Free variables
+2. Java interop
+3. Free variables
 

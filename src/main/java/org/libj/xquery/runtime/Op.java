@@ -37,6 +37,19 @@ public class Op extends StandardStaticNamespace {
         }
     }
 
+    public static boolean asBool(Object x) {
+        if (x instanceof Boolean) {
+            return (Boolean)x;
+        }
+        else if (x instanceof Integer) {
+            return (Integer)x != 0;
+        }
+        else if (x instanceof String) {
+            return ((String) x).isEmpty();
+        }
+        throw new RuntimeException("Not Implemented!");
+    }
+
     //////////////////////////////////////////////////
     /// Below APIs are exported to namespace op:*
     //////////////////////////////////////////////////

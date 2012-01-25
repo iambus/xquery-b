@@ -17,7 +17,12 @@ public class ListUtils {
             if (buffer.length() != 0 && buffer.charAt(buffer.length()-1) != '>') {
                 buffer.append(' ');
             }
-            buffer.append(XMLUtils.escapeXML(v.toString()));
+            if (v == null) {
+                buffer.append("");
+            }
+            else {
+                buffer.append(XMLUtils.escapeXML(v.toString()));
+            }
         }
     }
     public static void toString(Iterable collection, StringBuilder buffer) {
@@ -31,6 +36,4 @@ public class ListUtils {
         toString(x, buffer);
         return buffer.toString();
     }
-
-
 }

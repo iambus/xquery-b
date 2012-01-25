@@ -19,9 +19,16 @@ public class RecursiveList implements List {
     }
     
     public void add(Object x) {
+        if (x instanceof Nil) {
+            return;
+        }
         list.add(x);
     }
     
+    public java.util.List toNonRecursiveList() {
+        return list;
+    }
+
     public String toString() {
 //        return list.toString();
         return ListUtils.toString(this);

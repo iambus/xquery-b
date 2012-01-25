@@ -1,0 +1,33 @@
+package org.libj.xquery.runtime;
+
+import java.util.Iterator;
+
+public class Nil implements List {
+    public Iterator iterator() {
+        return new Iterator<Object>() {
+            public boolean hasNext() {
+                return false;
+            }
+
+            public Object next() {
+                throw new UnsupportedOperationException("next");
+            }
+
+            public void remove() {
+                throw new UnsupportedOperationException("remove");
+            }
+        };
+    }
+
+    public Object nth(int i) {
+        throw new UnsupportedOperationException("nth");
+    }
+
+    public int size() {
+        return 0;
+    }
+    
+    public String toString() {
+        return "";
+    }
+}
