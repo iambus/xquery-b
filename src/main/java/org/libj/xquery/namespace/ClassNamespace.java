@@ -30,7 +30,7 @@ public class ClassNamespace implements Namespace {
                     return new NormalStaticFunction(className, method);
                 }
                 else {
-                    throw new RuntimeException("Not Implemented!");
+                    return new NormalMethodFunction(className, method);
                 }
             }
         }

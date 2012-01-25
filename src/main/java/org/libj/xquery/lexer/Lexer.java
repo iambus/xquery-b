@@ -353,7 +353,7 @@ public class Lexer extends LL1Reader {
     }
 
     private boolean isWordPart() {
-        return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == ':' || c == '_' || c == '-';
+        return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == ':' || c == '_' || c == '-' || c == '.';
     }
 
     private boolean isQName() {

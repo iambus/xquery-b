@@ -26,17 +26,13 @@ public class Assembler implements Opcodes {
     private Scope scope;
     private int locals = 1;
 
-    private RootNamespace namespace = new RootNamespace();
+    private RootNamespace namespace = new DefaultRootNamespace();
 
     MethodVisitor mv;
 
     public Assembler(String className, AST ast) {
         this.className = className;
         this.ast = ast;
-        namespace.register("class", new JavaNamespace());
-        namespace.register("fn", new Fn());
-        namespace.register("op", new Op());
-        namespace.importDefault("fn");
         visitClass();
     }
 
@@ -501,6 +497,9 @@ public class Assembler implements Opcodes {
         else if (fn instanceof NormalStaticFunction) {
             invokeFunction((NormalStaticFunction) fn, arguments, argumentIndex);
         }
+        else if (fn instanceof NormalMethodFunction) {
+            invokeFunction((NormalMethodFunction) fn, arguments, argumentIndex);
+        }
         else {
             throw new RuntimeException("Not Implemented: " + fn);
         }
@@ -512,7 +511,7 @@ public class Assembler implements Opcodes {
         if (n != params.length) {
             throw new RuntimeException(
                     String.format("Too % arguments. Expected: %d, actual: %s",
-                            n < fn.getParameterNumber() ? "few" : "many",
+                            n < params.length ? "few" : "many",
                             params.length,
                             n));
         }
@@ -554,6 +553,25 @@ public class Assembler implements Opcodes {
             mv.visitInsn(AASTORE);
         }
         mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
+    }
+
+    private void invokeFunction(NormalMethodFunction fn, java.util.List<AST> arguments, int argumentIndex) {
+        visitExpr(arguments.get(argumentIndex++));
+        int n = arguments.size() - argumentIndex;
+        Class<?>[] params = fn.getParameterTypes();
+        if (n != params.length) {
+            throw new RuntimeException(
+                    String.format("Too % arguments. Expected: %d, actual: %s",
+                            n < params.length ? "few" : "many",
+                            params.length,
+                            n));
+        }
+        for (int i = 0; i < n; i++) {
+            visitExpr(arguments.get(i+argumentIndex));
+            Caster.castTo(mv, params[i]);
+        }
+        Caster.castFrom(mv, fn.getReturnType());
+        mv.visitMethodInsn(INVOKEVIRTUAL, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
     }
 
     private void invokeStatic(AST expr, String className, String op) {
