@@ -195,15 +195,17 @@ public class Parser extends LLkParser {
     }
 
     private AST node() throws IOException {
+        AST ast = new AST(new Token(NODE, null));
         if (LA(1) == TAGUNIT) {
-            return new AST(new Token(NODE, consume().text));
+            ast.addChild(consume(TAGUNIT));
+            return ast;
         }
-        AST ast = new AST(new Token(NODE, consume(TAGOPEN).text));
+        ast.addChild(consume(TAGOPEN));
         while (LA(1) != TAGCLOSE) {
             ast.addChild(nodeExpr());
         }
-        Token endTag = consume(TAGCLOSE);
         // TODO: check if start and end tag matches
+        ast.addChild(consume(TAGCLOSE));
         return ast;
     }
 

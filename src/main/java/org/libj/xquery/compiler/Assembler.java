@@ -283,32 +283,39 @@ public class Assembler implements Opcodes {
         list = mergeStringNode(list);
         newObject("java/lang/StringBuilder");
         for (AST element: list) {
-            if (element.getNodeType() == TEXT) {
-                pushConst(element.getNodeText());
-                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+            switch (element.getNodeType()) {
+                case TEXT: case TAGOPEN: case TAGCLOSE: case TAGUNIT:
+                    pushConst(element.getNodeText());
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+                    break;
+                default:
+                    visitExpr(element);
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
+                    break;
             }
-            else {
-                visitExpr(element);
-                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
-            }
+//            if (element.getNodeType() == TEXT) {
+//                pushConst(element.getNodeText());
+//                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+//            }
+//            else {
+//                visitExpr(element);
+//                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
+//            }
         }
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;");
     }
 
     private void flattenNode(AST expr, ArrayList<AST> list) {
-        if (expr.getNodeType()==NODE) {
-            String tag = expr.getNodeText();
-            list.add(new AST(new Token(TEXT, tag)));
-            if (expr.getChildren() != null) {
-                for (AST x : expr.getChildren()) {
-                    flattenNode(x, list);
+        switch (expr.getNodeType()) {
+            case NODE:
+                if (expr.getChildren() != null) {
+                    for (AST x : expr.getChildren()) {
+                        flattenNode(x, list);
+                    }
                 }
-            }
-            if (!tag.matches(".*/\\s*>")) {
-                list.add(new AST(new Token(TEXT, "</"+XMLLexer.parseTagName(tag)+">")));
-            }
-        } else {
-            list.add(expr);
+                break;
+            default:
+                list.add(expr);
         }
     }
 

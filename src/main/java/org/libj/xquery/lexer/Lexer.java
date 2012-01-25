@@ -49,6 +49,7 @@ public class Lexer extends LL1Reader {
     }
 
     public Token nextToken() throws IOException {
+//        System.out.println(stack);
         if (inCode()) {
             return nextCodeToken();
         }
@@ -150,9 +151,18 @@ public class Lexer extends LL1Reader {
             return readTag();
         }
         StringBuilder buffer = new StringBuilder();
-        while (!eof() && c != '{' && c != '<') {
+        while (!eof() && c != '{' && c != '<' && c != '>') {
             buffer.append((char)c);
             consume();
+        }
+        if (c == '>') {
+            buffer.append((char)c);
+            consume();
+            String t = buffer.toString();
+            if (XMLLexer.isSelfCloseTag(t)) {
+                exitNode();
+                return t(TAGCLOSE, t);
+            }
         }
         return t(TEXT, buffer.toString());
     }
@@ -272,7 +282,7 @@ public class Lexer extends LL1Reader {
         }
         while (isQName()) {
             tag.append((char)c);
-            tagName.append((char)c);
+            tagName.append((char) c);
             consume();
         }
         while (isWhitespace(c)) {
@@ -281,7 +291,11 @@ public class Lexer extends LL1Reader {
         }
         while (c != EOF) {
             if (c == '{') {
-                throw new RuntimeException("Not Implemented!");
+                if (!isOpenTag) {
+                    throw new RuntimeException("Invalid closing xml tag");
+                }
+                enterNode();
+                return t(TAGOPEN, tag.toString());
             }
             tag.append((char) c);
             if (c == '>') {
@@ -291,7 +305,7 @@ public class Lexer extends LL1Reader {
             consume();
         }
         String text = tag.toString();
-        boolean isUnitTag = text.matches(".*/\\s*>");
+        boolean isUnitTag = XMLLexer.isSelfCloseTag(text);
         if (!isOpenTag) {
             exitNode();
             return t(TAGCLOSE, text);

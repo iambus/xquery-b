@@ -13,4 +13,10 @@ public class XMLLexer {
         }
         return matcher.group(1);
     }
+
+    private static final Pattern SELF_CLOSE_PATTERN = Pattern.compile(".*/\\s*>");
+    public static boolean isSelfCloseTag(String tag) {
+        Matcher matcher = SELF_CLOSE_PATTERN.matcher(tag);
+        return matcher.matches();
+    }
 }
