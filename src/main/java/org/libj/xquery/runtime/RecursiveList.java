@@ -20,7 +20,7 @@ public class RecursiveList implements List {
             return v;
         }
         else {
-            return new Nil();
+            return Op.NIL;
         }
     }
 
@@ -29,7 +29,7 @@ public class RecursiveList implements List {
     }
     
     public void add(Object x) {
-        if (x instanceof Nil) {
+        if (x == null || x instanceof Nil) {
             return;
         }
         list.add(x);

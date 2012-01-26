@@ -107,6 +107,12 @@ public class Assembler implements Opcodes {
         mv = cw.visitMethod(ACC_PUBLIC, "eval", "()Ljava/lang/Object;", null, null);
         mv.visitCode();
         visitAST();
+        Label returnLabel = new Label();
+        mv.visitInsn(DUP);
+        mv.visitJumpInsn(IFNONNULL, returnLabel);
+        mv.visitInsn(POP);
+        pushNilObject();
+        mv.visitLabel(returnLabel);
         mv.visitInsn(ARETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
@@ -501,6 +507,11 @@ public class Assembler implements Opcodes {
 
 
     private void pushNil() {
+//        newObject(NIL);
+        mv.visitInsn(ACONST_NULL);
+    }
+
+    private void pushNilObject() {
         newObject(NIL);
     }
 

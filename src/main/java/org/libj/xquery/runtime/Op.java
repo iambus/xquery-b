@@ -27,6 +27,8 @@ public class Op extends StandardStaticNamespace {
     //////////////////////////////////////////////////
     /// non-export APIs, for Java code
     //////////////////////////////////////////////////
+    public static final Object NIL = null;
+
     public static boolean isList(Object x) {
         return x instanceof Iterable;
     }
@@ -153,7 +155,7 @@ public class Op extends StandardStaticNamespace {
                 return list.get(index - 1);
             }
             else {
-                return new Nil();
+                return Op.NIL;
             }
         }
         else if (x instanceof List) {
@@ -165,7 +167,7 @@ public class Op extends StandardStaticNamespace {
                 return x;
             }
             else {
-                return new Nil();
+                return Op.NIL;
             }
         }
     }
