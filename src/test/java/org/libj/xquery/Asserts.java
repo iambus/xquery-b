@@ -76,7 +76,7 @@ public class Asserts {
     private static void logTime(String script, long ms, long loop) {
         boolean multiline = script.indexOf('\n') == -1;
         System.out.println("----------------------------------------");
-        System.out.println(String.format("It takes %s ms to execute this script (loop %s): %s", ms, number(loop), (multiline?"":"\n"), script));
+        System.out.println(String.format("It takes %s ms to execute this script (loop %s): %s%s", ms, number(loop), (multiline?"":"\n"), script));
     }
     private static void logSpeed(long n, long ms) {
         long perCall = ms/n;

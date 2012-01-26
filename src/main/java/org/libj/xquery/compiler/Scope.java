@@ -34,4 +34,8 @@ public class Scope {
         }
         return s;
     }
+
+    public String toString() {
+        return symbols.toString();
+    }
 }

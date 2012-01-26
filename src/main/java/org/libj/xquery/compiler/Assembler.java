@@ -1,6 +1,7 @@
 package org.libj.xquery.compiler;
 
 import org.libj.xquery.Callback;
+import org.libj.xquery.Environment;
 import org.libj.xquery.XQuery;
 import org.libj.xquery.lexer.Token;
 import org.libj.xquery.namespace.*;
@@ -11,7 +12,6 @@ import org.libj.xquery.runtime.Nil;
 import org.libj.xquery.runtime.Op;
 import org.libj.xquery.runtime.RecursiveList;
 import org.libj.xquery.xml.DomSimpleXPathXMLFactory;
-import org.libj.xquery.xml.DomXMLFactory;
 import org.libj.xquery.xml.XML;
 import org.libj.xquery.xml.XMLFactory;
 import org.objectweb.asm.*;
@@ -25,15 +25,17 @@ public class Assembler implements Opcodes {
     private ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
     private String compiledClassName;
 
-    private Scope scope;
-    private int locals = 1;
+    private Scope scope = new Scope();
+    private Scope freeScope = new Scope();
+    private int locals = 2;
+    private final int environment_index = 1;
 
     private RootNamespace namespace = new DefaultRootNamespace();
 
     MethodVisitor mv;
 
     public Assembler(String className, AST ast) {
-        this.compiledClassName = className;
+        this.compiledClassName = className.replace('.', '/');
         this.ast = ast;
         visitClass();
     }
@@ -44,6 +46,7 @@ public class Assembler implements Opcodes {
 //    private static final String QUERY_LIST = CallbackList.class.getName().replace('.', '/');
 //    private static final String QUERY_LIST = ArrayList.class.getName().replace('.', '/');
     private static final String QUERY_LIST = RecursiveList.class.getName().replace('.', '/');
+    private static final String ENVIRONMENT_CLASS = Environment.class.getName().replace('.', '/');
     private static final String NIL = Nil.class.getName().replace('.', '/');
 
     private static final String RUNTIME_OP = Op.class.getName().replace('.', '/');
@@ -53,11 +56,12 @@ public class Assembler implements Opcodes {
     private static final String XML_INTERFACE = XML.class.getName().replace('.', '/');
 
     private void visitClass() {
-        cw.visit(V1_5, ACC_PUBLIC + ACC_SUPER, compiledClassName.replace('.', '/'), null,
+        cw.visit(V1_5, ACC_PUBLIC + ACC_SUPER, compiledClassName, null,
                 "java/lang/Object",
                 new String[] {QUERY_BASE});
         visitInit();
         visitFactory();
+        visitEvalWithEnvironment();
         visitEval();
         visitEvalCallback();
         cw.visitEnd();
@@ -71,17 +75,17 @@ public class Assembler implements Opcodes {
         mv.visitCode();
         // if xmlFactory == null
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, compiledClassName.replace('.', '/'), "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
+        mv.visitFieldInsn(GETFIELD, compiledClassName, "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
         Label endIf = new Label();
         mv.visitJumpInsn(IFNONNULL, endIf);
         // init xmlFactory
         mv.visitVarInsn(ALOAD, 0);
         newObject(XML_FACTORY_IMPLEMENTATION);
-        mv.visitFieldInsn(PUTFIELD, compiledClassName.replace('.', '/'), "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
+        mv.visitFieldInsn(PUTFIELD, compiledClassName, "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
         mv.visitLabel(endIf);
         // enf if
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, compiledClassName.replace('.', '/'), "xmlFactory", "L" + XML_FACTORY_INTERFACE + ";");
+        mv.visitFieldInsn(GETFIELD, compiledClassName, "xmlFactory", "L" + XML_FACTORY_INTERFACE + ";");
         mv.visitVarInsn(ALOAD, 1);
         mv.visitMethodInsn(INVOKEINTERFACE, XML_FACTORY_INTERFACE, "toXML", "(Ljava/lang/String;)L" + XML_INTERFACE + ";");
         mv.visitInsn(ARETURN);
@@ -100,11 +104,25 @@ public class Assembler implements Opcodes {
     }
 
     //////////////////////////////////////////////////
-    /// eval()
+    /// eval
     //////////////////////////////////////////////////
 
     private void visitEval() {
-        mv = cw.visitMethod(ACC_PUBLIC, "eval", "()Ljava/lang/Object;", null, null);
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", "()Ljava/lang/Object;", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitInsn(ACONST_NULL);
+        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L"+ENVIRONMENT_CLASS+";)Ljava/lang/Object;");
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+    //////////////////////////////////////////////////
+    /// eval(Environment)
+    //////////////////////////////////////////////////
+
+    private void visitEvalWithEnvironment() {
+        mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ENVIRONMENT_CLASS+";)Ljava/lang/Object;", null, null);
         mv.visitCode();
         visitAST();
         Label returnLabel = new Label();
@@ -174,7 +192,7 @@ public class Assembler implements Opcodes {
                 visitOp(expr);
                 break;
             case VARIABLE:
-                mv.visitVarInsn(ALOAD, resolve(expr.getNodeText()));
+                visitVariable(expr);
                 break;
             case STRING:
                 mv.visitLdcInsn(expr.getNodeText());
@@ -188,6 +206,51 @@ public class Assembler implements Opcodes {
             default:
                 throw new RuntimeException("Not Implemented: "+toTypeName(expr.getNodeType()));
         }
+    }
+
+    private void visitVariable(AST expr) {
+        String variable = expr.getNodeText();
+        if (!isFree(variable)) {
+            mv.visitVarInsn(ALOAD, resolve(variable));
+            return;
+        }
+        int index = resolveFree(variable);
+        // load initializer flag
+        // XXX: initializer flag doesn't work, as there is JVM VerifyError.
+        // XXX: so we always look up the environment table for every reference.
+        // Exception in thread "main" java.lang.VerifyError: ... Accessing value from uninitialized register 2
+////        mv.visitIntInsn(ILOAD, index);
+//        mv.visitInsn(ICONST_0);
+        Label pushResult = new Label();
+//        mv.visitJumpInsn(IFNE, pushResult);
+        // if environment == null
+        mv.visitVarInsn(ALOAD, environment_index);
+        Label initVariable = new Label();
+        mv.visitJumpInsn(IFNONNULL, initVariable);
+        // throw exception
+        mv.visitTypeInsn(NEW, "java/lang/RuntimeException");
+        mv.visitInsn(DUP);
+        mv.visitLdcInsn("Unbound variable "+variable);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/RuntimeException", "<init>", "(Ljava/lang/String;)V");
+        mv.visitInsn(ATHROW);
+        // init free variable
+        mv.visitLabel(initVariable);
+        mv.visitVarInsn(ALOAD, environment_index);
+        mv.visitLdcInsn(variable);
+        mv.visitMethodInsn(INVOKEVIRTUAL, ENVIRONMENT_CLASS, "getVariable", "(Ljava/lang/String;)Ljava/lang/Object;");
+        mv.visitVarInsn(ASTORE, index+1);
+        // if variable value is null
+        mv.visitVarInsn(ALOAD, index+1);
+        mv.visitJumpInsn(IFNONNULL, pushResult);
+        // throw exception
+        mv.visitTypeInsn(NEW, "java/lang/RuntimeException");
+        mv.visitInsn(DUP);
+        mv.visitLdcInsn("Unbound variable "+variable);
+        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/RuntimeException", "<init>", "(Ljava/lang/String;)V");
+        mv.visitInsn(ATHROW);
+        // push result
+        mv.visitLabel(pushResult);
+        mv.visitVarInsn(ALOAD, index+1);
     }
 
     private void visitCall(AST expr) {
@@ -691,6 +754,17 @@ public class Assembler implements Opcodes {
         return index;
     }
 
+    private int defineFree(String name) {
+        int index = locals;
+        locals += 2;
+        freeScope.define(new Symbol(name, index));
+        return index;
+    }
+
+    private boolean isFree(String name) {
+        return scope.resolve(name) == null;
+    }
+
     private int resolve(String name) {
         Symbol s = scope.resolve(name);
         if (s == null) {
@@ -699,6 +773,13 @@ public class Assembler implements Opcodes {
         return s.getIndex();
     }
 
+    private int resolveFree(String name) {
+        Symbol s = freeScope.resolve(name);
+        if (s == null) {
+            return defineFree(name);
+        }
+        return s.getIndex();
+    }
     //////////////////////////////////////////////////
     /// public API
     //////////////////////////////////////////////////
