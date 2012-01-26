@@ -375,28 +375,32 @@ public class Assembler implements Opcodes {
         ArrayList<AST> list = new ArrayList<AST>();
         flattenNode(expr, list);
         list = mergeStringNode(list);
-        newObject("java/lang/StringBuilder");
-        for (AST element: list) {
-            switch (element.getNodeType()) {
+        if (list.size() == 1) {
+            AST singleton = list.get(0);
+            switch (singleton.getNodeType()) {
                 case TEXT: case TAGOPEN: case TAGCLOSE: case TAGUNIT:
-                    pushConst(element.getNodeText());
-                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+                    pushConst(singleton.getNodeText());
                     break;
                 default:
-                    visitExpr(element);
-                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
-                    break;
+                    throw new RuntimeException("Not supposed to happen...");
             }
-//            if (element.getNodeType() == TEXT) {
-//                pushConst(element.getNodeText());
-//                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
-//            }
-//            else {
-//                visitExpr(element);
-//                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
-//            }
         }
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;");
+        else {
+            newObject("java/lang/StringBuilder");
+            for (AST element: list) {
+                switch (element.getNodeType()) {
+                    case TEXT: case TAGOPEN: case TAGCLOSE: case TAGUNIT:
+                        pushConst(element.getNodeText());
+                        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+                        break;
+                    default:
+                        visitExpr(element);
+                        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
+                        break;
+                }
+            }
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;");
+        }
         mv.visitVarInsn(ALOAD, 0);
         mv.visitInsn(SWAP);
         mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "toXML", "(Ljava/lang/String;)L" + XML_INTERFACE + ";");
