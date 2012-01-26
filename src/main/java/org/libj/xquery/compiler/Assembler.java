@@ -10,7 +10,9 @@ import static org.libj.xquery.lexer.TokenType.*;
 import org.libj.xquery.runtime.Nil;
 import org.libj.xquery.runtime.Op;
 import org.libj.xquery.runtime.RecursiveList;
+import org.libj.xquery.xml.DomXMLFactory;
 import org.libj.xquery.xml.XML;
+import org.libj.xquery.xml.XMLFactory;
 import org.objectweb.asm.*;
 
 import java.util.ArrayList;
@@ -44,16 +46,45 @@ public class Assembler implements Opcodes {
     private static final String NIL = Nil.class.getName().replace('.', '/');
 
     private static final String RUNTIME_OP = Op.class.getName().replace('.', '/');
-    private static final String XML_CLASS = XML.class.getName().replace('.', '/');
+    private static final String XML_FACTORY_INTERFACE = XMLFactory.class.getName().replace('.', '/');
+    private static final String XML_FACTORY_IMPLEMENTATION = DomXMLFactory.class.getName().replace('.', '/');
+    private static final String XML_INTERFACE = XML.class.getName().replace('.', '/');
 
     private void visitClass() {
         cw.visit(V1_5, ACC_PUBLIC + ACC_SUPER, compiledClassName.replace('.', '/'), null,
                 "java/lang/Object",
                 new String[] {QUERY_BASE});
         visitInit();
+        visitFactory();
         visitEval();
         visitEvalCallback();
         cw.visitEnd();
+    }
+
+    private void visitFactory() {
+        FieldVisitor fv = cw.visitField(ACC_PRIVATE, "xmlFactory", "L"+XML_FACTORY_INTERFACE+";", null, null);
+        fv.visitEnd();
+
+        mv = cw.visitMethod(ACC_PRIVATE, "toXML", "(Ljava/lang/String;)L"+ XML_INTERFACE +";", null, null);
+        mv.visitCode();
+        // if xmlFactory == null
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitFieldInsn(GETFIELD, compiledClassName.replace('.', '/'), "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
+        Label endIf = new Label();
+        mv.visitJumpInsn(IFNONNULL, endIf);
+        // init xmlFactory
+        mv.visitVarInsn(ALOAD, 0);
+        newObject(XML_FACTORY_IMPLEMENTATION);
+        mv.visitFieldInsn(PUTFIELD, compiledClassName.replace('.', '/'), "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
+        mv.visitLabel(endIf);
+        // enf if
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitFieldInsn(GETFIELD, compiledClassName.replace('.', '/'), "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitMethodInsn(INVOKEINTERFACE, XML_FACTORY_INTERFACE, "toXML", "(Ljava/lang/String;)L"+ XML_INTERFACE +";");
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
     }
 
     private void visitInit() {
@@ -322,8 +353,6 @@ public class Assembler implements Opcodes {
     }
 
     private void visitNode(AST expr) {
-        mv.visitTypeInsn(NEW, XML_CLASS);
-        mv.visitInsn(DUP);
         ArrayList<AST> list = new ArrayList<AST>();
         flattenNode(expr, list);
         list = mergeStringNode(list);
@@ -349,7 +378,9 @@ public class Assembler implements Opcodes {
 //            }
         }
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;");
-        mv.visitMethodInsn(INVOKESPECIAL, XML_CLASS, "<init>", "(Ljava/lang/String;)V");
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitInsn(SWAP);
+        mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "toXML", "(Ljava/lang/String;)L"+ XML_INTERFACE +";");
     }
 
     private void flattenNode(AST expr, ArrayList<AST> list) {

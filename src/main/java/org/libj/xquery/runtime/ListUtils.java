@@ -3,8 +3,6 @@ package org.libj.xquery.runtime;
 import org.libj.xquery.xml.XML;
 import org.libj.xquery.xml.XMLUtils;
 
-import java.util.Iterator;
-
 public class ListUtils {
     public static void toString(Object v, StringBuilder buffer) {
         if (v instanceof Iterable) {
