@@ -27,6 +27,7 @@ public class Asserts {
         q.eval();
         long end = System.currentTimeMillis();
         long executionMillis = end - start;
+        logTime(script, executionMillis);
         assertTrue(String.format("Timeout: %d > %d", executionMillis, targetMillis), executionMillis <= targetMillis);
     }
 
@@ -38,6 +39,8 @@ public class Asserts {
         }
         long end = System.currentTimeMillis();
         long executionMillis = end - start;
+        logTime(script, executionMillis);
+        logSpeed(n, executionMillis);
         assertTrue(String.format("Timeout: %d > %d (loop %d)", executionMillis, targetMillis, n), executionMillis <= targetMillis);
     }
 
@@ -52,10 +55,22 @@ public class Asserts {
         }
         long end = System.currentTimeMillis();
         long executionMillis = end - start;
+        logTime(script, executionMillis);
+        logSpeed(n, executionMillis);
         assertTrue(String.format("Timeout: %d > %d (loop %d)", executionMillis, targetMillis, n), executionMillis < targetMillis);
     }
 
     public static void assertRepeatedCompilePerSecond(String script, int n) {
         assertRepeatedCompileMillis(script, n, 1000);
+    }
+    private static void logTime(String script, long ms) {
+        boolean multiline = script.indexOf('\n') == -1;
+        System.out.println("It takes "+ms+" ms to execute this script: "+(multiline?"":"\n")+script);
+    }
+    private static void logSpeed(int n, long ms) {
+        long perCall = ms/n;
+        long perSecond = 1000*n/ms;
+        System.out.println("Average excution time: "+perCall+ " ms");
+        System.out.println("Speed: "+perSecond+ " /s");
     }
 }
