@@ -52,7 +52,6 @@ public class TestBigForLoopPerformance {
                 "    where $i != 1\n" +
                 "    return\n" +
                 "        $i";
-        System.out.println(xquery);
         assertEvalMillis(xquery, 200);
     }
     @Test

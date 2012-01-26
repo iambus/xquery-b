@@ -7,11 +7,11 @@ import static org.libj.xquery.Compiler.compile;
 
 public class Asserts {
     public static void assertEval(String script, Object expected) {
-        assertEquals(expected, eval(script));
+        assertEquals(script, expected, eval(script));
     }
 
     public static void assertEvalString(String script, String expected) {
-        assertEquals(expected, eval(script).toString());
+        assertEquals(script, expected, eval(script).toString());
     }
 
     public static void assertEvalRegex(String script, String expected) {

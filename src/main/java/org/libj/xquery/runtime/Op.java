@@ -37,7 +37,7 @@ public class Op extends StandardStaticNamespace {
         }
         else {
             java.util.List<Object> list = new ArrayList<Object>(1);
-            list.add(1);
+            list.add(x);
             return list;
         }
     }
