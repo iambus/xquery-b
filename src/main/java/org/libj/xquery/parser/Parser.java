@@ -234,7 +234,17 @@ public class Parser extends LLkParser {
     }
 
     private AST xpath() throws IOException {
-        return new AST(consume(XPATH));
+        String xpath = consume(XPATH).text;
+        int separator = xpath.indexOf('/');
+        if (separator <= 0) {
+            throw new RuntimeException("Invalid xpath: "+xpath);
+        }
+        String variable = xpath.substring(0, separator);
+        xpath = xpath.substring(separator);
+        AST ast = new AST(XPATH);
+        ast.addChild(new Token(VARIABLE, variable));
+        ast.addChild(new Token(STRING, xpath));
+        return ast;
     }
 
     private AST variable() throws IOException {

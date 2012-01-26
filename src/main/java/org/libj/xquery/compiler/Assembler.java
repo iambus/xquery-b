@@ -129,7 +129,7 @@ public class Assembler implements Opcodes {
             case CALL:
                 visitCall(expr);
                 break;
-            case PLUS: case MINUS: case MULTIPLY: case DIV: case NEGATIVE: case MOD: case EQ: case TO: case INDEX:
+            case PLUS: case MINUS: case MULTIPLY: case DIV: case NEGATIVE: case MOD: case EQ: case TO: case INDEX: case XPATH:
                 visitOp(expr);
                 break;
             case VARIABLE:
@@ -311,6 +311,9 @@ public class Assembler implements Opcodes {
                 break;
             case INDEX:
                 op = "at";
+                break;
+            case XPATH:
+                op = "xpath";
                 break;
             default:
                 throw new RuntimeException("Not Implemented: "+toTypeName(type));

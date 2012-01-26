@@ -1,6 +1,7 @@
 package org.libj.xquery.runtime;
 
 import org.libj.xquery.namespace.StandardStaticNamespace;
+import org.libj.xquery.xml.XML;
 
 import java.util.ArrayList;
 
@@ -17,6 +18,7 @@ public class Op extends StandardStaticNamespace {
         registerStaticFunction("eq", 2);
         registerStaticFunction("to", 2);
         registerStaticFunction("at", 2);
+        registerStaticFunction("xpath", 2);
     }
 
     //////////////////////////////////////////////////
@@ -152,5 +154,8 @@ public class Op extends StandardStaticNamespace {
                 return new Nil();
             }
         }
+    }
+    public static Object xpath(Object x, Object y) {
+        return ((XML)x).eval((String) y);
     }
 }
