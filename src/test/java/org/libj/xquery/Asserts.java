@@ -14,13 +14,28 @@ public class Asserts {
     public static void assertEval(String script, Object expected) {
         assertEquals(script, expected, eval(script));
     }
+    public static void assertEval(String script, Object expected, Environment env) {
+        XQuery q = compile(script);
+        assertEquals(script, expected, q.eval(env));
+    }
 
     public static void assertEvalString(String script, String expected) {
         assertEquals(script, expected, eval(script).toString());
     }
 
+    public static void assertEvalString(String script, String expected, Environment env) {
+        XQuery q = compile(script);
+        assertEquals(script, expected, q.eval(env).toString());
+    }
+
     public static void assertEvalRegex(String script, String expected) {
         String result = eval(script).toString();
+        assertTrue(String.format("%s doesn't match pattern %s", result, expected), result.matches(expected));
+    }
+
+    public static void assertEvalRegex(String script, String expected, Environment env) {
+        XQuery q = compile(script);
+        String result = q.eval(env).toString();
         assertTrue(String.format("%s doesn't match pattern %s", result, expected), result.matches(expected));
     }
 
@@ -36,11 +51,11 @@ public class Asserts {
         assertTrue(String.format("Timeout: %d > %d", executionMillis, targetMillis), executionMillis <= targetMillis);
     }
 
-    public static void assertRepeatedEvalMillis(String script, int n, int targetMillis) {
+    public static void assertRepeatedEvalMillis(String script, int n, int targetMillis, Environment env) {
         XQuery q = compile(script);
         long start = System.currentTimeMillis();
         for (int i = 0; i < n; i++) {
-            q.eval();
+            q.eval(env);
         }
         long end = System.currentTimeMillis();
         long executionMillis = end - start;
@@ -49,8 +64,16 @@ public class Asserts {
         assertTrue(String.format("Timeout: %d > %d (loop %s)", executionMillis, targetMillis, number(n)), executionMillis <= targetMillis);
     }
 
+    public static void assertRepeatedEvalMillis(String script, int n, int targetMillis) {
+        assertRepeatedEvalMillis(script, n, targetMillis, null);
+    }
+
+    public static void assertRepeatedEvalPerSecond(String script, int n, Environment env) {
+        assertRepeatedEvalMillis(script, n, 1000, env);
+    }
+
     public static void assertRepeatedEvalPerSecond(String script, int n) {
-        assertRepeatedEvalMillis(script, n, 1000);
+        assertRepeatedEvalPerSecond(script, n, null);
     }
 
     public static void assertRepeatedCompileMillis(String script, int n, int targetMillis) {

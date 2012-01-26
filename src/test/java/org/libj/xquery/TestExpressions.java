@@ -110,6 +110,8 @@ public class TestExpressions {
     public void testNode() {
         assertEvalString("<x/>", "<x/>");
         assertEvalString("<x>{2}</x>", "<x>2</x>");
+        assertEvalString("<x>$x</x>", "<x>$x</x>");
+        assertEvalString("<x a='{1+3}'>$x</x>", "<x a='4'>$x</x>");
         assertEvalString("let $x := 3 return <x><w/><a>{$x}</a></x>", "<x><w/><a>3</a></x>");
         assertEvalString("for $x in (3,4,5) return <a>{$x}</a>", "<a>3</a><a>4</a><a>5</a>");
         assertEvalString("let $x :='i' return <a attr='{$x}'>[{$x}]<x v='{$x}'/></a>", "<a attr='i'>[i]<x v='i'/></a>");
