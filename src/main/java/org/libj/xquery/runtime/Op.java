@@ -16,6 +16,9 @@ public class Op extends StandardStaticNamespace {
         registerStaticFunction("negative", 1);
         registerStaticFunction("mod", 2);
         registerStaticFunction("eq", 2);
+        registerStaticFunction("ne", 2);
+        registerStaticFunction("and", 2);
+        registerStaticFunction("or", 2);
         registerStaticFunction("to", 2);
         registerStaticFunction("at", 2);
         registerStaticFunction("xpath", 2);
@@ -123,6 +126,17 @@ public class Op extends StandardStaticNamespace {
             throw new RuntimeException("Not Implemented!");
         }
         return x.equals(y);
+    }
+    public static Object ne(Object x, Object y) {
+        return !(Boolean)eq(x, y);
+    }
+
+    public static Object and(Object x, Object y) {
+        return asBool(x) && asBool(y);
+    }
+
+    public static Object or(Object x, Object y) {
+        return asBool(x) || asBool(y);
     }
 
     public static Object to(Object x, Object y) {

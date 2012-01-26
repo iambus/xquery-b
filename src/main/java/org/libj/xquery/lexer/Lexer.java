@@ -105,6 +105,10 @@ public class Lexer extends LL1Reader {
                 case '=':
                     consume();
                     return t(EQ, "=");
+                case '!':
+                    consume();
+                    match('=');
+                    return t(NE, "!=");
                 case ':':
                     consume();
                     match('=');

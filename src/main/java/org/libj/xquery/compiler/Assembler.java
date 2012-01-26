@@ -10,6 +10,7 @@ import static org.libj.xquery.lexer.TokenType.*;
 import org.libj.xquery.runtime.Nil;
 import org.libj.xquery.runtime.Op;
 import org.libj.xquery.runtime.RecursiveList;
+import org.libj.xquery.xml.DomSimpleXPathXMLFactory;
 import org.libj.xquery.xml.DomXMLFactory;
 import org.libj.xquery.xml.XML;
 import org.libj.xquery.xml.XMLFactory;
@@ -47,7 +48,8 @@ public class Assembler implements Opcodes {
 
     private static final String RUNTIME_OP = Op.class.getName().replace('.', '/');
     private static final String XML_FACTORY_INTERFACE = XMLFactory.class.getName().replace('.', '/');
-    private static final String XML_FACTORY_IMPLEMENTATION = DomXMLFactory.class.getName().replace('.', '/');
+//    private static final String XML_FACTORY_IMPLEMENTATION = DomXMLFactory.class.getName().replace('.', '/');
+    private static final String XML_FACTORY_IMPLEMENTATION = DomSimpleXPathXMLFactory.class.getName().replace('.', '/');
     private static final String XML_INTERFACE = XML.class.getName().replace('.', '/');
 
     private void visitClass() {
@@ -79,9 +81,9 @@ public class Assembler implements Opcodes {
         mv.visitLabel(endIf);
         // enf if
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, compiledClassName.replace('.', '/'), "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
+        mv.visitFieldInsn(GETFIELD, compiledClassName.replace('.', '/'), "xmlFactory", "L" + XML_FACTORY_INTERFACE + ";");
         mv.visitVarInsn(ALOAD, 1);
-        mv.visitMethodInsn(INVOKEINTERFACE, XML_FACTORY_INTERFACE, "toXML", "(Ljava/lang/String;)L"+ XML_INTERFACE +";");
+        mv.visitMethodInsn(INVOKEINTERFACE, XML_FACTORY_INTERFACE, "toXML", "(Ljava/lang/String;)L" + XML_INTERFACE + ";");
         mv.visitInsn(ARETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
@@ -160,7 +162,9 @@ public class Assembler implements Opcodes {
             case CALL:
                 visitCall(expr);
                 break;
-            case PLUS: case MINUS: case MULTIPLY: case DIV: case NEGATIVE: case MOD: case EQ: case TO: case INDEX: case XPATH:
+            case PLUS: case MINUS: case MULTIPLY: case DIV: case NEGATIVE: case MOD:
+            case EQ: case NE: case AND: case OR:
+            case TO: case INDEX: case XPATH:
                 visitOp(expr);
                 break;
             case VARIABLE:
@@ -337,6 +341,15 @@ public class Assembler implements Opcodes {
             case EQ:
                 op = "eq";
                 break;
+            case NE:
+                op = "ne";
+                break;
+            case AND:
+                op = "and";
+                break;
+            case OR:
+                op = "or";
+                break;
             case TO:
                 op = "to";
                 break;
@@ -380,7 +393,7 @@ public class Assembler implements Opcodes {
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;");
         mv.visitVarInsn(ALOAD, 0);
         mv.visitInsn(SWAP);
-        mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "toXML", "(Ljava/lang/String;)L"+ XML_INTERFACE +";");
+        mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "toXML", "(Ljava/lang/String;)L" + XML_INTERFACE + ";");
     }
 
     private void flattenNode(AST expr, ArrayList<AST> list) {

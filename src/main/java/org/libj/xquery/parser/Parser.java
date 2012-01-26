@@ -80,7 +80,7 @@ public class Parser extends LLkParser {
 
     private AST compare() throws IOException {
         AST ast = range();
-        if (LA(1) == EQ) {
+        if (LA(1) == EQ || LA(1) == NE) {
             ast = binary(ast, consume(), range());
         }
         return ast;
@@ -88,7 +88,7 @@ public class Parser extends LLkParser {
 
     private AST range() throws IOException {
         AST ast = add();
-        while (LA(1) == PLUS || LA(1) == MINUS) {
+        if (LA(1) == TO) {
             ast = binary(ast, consume(), add());
         }
         return ast;
@@ -96,7 +96,7 @@ public class Parser extends LLkParser {
 
     private AST add() throws IOException {
         AST ast = multiply();
-        if (LA(1) == TO) {
+        while (LA(1) == PLUS || LA(1) == MINUS) {
             ast = binary(ast, consume(), multiply());
         }
         return ast;

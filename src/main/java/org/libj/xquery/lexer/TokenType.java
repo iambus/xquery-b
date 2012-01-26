@@ -27,7 +27,8 @@ public class TokenType {
     public static final int SEMI = 21;
     public static final int COMMA = 22;
     public static final int EQ = 23;
-    public static final int ASSIGN = 24;
+    public static final int NE = 24;
+    public static final int ASSIGN = 25;
 
     public static final int PLUS = 31;
     public static final int MINUS = 32;
