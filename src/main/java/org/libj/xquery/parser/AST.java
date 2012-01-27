@@ -3,7 +3,6 @@ package org.libj.xquery.parser;
 import org.libj.xquery.lexer.Token;
 import static org.libj.xquery.lexer.TokenType.*;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -32,7 +31,7 @@ public class AST extends Cons {
         return getToken().text;
     }
 
-    public AST getChildren() {
+    public AST rest() {
         AST rest = (AST) next();
         if (rest != null) {
             return rest;
@@ -117,7 +116,7 @@ public class AST extends Cons {
             StringBuilder builder = new StringBuilder();
             builder.append("'("); // XXX: TODO: FIXME: the output doesn't make sense...
             builder.append(head);
-            for (Object x: getChildren()) {
+            for (Object x: rest()) {
                 builder.append(x);
             }
             builder.append(")");

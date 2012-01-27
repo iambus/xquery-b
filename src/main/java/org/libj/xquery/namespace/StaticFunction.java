@@ -1,6 +1,6 @@
 package org.libj.xquery.namespace;
 
-public class StaticFunction implements Function {
+public class StaticFunction implements JavaFunction {
     private String className;
     private String functionName;
     private String signature;
@@ -21,6 +21,18 @@ public class StaticFunction implements Function {
 
     public String getSignature() {
         return signature;
+    }
+
+    public Class<?>[] getParameterTypes() {
+        throw new UnsupportedOperationException("getParameterTypes");
+    }
+
+    public Class<?> getReturnType() {
+        throw new UnsupportedOperationException("getReturnType");
+    }
+
+    public boolean isMethod() {
+        return false;
     }
 
     public int getParameterNumber() {

@@ -22,6 +22,7 @@ public class TestJavaOp {
     @Test
     public void testOverloadedNew() {
         assertEval("declare namespace Integer = \"class:java.lang.Integer\"; Integer:new(\"1234\")", 1234);
+        assertEval("java.lang.Integer:new(\"1234\")", 1234);
     }
 
     @Test

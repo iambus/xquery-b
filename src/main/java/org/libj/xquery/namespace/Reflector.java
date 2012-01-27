@@ -83,6 +83,9 @@ public class Reflector {
             if (typeName.equals("long")) {
                 return "J";
             }
+            if (typeName.equals("short")) {
+                return "S";
+            }
             if (typeName.equals("boolean")) {
                 return "Z";
             }

@@ -37,7 +37,10 @@ Be patient...
 
 Coming soon
 -----------
-1. trace function parameter and return types
-2. java interop: method overload
+1. trace function parameter and return types in standard namespaces
+2. java interop: more method overload
 3. xpath performance improvement
+4. flatten for/let in flower
+5. optimize for $i in range
+
 

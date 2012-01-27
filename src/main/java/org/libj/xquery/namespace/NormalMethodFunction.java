@@ -2,7 +2,7 @@ package org.libj.xquery.namespace;
 
 import java.lang.reflect.Method;
 
-public class NormalMethodFunction implements Function {
+public class NormalMethodFunction implements JavaFunction {
     private String className;
     private Method method;
     private String functionName;
@@ -34,6 +34,10 @@ public class NormalMethodFunction implements Function {
 
     public Class<?> getReturnType() {
         return method.getReturnType();
+    }
+
+    public boolean isMethod() {
+        return true;
     }
 
 

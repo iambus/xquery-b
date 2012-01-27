@@ -151,7 +151,7 @@ public class Assembler implements Opcodes {
     }
 
     private void visitDeclares(AST declares) {
-        for (Object declare: declares.getChildren()) {
+        for (Object declare: declares.rest()) {
             visitDeclare((AST) declare);
         }
     }
@@ -266,7 +266,7 @@ public class Assembler implements Opcodes {
 
     private Class visitCall(AST expr) {
         String functionName = expr.nth(1).getNodeText();
-        return invokeFunction(functionName, expr.getChildren(), 1);
+        return invokeFunction(functionName, ((AST) expr.next()).rest());
     }
 
     private Class visitNumber(String text) {
@@ -299,7 +299,7 @@ public class Assembler implements Opcodes {
 
     private Class visitList(AST expr) {
         Class t = newList();
-        for (Object element: expr.getChildren()) {
+        for (Object element: expr.rest()) {
             mv.visitInsn(DUP);
             Class elementType = visitExpr((AST) element);
             Caster.castToObject(mv, elementType);
@@ -461,7 +461,7 @@ public class Assembler implements Opcodes {
             default:
                 throw new RuntimeException("Not Implemented: "+toTypeName(type));
         }
-        return invokeFunction("op:" + op, expr.getChildren(), 0);
+        return invokeFunction("op:" + op, (AST) expr.next());
     }
 
     private Class visitArithmeticOp(AST expr) {
@@ -603,7 +603,7 @@ public class Assembler implements Opcodes {
     private void flattenNode(AST expr, ArrayList<AST> list) {
         switch (expr.getNodeType()) {
             case NODE:
-                for (Object node: expr.getChildren()) {
+                for (Object node: expr.rest()) {
                     flattenNode((AST) node, list);
                 }
                 break;
@@ -734,82 +734,72 @@ public class Assembler implements Opcodes {
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V");
     }
 
-    private Class invokeFunction(String functionName, AST arguments, int argumentIndex) {
+    private Class invokeFunction(String functionName, AST arguments) {
         Function fn = (Function) namespace.lookup(functionName);
         if (fn == null) {
             throw new RuntimeException("Function not found: "+functionName);
         }
         else if (fn instanceof StandardStaticFunction) {
-            return invokeFunction((StandardStaticFunction) fn, arguments, argumentIndex);
+            return invokeFunction((StandardStaticFunction) fn, arguments);
         }
         else if (fn instanceof StandardStaticVarlistFunction) {
-            return invokeFunction((StandardStaticVarlistFunction) fn, arguments, argumentIndex);
+            return invokeFunction((StandardStaticVarlistFunction) fn, arguments);
         }
         else if (fn instanceof StandardStaticOverloadedFunction) {
-            return invokeFunction((StandardStaticOverloadedFunction) fn, arguments, argumentIndex);
+            return invokeFunction((StandardStaticOverloadedFunction) fn, arguments);
         }
         else if (fn instanceof NormalStaticFunction) {
-            return invokeFunction((NormalStaticFunction) fn, arguments, argumentIndex);
+            return invokeFunction((NormalStaticFunction) fn, arguments);
         }
         else if (fn instanceof NormalMethodFunction) {
-            return invokeFunction((NormalMethodFunction) fn, arguments, argumentIndex);
+            return invokeFunction((NormalMethodFunction) fn, arguments);
         }
         else if (fn instanceof NormalConstructorFunction) {
-            return invokeFunction((NormalConstructorFunction) fn, arguments, argumentIndex);
+            return invokeFunction((NormalConstructorFunction) fn, arguments);
+        }
+        else if (fn instanceof OverloadedFunction) {
+            return invokeFunction((OverloadedFunction) fn, arguments);
         }
         else {
             throw new RuntimeException("Not Implemented: " + fn);
         }
     }
 
-    private Class invokeFunction(NormalStaticFunction fn, AST arguments, int argumentIndex) {
-        int n = arguments.size() - argumentIndex;
+    private Class invokeFunction(NormalStaticFunction fn, AST arguments) {
+        int n = arguments.size();
         Class<?>[] params = fn.getParameterTypes();
-        if (n != params.length) {
-            throw new RuntimeException(
-                    String.format("Too % arguments. Expected: %d, actual: %s",
-                            n < params.length ? "few" : "many",
-                            params.length,
-                            n));
-        }
+        checkArgumentsNumber(n, fn.getParameterNumber());
         for (int i = 0; i < n; i++) {
-            Class argumentType = visitExpr(arguments.nth(i + argumentIndex));
+            Class argumentType = visitExpr(arguments.nth(i));
             Caster.cast(mv, argumentType, params[i]);
         }
-        Caster.castToObject(mv, fn.getReturnType());
         mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
-        return Object.class;
+        return fn.getReturnType();
     }
 
-    private Class invokeFunction(StandardStaticFunction fn, AST arguments, int argumentIndex) {
-        int n = arguments.size() - argumentIndex;
-        if (n != fn.getParameterNumber()) {
-            throw new RuntimeException(
-                    String.format("Too % arguments. Expected: %d, actual: %s",
-                            n < fn.getParameterNumber() ? "few" : "many",
-                            fn.getParameterNumber(),
-                            n));
-        }
+    private Class invokeFunction(StandardStaticFunction fn, AST arguments) {
+        int n = arguments.size();
+        checkArgumentsNumber(n, fn.getParameterNumber());
         for (int i = 0; i < n; i++) {
-            Class argumentType = visitExpr(arguments.nth(i + argumentIndex));
+            Class argumentType = visitExpr(arguments.nth(i));
             Caster.castToObject(mv, argumentType);
         }
         mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
         return Object.class;
     }
 
-    private Class invokeFunction(StandardStaticOverloadedFunction fn, AST arguments, int argumentIndex) {
-        return invokeFunction(fn.getFunction(arguments.size() - argumentIndex), arguments, argumentIndex);
+    private Class invokeFunction(StandardStaticOverloadedFunction fn, AST arguments) {
+        return invokeFunction(fn.getFunction(arguments.size()), arguments);
     }
 
-    private Class invokeFunction(StandardStaticVarlistFunction fn, AST arguments, int argumentIndex) {
-        int n = arguments.size() - argumentIndex;
+    private Class invokeFunction(StandardStaticVarlistFunction fn, AST arguments) {
+        int n = arguments.size();
         pushConst(n);
         mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
         for (int i = 0; i < n; i++) {
             mv.visitInsn(DUP);
             pushConst(i);
-            Class argumentType = visitExpr(arguments.nth(i + argumentIndex));
+            Class argumentType = visitExpr(arguments.nth(i));
             Caster.castToObject(mv, argumentType);
             mv.visitInsn(AASTORE);
         }
@@ -817,58 +807,68 @@ public class Assembler implements Opcodes {
         return Object.class;
     }
 
-    private Class invokeFunction(NormalMethodFunction fn, AST arguments, int argumentIndex) {
-        Class instanceType = visitExpr(arguments.nth(argumentIndex++));
+    private Class invokeFunction(NormalMethodFunction fn, AST arguments) {
+        Class instanceType = visitExpr((AST) arguments.first());
+        arguments = arguments.rest();
         Caster.castToObject(mv, instanceType);
-        int n = arguments.size() - argumentIndex;
+        int n = arguments.size();
         Class<?>[] params = fn.getParameterTypes();
-        if (n != params.length) {
-            throw new RuntimeException(
-                    String.format("Too % arguments. Expected: %d, actual: %s",
-                            n < params.length ? "few" : "many",
-                            params.length,
-                            n));
-        }
+        checkArgumentsNumber(n, params.length);
         for (int i = 0; i < n; i++) {
-            Class argumentType = visitExpr(arguments.nth(i + argumentIndex));
+            Class argumentType = visitExpr(arguments.nth(i));
             Caster.cast(mv, argumentType, params[i]);
         }
         mv.visitMethodInsn(INVOKEVIRTUAL, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
-        Caster.castToObject(mv, fn.getReturnType());
-        return Object.class;
+        return fn.getReturnType();
     }
 
-    private Class invokeFunction(NormalConstructorFunction fn, AST arguments, int argumentIndex) {
+    private Class invokeFunction(NormalConstructorFunction fn, AST arguments) {
         mv.visitTypeInsn(NEW, fn.getClassName());
         mv.visitInsn(DUP);
-        int n = arguments.size() - argumentIndex;
+        int n = arguments.size();
         Class<?>[] params = fn.getParameterTypes();
-        if (n != params.length) {
-            throw new RuntimeException(
-                    String.format("Too % arguments. Expected: %d, actual: %s",
-                            n < params.length ? "few" : "many",
-                            params.length,
-                            n));
-        }
+        checkArgumentsNumber(n, params.length);
         for (int i = 0; i < n; i++) {
-            visitExpr(arguments.nth(i + argumentIndex));
+            visitExpr(arguments.nth(i));
             Caster.castObjectTo(mv, params[i]);
         }
         mv.visitMethodInsn(INVOKESPECIAL, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
-        return Object.class;
+        return fn.getReturnType();
+    }
+    private Class invokeFunction(OverloadedFunction dispatcher, AST arguments) {
+        if (dispatcher.getFunctionName().equals("<init>")) {
+            mv.visitTypeInsn(NEW, dispatcher.getClassName());
+            mv.visitInsn(DUP);
+        }
+        int n = arguments.size();
+        Class[] argumentTypes = new Class[n];
+        for (int i = 0; i < n; i++) {
+            argumentTypes[i] = visitExpr(arguments.nth(i));
+        }
+        JavaFunction fn = dispatcher.resolveFunction(argumentTypes);
+        if (fn instanceof NormalConstructorFunction) {
+            mv.visitMethodInsn(INVOKESPECIAL, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
+        }
+        else if (fn instanceof NormalStaticFunction) {
+            throw new RuntimeException("Not Implemented! "+fn);
+        }
+        else if (fn instanceof NormalMethodFunction) {
+            throw new RuntimeException("Not Implemented! "+fn);
+        }
+        else {
+            throw new RuntimeException("Not Implemented! "+fn);
+        }
+        return fn.getReturnType();
     }
 
-    private Class invokeStatic(AST expr, String className, String op) {
-        StringBuilder signature = new StringBuilder();
-        signature.append('(');
-        expr = expr.getChildren();
-        while (expr != null) {
-            visitExpr((AST) expr.first());
-            signature.append("Ljava/lang/Object;");
+    private void checkArgumentsNumber(int expected, int actual) {
+        if (actual != expected) {
+            throw new RuntimeException(
+                    String.format("Too % arguments. Expected: %d, actual: %s",
+                            actual < expected ? "few" : "many",
+                            expected,
+                            actual));
         }
-        signature.append(")Ljava/lang/Object;");
-        mv.visitMethodInsn(INVOKESTATIC, className, op, signature.toString());
-        return Object.class;
     }
     //////////////////////////////////////////////////
     /// analyze
