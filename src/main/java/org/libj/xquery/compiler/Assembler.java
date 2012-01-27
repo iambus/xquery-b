@@ -652,31 +652,16 @@ public class Assembler implements Opcodes {
         else {
             Class rightType = visitExpr(rightTree);
             if (rightType == int.class) {
-                mv.visitInsn(ISUB);
-                if (opType == EQ) {
-                    Label trueLabel = new Label();
-                    Label falseLabel = new Label();
-                    Label doneLabel = new Label();
-                    mv.visitJumpInsn(IFEQ, trueLabel);
-                    mv.visitLabel(falseLabel);
-                    mv.visitInsn(ICONST_0);
-                    mv.visitJumpInsn(GOTO, doneLabel);
-                    mv.visitLabel(trueLabel);
-                    mv.visitInsn(ICONST_1);
-                    mv.visitLabel(doneLabel);
-                }
-                else {
-                    Label trueLabel = new Label();
-                    Label falseLabel = new Label();
-                    Label doneLabel = new Label();
-                    mv.visitJumpInsn(IFNE, trueLabel);
-                    mv.visitLabel(falseLabel);
-                    mv.visitInsn(ICONST_0);
-                    mv.visitJumpInsn(GOTO, doneLabel);
-                    mv.visitLabel(trueLabel);
-                    mv.visitInsn(ICONST_1);
-                    mv.visitLabel(doneLabel);
-                }
+                Label trueLabel = new Label();
+                Label falseLabel = new Label();
+                Label doneLabel = new Label();
+                mv.visitJumpInsn(opType == EQ ? IF_ICMPEQ : IF_ICMPNE, trueLabel);
+                mv.visitLabel(falseLabel);
+                mv.visitInsn(ICONST_0);
+                mv.visitJumpInsn(GOTO, doneLabel);
+                mv.visitLabel(trueLabel);
+                mv.visitInsn(ICONST_1);
+                mv.visitLabel(doneLabel);
                 return boolean.class;
             }
             else {
