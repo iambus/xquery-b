@@ -371,6 +371,50 @@ public class Assembler implements Opcodes {
         String variable = expr.nth(1).getNodeText();
         AST varExpr = expr.nth(2);
 
+        if (isForRange(varExpr)) {
+            visitForRange(variable, varExpr, forlets, body, result);
+        }
+        else {
+            visitForGeneral(variable, varExpr, forlets, body, result);
+        }
+
+        popScope();
+    }
+
+    private boolean isForRange(AST varExpr) {
+        return varExpr.getNodeType() == TO;
+    }
+
+    private void visitForRange(String variable, AST range, AST forlets, AST body, int result) {
+        int i = define(variable, int.class);
+        // TODO: if max is literal, use pushConst instead of variable
+        int max = defineAnonymous();
+        Class left = visitExpr(range.nth(1));
+        Caster.cast(mv, left, int.class);
+        mv.visitVarInsn(ISTORE, i);
+        Class right = visitExpr(range.nth(2));
+        Caster.cast(mv, right, int.class);
+        mv.visitVarInsn(ISTORE, max);
+
+        Label condition = new Label();
+        Label loop = new Label();
+        mv.visitJumpInsn(GOTO, condition);
+
+        // do
+        mv.visitLabel(loop);
+        visitForLets((AST) forlets.next(), body, result);
+
+        // i++
+        mv.visitIincInsn(i, 1);
+
+        // if i < max?
+        mv.visitLabel(condition);
+        mv.visitVarInsn(ILOAD, i);
+        mv.visitVarInsn(ILOAD, max);
+        mv.visitJumpInsn(IF_ICMPLE, loop);
+    }
+
+    private void visitForGeneral(String variable, AST varExpr, AST forlets, AST body, int result) {
         int iterator = defineAnonymous();
         int element = define(variable, Object.class);
         Class collectionType = visitExpr(varExpr);
@@ -396,8 +440,6 @@ public class Assembler implements Opcodes {
         mv.visitVarInsn(ALOAD, iterator);
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Iterator", "hasNext", "()Z");
         mv.visitJumpInsn(IFNE, loop);
-
-        popScope();
     }
 
     private void visitLet(AST forlets, AST body, int result) {

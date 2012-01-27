@@ -15,7 +15,15 @@ public class Range implements List {
     public Iterator iterator() {
         return new RangeIterator(start, end);
     }
-    
+
+    public int getStart() {
+        return start;
+    }
+
+    public int getEnd() {
+        return end;
+    }
+
     public int size() {
         if (start > end) {
             return 0;
