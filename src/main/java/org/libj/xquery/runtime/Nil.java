@@ -3,6 +3,7 @@ package org.libj.xquery.runtime;
 import java.util.Iterator;
 
 public class Nil implements List {
+    public static final Nil NIL = new Nil();
     public Iterator iterator() {
         return new Iterator<Object>() {
             public boolean hasNext() {

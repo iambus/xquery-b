@@ -61,7 +61,7 @@ public class Asserts {
         long executionMillis = end - start;
         logTime(script, executionMillis, n);
         logSpeed(n, executionMillis);
-        assertTrue(String.format("Timeout: %d > %d (loop %s)", executionMillis, targetMillis, number(n)), executionMillis <= targetMillis);
+        assertTrue(String.format("Timeout: %d > %d (loop %s) for script: "+breakLine(script), executionMillis, targetMillis, number(n)), executionMillis <= targetMillis);
     }
 
     public static void assertRepeatedEvalMillis(String script, int n, int targetMillis) {
@@ -85,21 +85,19 @@ public class Asserts {
         long executionMillis = end - start;
         logTime(script, executionMillis, n);
         logSpeed(n, executionMillis);
-        assertTrue(String.format("Timeout: %d > %d (loop %s)", executionMillis, targetMillis, number(n)), executionMillis < targetMillis);
+        assertTrue(String.format("Timeout: %d > %d (loop %s) for script: "+breakLine(script), executionMillis, targetMillis, number(n)), executionMillis < targetMillis);
     }
 
     public static void assertRepeatedCompilePerSecond(String script, int n) {
         assertRepeatedCompileMillis(script, n, 1000);
     }
     private static void logTime(String script, long ms) {
-        boolean multiline = script.indexOf('\n') == -1;
         System.out.println("----------------------------------------");
-        System.out.println("It takes "+ms+" ms to execute this script: "+(multiline?"":"\n")+script);
+        System.out.println("It takes "+ms+" ms to execute this script: " + breakLine(script));
     }
     private static void logTime(String script, long ms, long loop) {
-        boolean multiline = script.indexOf('\n') == -1;
         System.out.println("----------------------------------------");
-        System.out.println(String.format("It takes %s ms to execute this script (loop %s): %s%s", ms, number(loop), (multiline?"":"\n"), script));
+        System.out.println(String.format("It takes %s ms to execute this script (loop %s): %s", ms, number(loop), breakLine(script)));
     }
     private static void logSpeed(long n, long ms) {
         long perCall = ms/n;
@@ -110,5 +108,9 @@ public class Asserts {
     private static String number(long n) {
         NumberFormat format = NumberFormat.getIntegerInstance(Locale.US);
         return format.format(n);
+    }
+    private static String breakLine(String script) {
+        boolean multiline = script.indexOf('\n') == -1;
+        return (multiline ? "" : "\n") + script;
     }
 }

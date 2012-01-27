@@ -28,9 +28,10 @@ public class Assembler implements Opcodes {
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
     private Scope scope = new Scope();
     private Scope freeScope = new Scope();
-    private int locals = 4; // index 2 is used as temporary double variable
+    private int locals = 5; // index 2 is used as temporary double variable
     private final int environment_index = 1;
-    private final int temp_index = 2;
+    private final int result_index = 2;
+    private final int temp_index = 3;
 
     private RootNamespace namespace = new DefaultRootNamespace();
 
@@ -132,6 +133,16 @@ public class Assembler implements Opcodes {
             mv.visitInsn(ARETURN);
         }
         else {
+//            mv.visitVarInsn(ASTORE, result_index);
+//            mv.visitVarInsn(ALOAD, result_index);
+//            Label returnLabel = new Label();
+//            mv.visitJumpInsn(IFNONNULL, returnLabel);
+//            pushNil();
+//            mv.visitInsn(ARETURN);
+//            mv.visitLabel(returnLabel);
+//            mv.visitVarInsn(ALOAD, result_index);
+//            mv.visitInsn(ARETURN);
+
             Label returnLabel = new Label();
             mv.visitInsn(DUP);
             mv.visitJumpInsn(IFNONNULL, returnLabel);
@@ -777,7 +788,8 @@ public class Assembler implements Opcodes {
     }
 
     private void pushNilObject() {
-        newObject(NIL);
+//        newObject(NIL);
+        mv.visitFieldInsn(GETSTATIC, NIL, "NIL", "L"+NIL+";");
     }
 
     private Class newList() {
