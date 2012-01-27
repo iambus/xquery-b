@@ -37,7 +37,7 @@ Be patient...
 
 Coming soon
 -----------
-1. type annotation/inference
+1. trace function parameter and return types
 2. java interop: method overload
 3. xpath performance improvement
 
