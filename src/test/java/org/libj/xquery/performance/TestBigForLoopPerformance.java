@@ -19,7 +19,7 @@ public class TestBigForLoopPerformance {
                 "    where $i = 1\n" +
                 "    return\n" +
                 "        $i";
-        assertEvalMillis(xquery, 200);
+        assertEvalMillis(xquery, 100);
     }
     @Test
     public void biggerFor() {
@@ -36,7 +36,7 @@ public class TestBigForLoopPerformance {
                 "    where $i = 1\n" +
                 "    return\n" +
                 "        $i";
-        assertEvalMillis(xquery, 1000);
+        assertEvalMillis(xquery, 500);
     }
     @Test
     public void bigForResult() {
@@ -69,7 +69,7 @@ public class TestBigForLoopPerformance {
                 "    where $i != 1\n" +
                 "    return\n" +
                 "        $i";
-        assertEvalMillis(xquery, 4000);
+        assertEvalMillis(xquery, 2000);
     }
 
 }

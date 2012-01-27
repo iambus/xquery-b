@@ -96,6 +96,8 @@ public class TestExpressions {
         assertEvalString("for $i in 1 to 10 where $i mod 2 = 0 return $i", "2 4 6 8 10");
         assertEvalString("for $x in 1 to 10 let $i := 1 where $x mod 2 = 0 return ($i, $x)", "1 2 1 4 1 6 1 8 1 10");
         assertEvalString("for $i in 1 to 10 where 2 = 0 return 2", "");
+        assertEvalString("for $i in (1 to 10) let $lv1 := 1000 * 1000 + 7521 - 1.0 div 1.0 + 8 div 0.5 where $i = 1 return $i", "1");
+        assertEvalString("for $i in (1 to 10) let $lv1 := 1000 * 1000 + 7521 - 1.0 div 1.0 + 8 div 0.5 where $i = 1 return $lv1", "1007536.0");
     }
     @Test
     public void testLet() {
@@ -115,6 +117,7 @@ public class TestExpressions {
     public void testNode() {
         assertEvalString("<x/>", "<x/>");
         assertEvalString("<x>{2}</x>", "<x>2</x>");
+        assertEvalString("<x>{1.1 + 2}</x>", "<x>3.1</x>");
         assertEvalString("<x>$x</x>", "<x>$x</x>");
         assertEvalString("<x a='{1+3}'>$x</x>", "<x a='4'>$x</x>");
         assertEvalString("let $x := 3 return <x><w/><a>{$x}</a></x>", "<x><w/><a>3</a></x>");

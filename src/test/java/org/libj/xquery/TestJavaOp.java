@@ -31,5 +31,6 @@ public class TestJavaOp {
         assertEval("declare namespace o = \"class:java.lang.Object\"; o:toString(3+4)", "7");
         assertEval("declare namespace obj = \"class:java.lang.Object\";\n" +
                 "obj:toString(3+4)", "7");
+        assertEval("java.lang.Integer:equals(3, 4)", false);
     }
 }

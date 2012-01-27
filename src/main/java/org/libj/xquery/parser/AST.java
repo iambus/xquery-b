@@ -112,7 +112,18 @@ public class AST extends Cons {
     }
 
     public String toString() {
-        Token token = getToken();
+        Object head = first();
+        if (head instanceof AST) {
+            StringBuilder builder = new StringBuilder();
+            builder.append("'("); // XXX: TODO: FIXME: the output doesn't make sense...
+            builder.append(head);
+            for (Object x: getChildren()) {
+                builder.append(x);
+            }
+            builder.append(")");
+            return builder.toString();
+        }
+        Token token = (Token) head;
         if (isNil()) {
             return "nil";
         }

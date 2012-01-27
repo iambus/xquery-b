@@ -17,7 +17,6 @@ import org.libj.xquery.xml.XMLFactory;
 import org.objectweb.asm.*;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class Assembler implements Opcodes {
     private AST ast;
@@ -25,10 +24,12 @@ public class Assembler implements Opcodes {
     private ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
     private String compiledClassName;
 
+    private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
     private Scope scope = new Scope();
     private Scope freeScope = new Scope();
-    private int locals = 2;
+    private int locals = 4; // index 2 is used as temporary double variable
     private final int environment_index = 1;
+    private final int temp_index = 2;
 
     private RootNamespace namespace = new DefaultRootNamespace();
 
@@ -124,23 +125,29 @@ public class Assembler implements Opcodes {
     private void visitEvalWithEnvironment() {
         mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ENVIRONMENT_CLASS+";)Ljava/lang/Object;", null, null);
         mv.visitCode();
-        visitAST();
-        Label returnLabel = new Label();
-        mv.visitInsn(DUP);
-        mv.visitJumpInsn(IFNONNULL, returnLabel);
-        mv.visitInsn(POP);
-        pushNilObject();
-        mv.visitLabel(returnLabel);
-        mv.visitInsn(ARETURN);
+        Class returnType = visitAST();
+        if (returnType.isPrimitive()) {
+            Caster.castToObject(mv, returnType);
+            mv.visitInsn(ARETURN);
+        }
+        else {
+            Label returnLabel = new Label();
+            mv.visitInsn(DUP);
+            mv.visitJumpInsn(IFNONNULL, returnLabel);
+            mv.visitInsn(POP);
+            pushNilObject();
+            mv.visitLabel(returnLabel);
+            mv.visitInsn(ARETURN);
+        }
         mv.visitMaxs(0, 0);
         mv.visitEnd();
     }
 
-    private void visitAST() {
+    private Class visitAST() {
         AST declares = ast.nth(1);
         AST code = ast.nth(2);
         visitDeclares(declares);
-        visitExpr(code);
+        return visitExpr(code);
     }
 
     private void visitDeclares(AST declares) {
@@ -200,8 +207,22 @@ public class Assembler implements Opcodes {
     private Class visitVariable(AST expr) {
         String variable = expr.getNodeText();
         if (!isFree(variable)) {
-            mv.visitVarInsn(ALOAD, resolve(variable));
-            return resolveType(variable);
+            Class t = resolveType(variable);
+            if (t.isPrimitive()) {
+                if (t == int.class) {
+                    mv.visitVarInsn(ILOAD, resolve(variable));
+                }
+                else if (t == double.class) {
+                    mv.visitVarInsn(DLOAD, resolve(variable));
+                }
+                else {
+                    throw new RuntimeException("Not Implemented!");
+                }
+            }
+            else {
+                mv.visitVarInsn(ALOAD, resolve(variable));
+            }
+            return t;
         }
         int index = resolveFree(variable);
         // load initializer flag
@@ -260,9 +281,9 @@ public class Assembler implements Opcodes {
     private Class visitInt(String text) {
         int n = Integer.parseInt(text);
         pushConst(n);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;");
-        return Integer.class;
-//        return int.class;
+//        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;");
+//        return Integer.class;
+        return int.class;
     }
 
     private Class visitDouble(String text) {
@@ -271,16 +292,17 @@ public class Assembler implements Opcodes {
         // mv.visitInsn(DCONST_0);
         // mv.visitInsn(DCONST_1);
         mv.visitLdcInsn(d);
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;");
-        return Double.class;
-//        return double.class;
+//        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;");
+//        return Double.class;
+        return double.class;
     }
 
     private Class visitList(AST expr) {
         Class t = newList();
         for (Object element: expr.getChildren()) {
             mv.visitInsn(DUP);
-            visitExpr((AST) element);
+            Class elementType = visitExpr((AST) element);
+            Caster.castToObject(mv, elementType);
             pushToList();
         }
         return t;
@@ -298,8 +320,9 @@ public class Assembler implements Opcodes {
         mv.visitVarInsn(ASTORE, result);
 
         int iterator = defineAnonymous();
-        int element = define(variable);
-        visitExpr(varExpr);
+        int element = define(variable, Object.class);
+        Class collectionType = visitExpr(varExpr);
+        Caster.castToObject(mv, collectionType);
         mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asList", "(Ljava/lang/Object;)Ljava/lang/Iterable;");
         mv.visitMethodInsn(INVOKEINTERFACE, "java/lang/Iterable", "iterator", "()Ljava/util/Iterator;");
         mv.visitVarInsn(ASTORE, iterator);
@@ -324,13 +347,15 @@ public class Assembler implements Opcodes {
             mv.visitJumpInsn(IFEQ, endif);
             // if body
             mv.visitVarInsn(ALOAD, result);
-            visitExpr(body);
+            Class elementType = visitExpr(body);
+            Caster.castToObject(mv, elementType);
             pushToList();
             // end if
             mv.visitLabel(endif);
         } else {
             mv.visitVarInsn(ALOAD, result);
-            visitExpr(body);
+            Class elementType = visitExpr(body);
+            Caster.castToObject(mv, elementType);
             pushToList();
         }
 
@@ -352,9 +377,24 @@ public class Assembler implements Opcodes {
         AST body = expr.nth(3);
         AST where = expr.nth(4);
 
-        int index = define(variable);
-        visitExpr(varExpr);
-        mv.visitVarInsn(ASTORE, index);
+
+        Class varType = visitExpr(varExpr);
+        int index = define(variable, varType);
+        if (varType.isPrimitive()) {
+            if (varType == int.class) {
+                mv.visitVarInsn(ISTORE, index);
+            }
+            else if (varType == double.class) {
+                mv.visitVarInsn(DSTORE, index);
+            }
+            else {
+                throw new RuntimeException("Not Implemented!");
+            }
+        }
+        else {
+            mv.visitVarInsn(ASTORE, index);
+        }
+
 
         Class returnType = Object.class;
         if (where != null && !where.isNil()) {
@@ -367,7 +407,7 @@ public class Assembler implements Opcodes {
             mv.visitJumpInsn(IFEQ, els);
             // if body
             Class t = visitExpr(body);
-            Caster.castFrom(mv, t);
+            Caster.castToObject(mv, t);
             mv.visitJumpInsn(GOTO, endif);
             // else body
             mv.visitLabel(els);
@@ -389,22 +429,13 @@ public class Assembler implements Opcodes {
         String op;
         switch (type) {
             case PLUS:
-                op = "add";
-                break;
             case MINUS:
-                op = "subtract";
-                break;
             case MULTIPLY:
-                op = "multiply";
-                break;
             case DIV:
-                op = "div";
-                break;
+            case MOD:
+                return visitArithmeticOp(expr);
             case NEGATIVE:
                 op = "negative";
-                break;
-            case MOD:
-                op = "mod";
                 break;
             case EQ:
                 op = "eq";
@@ -433,6 +464,93 @@ public class Assembler implements Opcodes {
         return invokeFunction("op:" + op, expr.getChildren(), 0);
     }
 
+    private Class visitArithmeticOp(AST expr) {
+        if (expr.size() != 3) {
+            throw new RuntimeException("Not Implemented!");
+        }
+        int opType = expr.getNodeType();
+        Class type = pushNumbers((AST)(expr.next().first()), (AST)(expr.next().next().first()));
+        switch (opType) {
+            case PLUS:
+                return invokeArithmeticOp(type, IADD, DADD, "add");
+            case MINUS:
+                return invokeArithmeticOp(type, ISUB, DSUB, "subtract");
+            case MULTIPLY:
+                return invokeArithmeticOp(type, IMUL, DMUL, "multiply");
+            case DIV:
+                return invokeArithmeticOp(type, IDIV, DDIV, "div");
+            case MOD:
+                return invokeArithmeticOp(type, IREM, DREM, "mod");
+            default:
+                throw new RuntimeException("Not Implemented!");
+        }
+    }
+
+    private Class pushNumbers(AST left, AST right) {
+        Class leftType = visitExpr(left);
+        Class rightType = visitExpr(right);
+        if (!leftType.isPrimitive()) {
+            // object + ...
+            Caster.castToObject(mv, rightType);
+            return Object.class;
+        }
+        else if (!rightType.isPrimitive()) {
+            // integer/double + object
+            if (rightType == Integer.class) {
+                return Caster.castBetweenPrimitives(mv, Caster.castToPrimitiveValue(mv, rightType), leftType);
+            }
+            else if (leftType == int.class) {
+                mv.visitInsn(SWAP);
+                Caster.castToObject(mv, leftType);
+                mv.visitInsn(SWAP);
+                return Object.class;
+            }
+            else {
+                throw new RuntimeException("Not Implemented! "+leftType+" + "+rightType);
+            }
+        }
+        else {
+            return unifyNumberType(leftType, rightType);
+        }
+    }
+
+    private Class unifyNumberType(Class leftType, Class rightType) {
+        if (leftType == rightType) {
+            return rightType;
+        } else if (leftType == int.class && rightType == double.class) {
+            mv.visitVarInsn(DSTORE, temp_index);
+            Caster.castBetweenPrimitives(mv, int.class, double.class);
+            mv.visitVarInsn(DLOAD, temp_index);
+            return double.class;
+        } else if (leftType == double.class && rightType == int.class) {
+            return Caster.castBetweenPrimitives(mv, int.class, double.class);
+        } else {
+            throw new RuntimeException("Not Implemented!");
+        }
+    }
+
+    private Class invokeArithmeticOp(Class valueType, int intInstruction, int doubleInstruction, String methodName) {
+        if (valueType == int.class) {
+            mv.visitInsn(intInstruction);
+            return int.class;
+        }
+        else if (valueType == double.class) {
+            mv.visitInsn(doubleInstruction);
+            return double.class;
+        }
+        else if (!valueType.isPrimitive()) {
+            return invokeBinaryOp(methodName);
+        }
+        else {
+            throw new RuntimeException("Not Implemented!");
+        }
+    }
+
+    private Class invokeBinaryOp(String methodName) {
+        mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, methodName, "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+        return Object.class;
+    }
+
     private Class<XML> visitNode(AST expr) {
         ArrayList<AST> list = new ArrayList<AST>();
         flattenNode(expr, list);
@@ -456,8 +574,21 @@ public class Assembler implements Opcodes {
                         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
                         break;
                     default:
-                        visitExpr(element);
-                        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
+                        Class t = visitExpr(element);
+                        if (t.isPrimitive()) {
+                            if (t == int.class) {
+                                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(I)Ljava/lang/StringBuilder;");
+                            }
+                            else if (t == double.class) {
+                                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(D)Ljava/lang/StringBuilder;");
+                            }
+                            else {
+                                throw new RuntimeException("Not Implemented!");
+                            }
+                        }
+                        else {
+                            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
+                        }
                         break;
                 }
             }
@@ -642,10 +773,10 @@ public class Assembler implements Opcodes {
                             n));
         }
         for (int i = 0; i < n; i++) {
-            visitExpr(arguments.nth(i + argumentIndex));
-            Caster.castTo(mv, params[i]);
+            Class argumentType = visitExpr(arguments.nth(i + argumentIndex));
+            Caster.cast(mv, argumentType, params[i]);
         }
-        Caster.castFrom(mv, fn.getReturnType());
+        Caster.castToObject(mv, fn.getReturnType());
         mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
         return Object.class;
     }
@@ -660,7 +791,8 @@ public class Assembler implements Opcodes {
                             n));
         }
         for (int i = 0; i < n; i++) {
-            visitExpr(arguments.nth(i + argumentIndex));
+            Class argumentType = visitExpr(arguments.nth(i + argumentIndex));
+            Caster.castToObject(mv, argumentType);
         }
         mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
         return Object.class;
@@ -677,7 +809,8 @@ public class Assembler implements Opcodes {
         for (int i = 0; i < n; i++) {
             mv.visitInsn(DUP);
             pushConst(i);
-            visitExpr(arguments.nth(i + argumentIndex));
+            Class argumentType = visitExpr(arguments.nth(i + argumentIndex));
+            Caster.castToObject(mv, argumentType);
             mv.visitInsn(AASTORE);
         }
         mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
@@ -685,7 +818,8 @@ public class Assembler implements Opcodes {
     }
 
     private Class invokeFunction(NormalMethodFunction fn, AST arguments, int argumentIndex) {
-        visitExpr(arguments.nth(argumentIndex++));
+        Class instanceType = visitExpr(arguments.nth(argumentIndex++));
+        Caster.castToObject(mv, instanceType);
         int n = arguments.size() - argumentIndex;
         Class<?>[] params = fn.getParameterTypes();
         if (n != params.length) {
@@ -696,11 +830,11 @@ public class Assembler implements Opcodes {
                             n));
         }
         for (int i = 0; i < n; i++) {
-            visitExpr(arguments.nth(i + argumentIndex));
-            Caster.castTo(mv, params[i]);
+            Class argumentType = visitExpr(arguments.nth(i + argumentIndex));
+            Caster.cast(mv, argumentType, params[i]);
         }
-        Caster.castFrom(mv, fn.getReturnType());
         mv.visitMethodInsn(INVOKEVIRTUAL, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
+        Caster.castToObject(mv, fn.getReturnType());
         return Object.class;
     }
 
@@ -718,7 +852,7 @@ public class Assembler implements Opcodes {
         }
         for (int i = 0; i < n; i++) {
             visitExpr(arguments.nth(i + argumentIndex));
-            Caster.castTo(mv, params[i]);
+            Caster.castObjectTo(mv, params[i]);
         }
         mv.visitMethodInsn(INVOKESPECIAL, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
         return Object.class;
@@ -754,16 +888,23 @@ public class Assembler implements Opcodes {
         return locals++;
     }
 
-    private int define(String name) {
+    private int define(String name, Class type) {
         int index = locals++;
-        scope.define(new Symbol(name, index));
+        if (type == double.class || type == long.class) {
+            locals++;
+        }
+        Symbol sym = new Symbol(name, index, type);
+        scope.define(sym);
+        symbols.add(sym);
         return index;
     }
 
     private int defineFree(String name) {
         int index = locals;
         locals += 2;
-        freeScope.define(new Symbol(name, index));
+        Symbol sym = new Symbol(name, index);
+        freeScope.define(sym);
+        symbols.add(sym);
         return index;
     }
 

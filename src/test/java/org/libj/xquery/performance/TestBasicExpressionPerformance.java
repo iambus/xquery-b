@@ -7,12 +7,12 @@ import static org.libj.xquery.Asserts.*;
 public class TestBasicExpressionPerformance {
     @Test
     public void testLiteral() {
-        assertRepeatedEvalPerSecond(" 1 ", 1000*1000*100);
-        assertRepeatedEvalPerSecond(" 's' ", 1000*1000*100);
+        assertRepeatedEvalPerSecond(" 1 ", 1000*1000*1000);
+        assertRepeatedEvalPerSecond(" 's' ", 1000*1000*1000);
         assertRepeatedEvalPerSecond(" <x/> ", 1000*1000*100);
     }
     @Test
     public void testArithmeticExpression() {
-        assertRepeatedEvalPerSecond(" 1 + 3 / 10 - 100 mod 4 ", 1000*1000*20);
+        assertRepeatedEvalPerSecond(" 1 + 3 / 10 - 100 mod 4 ", 1000*1000*1000);
     }
 }
