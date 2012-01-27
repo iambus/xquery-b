@@ -83,7 +83,7 @@ public class AST extends Cons {
             }
         };
     }
-    public void addChild(AST t) {
+    public void appendLast(AST t) {
         Cons list = this;
         while (list.next() != null) {
             list = list.next();
@@ -91,8 +91,8 @@ public class AST extends Cons {
         list.cdr(new AST(t));
     }
 
-    public void addChild(Token t) {
-        addChild(new AST(t));
+    public void appendLast(Token t) {
+        appendLast(new AST(t));
     }
 
     public AST nth(int i) {

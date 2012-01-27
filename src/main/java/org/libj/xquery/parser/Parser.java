@@ -14,8 +14,8 @@ public class Parser extends LLkParser {
 
     public AST xquery() throws IOException {
         AST ast = new AST(PROG);
-        ast.addChild(declares());
-        ast.addChild(expr());
+        ast.appendLast(declares());
+        ast.appendLast(expr());
         match(EOF);
         return ast;
     }
@@ -52,9 +52,8 @@ public class Parser extends LLkParser {
     private AST expr() throws IOException {
         switch (LA(1)) {
             case FOR:
-                return forIn();
             case LET:
-                return let();
+                return flower();
             case IF:
                 return ifExpr();
             default:
@@ -114,7 +113,7 @@ public class Parser extends LLkParser {
         if (LA(1) == MINUS) {
             AST ast = new AST(NEGATIVE);
             consume();
-            ast.addChild(value());
+            ast.appendLast(value());
             return ast;
         }
         else {
@@ -135,8 +134,8 @@ public class Parser extends LLkParser {
 
     private AST binary(AST left, Token op, AST right) throws IOException {
         AST root = new AST(op);
-        root.addChild(left);
-        root.addChild(right);
+        root.appendLast(left);
+        root.appendLast(right);
         return root;
     }
 
@@ -158,16 +157,16 @@ public class Parser extends LLkParser {
 
     private AST call() throws IOException {
         AST ast = new AST(CALL);
-        ast.addChild(consume(WORD));
+        ast.appendLast(consume(WORD));
         match(LPAREN);
         if (LA(1) == RPAREN) {
             match(RPAREN);
             return ast;
         }
-        ast.addChild(expr());
+        ast.appendLast(expr());
         while (LA(1) == COMMA) {
             match(COMMA);
-            ast.addChild(primary());
+            ast.appendLast(primary());
         }
         match(RPAREN);
         return ast;
@@ -180,10 +179,10 @@ public class Parser extends LLkParser {
             match(RPAREN);
             return ast;
         }
-        ast.addChild(expr());
+        ast.appendLast(expr());
         while (LA(1) == COMMA) {
             match(COMMA);
-            ast.addChild(primary());
+            ast.appendLast(primary());
         }
         match(RPAREN);
         if (ast.size() == 2) {
@@ -197,15 +196,15 @@ public class Parser extends LLkParser {
     private AST node() throws IOException {
         AST ast = new AST(new Token(NODE, null));
         if (LA(1) == TAGUNIT) {
-            ast.addChild(consume(TAGUNIT));
+            ast.appendLast(consume(TAGUNIT));
             return ast;
         }
-        ast.addChild(consume(TAGOPEN));
+        ast.appendLast(consume(TAGOPEN));
         while (LA(1) != TAGCLOSE) {
-            ast.addChild(nodeExpr());
+            ast.appendLast(nodeExpr());
         }
         // TODO: check if start and end tag matches
-        ast.addChild(consume(TAGCLOSE));
+        ast.appendLast(consume(TAGCLOSE));
         return ast;
     }
 
@@ -242,8 +241,8 @@ public class Parser extends LLkParser {
         String variable = xpath.substring(0, separator);
         xpath = xpath.substring(separator);
         AST ast = new AST(XPATH);
-        ast.addChild(new Token(VARIABLE, variable));
-        ast.addChild(new Token(STRING, xpath));
+        ast.appendLast(new Token(VARIABLE, variable));
+        ast.appendLast(new Token(STRING, xpath));
         return ast;
     }
 
@@ -251,46 +250,57 @@ public class Parser extends LLkParser {
         return new AST(consume(VARIABLE));
     }
 
+    private AST flower() throws IOException {
+        AST ast = new AST(FLOWER);
+        AST forlets = new AST(FORLETS);
+        while (LA(1) == FOR || LA(1) == LET) {
+            if (LA(1) == FOR) {
+                forlets.appendLast(forIn());
+            }
+            else {
+                forlets.appendLast(let());
+            }
+        }
+        AST where = where();
+        AST body = body();
+
+        ast.appendLast(forlets);
+        ast.appendLast(body);
+        ast.appendLast(where);
+
+        return ast;
+    }
+
     private AST let() throws IOException {
         AST ast = new AST(consume(LET));
-        ast.addChild(consume(VARIABLE));
+        ast.appendLast(consume(VARIABLE));
         consume(ASSIGN);
-        ast.addChild(expr());
-        AST where;
-        if (LA(1) == WHERE) {
-            match(WHERE);
-            where = expr();
-        }
-        else {
-            where = new AST();
-        }
-        ast.addChild(body());
-        ast.addChild(where);
+        ast.appendLast(expr());
         return ast;
     }
 
     private AST forIn() throws IOException {
         AST ast = new AST(consume(FOR));
-        ast.addChild(consume(VARIABLE));
+        ast.appendLast(consume(VARIABLE));
         match(IN);
-        ast.addChild(expr());
-        AST where;
+        ast.appendLast(expr());
+        return ast;
+    }
+
+    private AST where() throws IOException {
         if (LA(1) == WHERE) {
             match(WHERE);
-            where = expr();
+            return expr();
         }
         else {
-            where = new AST();
+            return new AST();
         }
-        ast.addChild(body());
-        ast.addChild(where);
-        return ast;
     }
 
     public AST declares() throws IOException {
         AST ast = new AST(DECLARES);
         while (LA(1) == DECLARE) {
-            ast.addChild(declare());
+            ast.appendLast(declare());
         }
         return ast;
     }
@@ -306,19 +316,19 @@ public class Parser extends LLkParser {
 
     public AST declareNamespace() throws IOException {
         AST ast = new AST(consume(DECLARE));
-        ast.addChild(consume(NAMESPACE));
-        ast.addChild(consume(WORD));
+        ast.appendLast(consume(NAMESPACE));
+        ast.appendLast(consume(WORD));
         match(EQ);
-        ast.addChild(consume(STRING));
-        ast.addChild(consume(SEMI));
+        ast.appendLast(consume(STRING));
+        ast.appendLast(consume(SEMI));
         return ast;
     }
 
     public AST declareAnyOther() throws IOException {
         AST ast = new AST(consume(DECLARE));
-        ast.addChild(consume(WORD));
+        ast.appendLast(consume(WORD));
         while (LA(1) != SEMI && LA(1) != EOF) {
-            ast.addChild(LT(1));
+            ast.appendLast(LT(1));
             consume();
         }
         match(SEMI);

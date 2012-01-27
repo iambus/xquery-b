@@ -17,6 +17,7 @@ import org.libj.xquery.xml.XMLFactory;
 import org.objectweb.asm.*;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class Assembler implements Opcodes {
     private AST ast;
@@ -178,10 +179,8 @@ public class Assembler implements Opcodes {
 
     private Class visitExpr(AST expr) {
         switch (expr.getNodeType()) {
-            case LET:
-                return visitLet(expr);
-            case FOR:
-                return visitFor(expr);
+            case FLOWER:
+                return visitFlower(expr);
             case LIST:
                 return visitList(expr);
             case CALL:
@@ -308,35 +307,41 @@ public class Assembler implements Opcodes {
         return t;
     }
 
-    private Class visitFor(AST expr) {
-        pushScope();
-        String variable = expr.nth(1).getNodeText();
-        AST varExpr = expr.nth(2);
-        AST body = expr.nth(3);
-        AST where = expr.nth(4);
-
+    private Class visitFlower(AST expr) {
         Class t = newList();
         int result = defineAnonymous();
         mv.visitVarInsn(ASTORE, result);
 
-        int iterator = defineAnonymous();
-        int element = define(variable, Object.class);
-        Class collectionType = visitExpr(varExpr);
-        Caster.castToObject(mv, collectionType);
-        mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asList", "(Ljava/lang/Object;)Ljava/lang/Iterable;");
-        mv.visitMethodInsn(INVOKEINTERFACE, "java/lang/Iterable", "iterator", "()Ljava/util/Iterator;");
-        mv.visitVarInsn(ASTORE, iterator);
+        AST forlets = expr.nth(1).rest();
+        AST body = (AST) expr.next().next();
 
-        Label condition = new Label();
-        Label loop = new Label();
-        mv.visitJumpInsn(GOTO, condition);
+        visitForLets(forlets, body, result);
 
-        // loop iteration
-        mv.visitLabel(loop);
-        mv.visitVarInsn(ALOAD, iterator);
-        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Iterator", "next", "()Ljava/lang/Object;");
-        mv.visitVarInsn(ASTORE, element);
+        mv.visitVarInsn(ALOAD, result);
+        return t;
+    }
 
+    private void visitForLets(AST forlets, AST body, int result) {
+        if (forlets == null) {
+            visitFlowerBody(body, result);
+        }
+        else {
+            switch (((AST)forlets.first()).getNodeType()) {
+                case FOR:
+                    visitFor(forlets, body, result);
+                    break;
+                case LET:
+                    visitLet(forlets, body, result);
+                    break;
+                default:
+                    throw new RuntimeException("Not Implemented!");
+            }
+        }
+    }
+
+    private void visitFlowerBody(AST expr, int result) {
+        AST body = expr.nth(0);
+        AST where = expr.nth(1);
         // loop body
         if (where != null && !where.isNil()) {
             visitExpr(where);
@@ -358,6 +363,33 @@ public class Assembler implements Opcodes {
             Caster.castToObject(mv, elementType);
             pushToList();
         }
+    }
+
+    private void visitFor(AST forlets, AST body, int result) {
+        pushScope();
+        AST expr = (AST) forlets.first();
+        String variable = expr.nth(1).getNodeText();
+        AST varExpr = expr.nth(2);
+
+        int iterator = defineAnonymous();
+        int element = define(variable, Object.class);
+        Class collectionType = visitExpr(varExpr);
+        Caster.castToObject(mv, collectionType);
+        mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asList", "(Ljava/lang/Object;)Ljava/lang/Iterable;");
+        mv.visitMethodInsn(INVOKEINTERFACE, "java/lang/Iterable", "iterator", "()Ljava/util/Iterator;");
+        mv.visitVarInsn(ASTORE, iterator);
+
+        Label condition = new Label();
+        Label loop = new Label();
+        mv.visitJumpInsn(GOTO, condition);
+
+        // loop iteration
+        mv.visitLabel(loop);
+        mv.visitVarInsn(ALOAD, iterator);
+        mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Iterator", "next", "()Ljava/lang/Object;");
+        mv.visitVarInsn(ASTORE, element);
+
+        visitForLets((AST) forlets.next(), body, result);
 
         // loop condition
         mv.visitLabel(condition);
@@ -365,18 +397,14 @@ public class Assembler implements Opcodes {
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Iterator", "hasNext", "()Z");
         mv.visitJumpInsn(IFNE, loop);
 
-        mv.visitVarInsn(ALOAD, result);
         popScope();
-        return t;
     }
 
-    private Class visitLet(AST expr) {
+    private void visitLet(AST forlets, AST body, int result) {
         pushScope();
+        AST expr = (AST) forlets.first();
         String variable = expr.nth(1).getNodeText();
         AST varExpr = expr.nth(2);
-        AST body = expr.nth(3);
-        AST where = expr.nth(4);
-
 
         Class varType = visitExpr(varExpr);
         int index = define(variable, varType);
@@ -396,32 +424,31 @@ public class Assembler implements Opcodes {
         }
 
 
-        Class returnType = Object.class;
-        if (where != null && !where.isNil()) {
-            visitExpr(where);
-//            mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
-//            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z");
-            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asBool", "(Ljava/lang/Object;)Z");
-            Label endif = new Label();
-            Label els = new Label();
-            mv.visitJumpInsn(IFEQ, els);
-            // if body
-            Class t = visitExpr(body);
-            Caster.castToObject(mv, t);
-            mv.visitJumpInsn(GOTO, endif);
-            // else body
-            mv.visitLabel(els);
-            pushNil();
-            // end if
-            mv.visitLabel(endif);
-        }
-        else
-        {
-            returnType = visitExpr(body);
-        }
+        visitForLets((AST) forlets.next(), body, result);
+//        if (where != null && !where.isNil()) {
+//            visitExpr(where);
+////            mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+////            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z");
+//            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asBool", "(Ljava/lang/Object;)Z");
+//            Label endif = new Label();
+//            Label els = new Label();
+//            mv.visitJumpInsn(IFEQ, els);
+//            // if body
+//            Class t = visitExpr(body);
+//            Caster.castToObject(mv, t);
+//            mv.visitJumpInsn(GOTO, endif);
+//            // else body
+//            mv.visitLabel(els);
+//            pushNil();
+//            // end if
+//            mv.visitLabel(endif);
+//        }
+//        else
+//        {
+//            returnType = visitExpr(body);
+//        }
 
         popScope();
-        return returnType;
     }
 
     private Class visitOp(AST expr) {

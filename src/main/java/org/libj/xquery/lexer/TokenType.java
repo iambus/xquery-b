@@ -56,10 +56,12 @@ public class TokenType {
 
     public static final int PROG = 201;
     public static final int DECLARES = 202;
-    public static final int NODE = 203;
-    public static final int CALL = 204;
-    public static final int LIST = 205;
-    public static final int INDEX = 206;
+    public static final int FLOWER = 203;
+    public static final int FORLETS = 204;
+    public static final int NODE = 205;
+    public static final int CALL = 206;
+    public static final int LIST = 207;
+    public static final int INDEX = 208;
 
     private static Map<Integer, String> types;
 
