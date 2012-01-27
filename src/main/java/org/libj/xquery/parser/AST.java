@@ -4,56 +4,115 @@ import org.libj.xquery.lexer.Token;
 import static org.libj.xquery.lexer.TokenType.*;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
-public class AST {
-    private Token token;
-    private List<AST> children;
+public class AST extends Cons {
     
     public AST() {
         // do nothing
     }
     
-    public AST(Token token) {
-        this.token = token;
+    public AST(Object x) {
+        super(x);
     }
     
     public AST(int tokenType) {
         this(new Token(tokenType, null));
     }
-    
+
+    public Token getToken() {
+        return (Token) first();
+    }
     public int getNodeType() {
-        return token.type;
+        return getToken().type;
     }
 
     public String getNodeText() {
-        return token.text;
+        return getToken().text;
     }
 
-    public void addChild(AST t) {
-        if (children == null) {
-            children = new ArrayList<AST>();
+    public AST getChildren() {
+        AST rest = (AST) next();
+        if (rest != null) {
+            return rest;
         }
-        children.add(t);
+        return new AST() {
+            @Override
+            public Cons next() {
+                throw new NullPointerException("Nil access");
+            }
+
+            @Override
+            public void car(Object x) {
+                throw new NullPointerException("Nil access");
+            }
+
+            @Override
+            public void cdr(Cons x) {
+                throw new NullPointerException("Nil access");
+            }
+
+            @Override
+            public Object first() {
+                throw new NullPointerException("Nil access");
+            }
+
+            @Override
+            public int size() {
+                return 0;
+            }
+
+            @Override
+            public List<Object> toList() {
+                return toList(null);
+            }
+
+            @Override
+            public Iterator<Object> iterator() {
+                return iterator(null);
+            }
+
+            @Override
+            public AST nth(int i) {
+                throw new NullPointerException("Nil access");
+            }
+
+            @Override
+            public String toString() {
+                return "nil";
+            }
+        };
+    }
+    public void addChild(AST t) {
+        Cons list = this;
+        while (list.next() != null) {
+            list = list.next();
+        }
+        list.cdr(new AST(t));
     }
 
     public void addChild(Token t) {
         addChild(new AST(t));
     }
 
-    public AST nth(int i) { // i starts from 1
-        return children.get(i-1);
-    }
-    
-    public List<AST> getChildren() {
-        return children;
+    public AST nth(int i) {
+        Cons list = this;
+        while (i-- > 0) {
+            list = list.next();
+            if (list == null) {
+                throw new IndexOutOfBoundsException(""+i);
+            }
+        }
+        return (AST) list.first();
     }
 
     public boolean isNil() {
-        return token == null;
+        return getToken() == null;
     }
 
     public String toString() {
+        Token token = getToken();
         if (isNil()) {
             return "nil";
         }
@@ -89,11 +148,11 @@ public class AST {
         else {
             builder.append(token);
         }
-        if (children != null) {
-            for (AST node: children) {
-                builder.append(' ');
-                builder.append(node);
-            }
+        AST node = (AST) next();
+        while (node != null) {
+            builder.append(' ');
+            builder.append(node);
+            node = (AST) node.next();
         }
         builder.append(")");
         return builder.toString();

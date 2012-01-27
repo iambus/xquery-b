@@ -107,6 +107,11 @@ public class TestExpressions {
         assertEvalString("let $x := 7 where $x = 3 return $x", "");
     }
     @Test
+    public void testNil() {
+        assertEvalString("(1 to 1)[0]", "");
+        assertEvalString("(let $i := 2 where $i != 2 return $i)[1]", "");
+    }
+    @Test
     public void testNode() {
         assertEvalString("<x/>", "<x/>");
         assertEvalString("<x>{2}</x>", "<x>2</x>");

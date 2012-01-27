@@ -186,7 +186,7 @@ public class Parser extends LLkParser {
             ast.addChild(primary());
         }
         match(RPAREN);
-        if (ast.getChildren().size() == 1) {
+        if (ast.size() == 2) {
             return ast.nth(1);
         }
         else {

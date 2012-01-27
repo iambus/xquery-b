@@ -112,7 +112,7 @@ public class Assembler implements Opcodes {
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
         mv.visitInsn(ACONST_NULL);
-        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L"+ENVIRONMENT_CLASS+";)Ljava/lang/Object;");
+        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L" + ENVIRONMENT_CLASS + ";)Ljava/lang/Object;");
         mv.visitInsn(ARETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
@@ -144,11 +144,8 @@ public class Assembler implements Opcodes {
     }
 
     private void visitDeclares(AST declares) {
-        if (declares.getChildren()==null) {
-            return;
-        }
-        for (AST declare: declares.getChildren()) {
-            visitDeclare(declare);
+        for (Object declare: declares.getChildren()) {
+            visitDeclare((AST) declare);
         }
     }
 
@@ -284,9 +281,9 @@ public class Assembler implements Opcodes {
 
     private void visitList(AST expr) {
         newList();
-        for (AST element: expr.getChildren()) {
+        for (Object element: expr.getChildren()) {
             mv.visitInsn(DUP);
-            visitExpr(element);
+            visitExpr((AST) element);
             pushToList();
         }
     }
@@ -472,10 +469,8 @@ public class Assembler implements Opcodes {
     private void flattenNode(AST expr, ArrayList<AST> list) {
         switch (expr.getNodeType()) {
             case NODE:
-                if (expr.getChildren() != null) {
-                    for (AST x : expr.getChildren()) {
-                        flattenNode(x, list);
-                    }
+                for (Object node: expr.getChildren()) {
+                    flattenNode((AST) node, list);
                 }
                 break;
             default:
@@ -604,7 +599,7 @@ public class Assembler implements Opcodes {
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V");
     }
 
-    private void invokeFunction(String functionName, java.util.List<AST> arguments, int argumentIndex) {
+    private void invokeFunction(String functionName, AST arguments, int argumentIndex) {
         Function fn = (Function) namespace.lookup(functionName);
         if (fn == null) {
             throw new RuntimeException("Function not found: "+functionName);
@@ -632,7 +627,7 @@ public class Assembler implements Opcodes {
         }
     }
 
-    private void invokeFunction(NormalStaticFunction fn, java.util.List<AST> arguments, int argumentIndex) {
+    private void invokeFunction(NormalStaticFunction fn, AST arguments, int argumentIndex) {
         int n = arguments.size() - argumentIndex;
         Class<?>[] params = fn.getParameterTypes();
         if (n != params.length) {
@@ -643,14 +638,14 @@ public class Assembler implements Opcodes {
                             n));
         }
         for (int i = 0; i < n; i++) {
-            visitExpr(arguments.get(i+argumentIndex));
+            visitExpr(arguments.nth(i + argumentIndex));
             Caster.castTo(mv, params[i]);
         }
         Caster.castFrom(mv, fn.getReturnType());
         mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
     }
 
-    private void invokeFunction(StandardStaticFunction fn, java.util.List<AST> arguments, int argumentIndex) {
+    private void invokeFunction(StandardStaticFunction fn, AST arguments, int argumentIndex) {
         int n = arguments.size() - argumentIndex;
         if (n != fn.getParameterNumber()) {
             throw new RuntimeException(
@@ -660,30 +655,30 @@ public class Assembler implements Opcodes {
                             n));
         }
         for (int i = 0; i < n; i++) {
-            visitExpr(arguments.get(i+argumentIndex));
+            visitExpr(arguments.nth(i + argumentIndex));
         }
         mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
     }
 
-    private void invokeFunction(StandardStaticOverloadedFunction fn, List<AST> arguments, int argumentIndex) {
+    private void invokeFunction(StandardStaticOverloadedFunction fn, AST arguments, int argumentIndex) {
         invokeFunction(fn.getFunction(arguments.size() - argumentIndex), arguments, argumentIndex);
     }
 
-    private void invokeFunction(StandardStaticVarlistFunction fn, java.util.List<AST> arguments, int argumentIndex) {
+    private void invokeFunction(StandardStaticVarlistFunction fn, AST arguments, int argumentIndex) {
         int n = arguments.size() - argumentIndex;
         pushConst(n);
         mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
         for (int i = 0; i < n; i++) {
             mv.visitInsn(DUP);
             pushConst(i);
-            visitExpr(arguments.get(i+argumentIndex));
+            visitExpr(arguments.nth(i + argumentIndex));
             mv.visitInsn(AASTORE);
         }
         mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
     }
 
-    private void invokeFunction(NormalMethodFunction fn, java.util.List<AST> arguments, int argumentIndex) {
-        visitExpr(arguments.get(argumentIndex++));
+    private void invokeFunction(NormalMethodFunction fn, AST arguments, int argumentIndex) {
+        visitExpr(arguments.nth(argumentIndex++));
         int n = arguments.size() - argumentIndex;
         Class<?>[] params = fn.getParameterTypes();
         if (n != params.length) {
@@ -694,14 +689,14 @@ public class Assembler implements Opcodes {
                             n));
         }
         for (int i = 0; i < n; i++) {
-            visitExpr(arguments.get(i+argumentIndex));
+            visitExpr(arguments.nth(i + argumentIndex));
             Caster.castTo(mv, params[i]);
         }
         Caster.castFrom(mv, fn.getReturnType());
         mv.visitMethodInsn(INVOKEVIRTUAL, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
     }
 
-    private void invokeFunction(NormalConstructorFunction fn, java.util.List<AST> arguments, int argumentIndex) {
+    private void invokeFunction(NormalConstructorFunction fn, AST arguments, int argumentIndex) {
         mv.visitTypeInsn(NEW, fn.getClassName());
         mv.visitInsn(DUP);
         int n = arguments.size() - argumentIndex;
@@ -714,7 +709,7 @@ public class Assembler implements Opcodes {
                             n));
         }
         for (int i = 0; i < n; i++) {
-            visitExpr(arguments.get(i+argumentIndex));
+            visitExpr(arguments.nth(i + argumentIndex));
             Caster.castTo(mv, params[i]);
         }
         mv.visitMethodInsn(INVOKESPECIAL, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
@@ -723,8 +718,9 @@ public class Assembler implements Opcodes {
     private void invokeStatic(AST expr, String className, String op) {
         StringBuilder signature = new StringBuilder();
         signature.append('(');
-        for (AST operand: expr.getChildren()) {
-            visitExpr(operand);
+        expr = expr.getChildren();
+        while (expr != null) {
+            visitExpr((AST) expr.first());
             signature.append("Ljava/lang/Object;");
         }
         signature.append(")Ljava/lang/Object;");
