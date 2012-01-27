@@ -114,12 +114,13 @@ public class AST extends Cons {
         Object head = first();
         if (head instanceof AST) {
             StringBuilder builder = new StringBuilder();
-            builder.append("'("); // XXX: TODO: FIXME: the output doesn't make sense...
+            builder.append("["); // XXX: TODO: FIXME: the output doesn't make sense...
             builder.append(head);
             for (Object x: rest()) {
+                builder.append(' ');
                 builder.append(x);
             }
-            builder.append(")");
+            builder.append("]");
             return builder.toString();
         }
         Token token = (Token) head;
@@ -161,7 +162,7 @@ public class AST extends Cons {
         AST node = (AST) next();
         while (node != null) {
             builder.append(' ');
-            builder.append(node);
+            builder.append(node.first());
             node = (AST) node.next();
         }
         builder.append(")");
