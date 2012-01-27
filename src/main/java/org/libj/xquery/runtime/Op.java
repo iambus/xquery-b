@@ -25,7 +25,7 @@ public class Op extends StandardStaticNamespace {
     }
 
     //////////////////////////////////////////////////
-    /// non-export APIs, for Java code
+    /// ugly names for non-export APIs, for Java code
     //////////////////////////////////////////////////
     public static final Object NIL = null;
 
@@ -57,6 +57,41 @@ public class Op extends StandardStaticNamespace {
         throw new RuntimeException("Not Implemented!");
     }
 
+    public static int sizeOf(Object x) {
+        if (x instanceof java.util.List) {
+            return ((java.util.List) x).size();
+        }
+        else if (x instanceof List) {
+            return ((List) x).size();
+        }
+        else {
+            return 1;
+        }
+    }
+
+    public static Object elementAt(Object x, int index) {
+        if (x instanceof java.util.List) {
+            java.util.List<Object> list = (java.util.List<Object>) x;
+            if (1 <= index && index <= list.size()) {
+                return list.get(index - 1);
+            }
+            else {
+                return Op.NIL;
+            }
+        }
+        else if (x instanceof List) {
+            List list = (List) x;
+            return list.nth(index - 1);
+        }
+        else {
+            if (index == 1) {
+                return x;
+            }
+            else {
+                return Op.NIL;
+            }
+        }
+    }
     //////////////////////////////////////////////////
     /// Below APIs are exported to namespace op:*
     //////////////////////////////////////////////////
@@ -149,28 +184,9 @@ public class Op extends StandardStaticNamespace {
 
     public static Object at(Object x, Object i) {
         int index = (Integer) i;
-        if (x instanceof java.util.List) {
-            java.util.List<Object> list = (java.util.List<Object>) x;
-            if (1 <= index && index <= list.size()) {
-                return list.get(index - 1);
-            }
-            else {
-                return Op.NIL;
-            }
-        }
-        else if (x instanceof List) {
-            List list = (List) x;
-            return list.nth(index - 1);
-        }
-        else {
-            if (index == 1) {
-                return x;
-            }
-            else {
-                return Op.NIL;
-            }
-        }
+        return elementAt(x, index);
     }
+
     public static Object xpath(Object x, Object y) {
         return ((XML)x).eval((String) y);
     }

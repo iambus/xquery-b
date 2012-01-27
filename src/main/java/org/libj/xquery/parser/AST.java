@@ -112,18 +112,24 @@ public class AST extends Cons {
 
     public String toString() {
         Object head = first();
-        if (head instanceof AST) {
+        Token token = (Token) head;
+        if (token == null) {
+            return "nil";
+        }
+        if (token.type == DECLARES || token.type == FORLETS) {
             StringBuilder builder = new StringBuilder();
             builder.append("["); // XXX: TODO: FIXME: the output doesn't make sense...
-            builder.append(head);
-            for (Object x: rest()) {
-                builder.append(' ');
-                builder.append(x);
+            AST subs = rest();
+            if (subs.size() > 0) {
+                builder.append(subs.first());
+                for (Object x: subs.rest()) {
+                    builder.append(' ');
+                    builder.append(x);
+                }
             }
             builder.append("]");
             return builder.toString();
         }
-        Token token = (Token) head;
         if (isNil()) {
             return "nil";
         }
@@ -147,7 +153,10 @@ public class AST extends Cons {
         else if (token.type == LIST) {
             builder.append("list");
         }
-        else if (token.type == FOR || token.type == LET ||
+        else if (token.type == INDEX) {
+            builder.append("at");
+        }
+        else if (token.type == FOR || token.type == LET || token.type == TO ||
                  token.type == AND || token.type == OR ||
                  token.type == PLUS || token.type == MINUS || token.type == MULTIPLY || token.type == DIV ||
                  token.type == EQ || token.type == ASSIGN) {

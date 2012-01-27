@@ -17,7 +17,6 @@ import org.libj.xquery.xml.XMLFactory;
 import org.objectweb.asm.*;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class Assembler implements Opcodes {
     private AST ast;
@@ -319,6 +318,14 @@ public class Assembler implements Opcodes {
     }
 
     private Class visitFlower(AST expr) {
+        return visitFlower(expr, 0);
+    }
+
+    private Class visitFlower(AST expr, int lookingForElementAt) {
+        Label breakLabel = null;
+        if (lookingForElementAt > 0) {
+            breakLabel = new Label();
+        }
         Class t = newList();
         int result = defineAnonymous();
         mv.visitVarInsn(ASTORE, result);
@@ -326,23 +333,26 @@ public class Assembler implements Opcodes {
         AST forlets = expr.nth(1).rest();
         AST body = (AST) expr.next().next();
 
-        visitForLets(forlets, body, result);
+        visitForLets(forlets, body, result, lookingForElementAt, breakLabel);
 
+        if (lookingForElementAt > 0) {
+            mv.visitLabel(breakLabel);
+        }
         mv.visitVarInsn(ALOAD, result);
         return t;
     }
 
-    private void visitForLets(AST forlets, AST body, int result) {
+    private void visitForLets(AST forlets, AST body, int result, int lookingForElementAt, Label breakLabel) {
         if (forlets == null) {
-            visitFlowerBody(body, result);
+            visitFlowerWhereBody(body, result, lookingForElementAt, breakLabel);
         }
         else {
             switch (((AST)forlets.first()).getNodeType()) {
                 case FOR:
-                    visitFor(forlets, body, result);
+                    visitFor(forlets, body, result, lookingForElementAt, breakLabel);
                     break;
                 case LET:
-                    visitLet(forlets, body, result);
+                    visitLet(forlets, body, result, lookingForElementAt, breakLabel);
                     break;
                 default:
                     throw new RuntimeException("Not Implemented!");
@@ -350,51 +360,107 @@ public class Assembler implements Opcodes {
         }
     }
 
-    private void visitFlowerBody(AST expr, int result) {
+    private void visitFlowerWhereBody(AST expr, int result, int lookingForElementAt, Label breakLabel) {
         AST body = expr.nth(0);
         AST where = expr.nth(1);
         // loop body
         if (where != null && !where.isNil()) {
-            Class t = visitExpr(where);
-            if (t.isPrimitive()) {
-                if (t == boolean.class) {
-                    // already boolean, do nothing
-                }
-                else {
-                    throw new RuntimeException("Not Implemented!");
-                }
-            }
-            else {
-                mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asBool", "(Ljava/lang/Object;)Z");
-            }
+            visitCondition(where);
             Label endif = new Label();
             mv.visitJumpInsn(IFEQ, endif);
             // if body
-            mv.visitVarInsn(ALOAD, result);
-            Class elementType = visitExpr(body);
-            Caster.castToObject(mv, elementType);
-            pushToList();
+            if (lookingForElementAt <= 0) {
+                visitFlowerBody(body, result);
+            }
+            else {
+                visitFlowerBodyAt(body, result, lookingForElementAt, breakLabel);
+            }
             // end if
             mv.visitLabel(endif);
         } else {
-            mv.visitVarInsn(ALOAD, result);
-            Class elementType = visitExpr(body);
-            Caster.castToObject(mv, elementType);
-            pushToList();
+            if (lookingForElementAt <= 0) {
+                visitFlowerBody(body, result);
+            }
+            else {
+                visitFlowerBodyAt(body, result, lookingForElementAt, breakLabel);
+            }
         }
     }
 
-    private void visitFor(AST forlets, AST body, int result) {
+    private void visitFlowerBody(AST body, int result) {
+        mv.visitVarInsn(ALOAD, result);
+        Class elementType = visitExpr(body);
+        Caster.castToObject(mv, elementType);
+        pushToList();
+    }
+
+    private void visitFlowerBodyAt(AST body, int result, int lookingForElementAt, Label breakLabel) {
+        mv.visitVarInsn(ILOAD, lookingForElementAt);
+        mv.visitJumpInsn(IFLE, breakLabel);
+        Class elementType = visitExpr(body);
+        if (elementType.isPrimitive()) {
+            Label continueLabel = new Label();
+            mv.visitIincInsn(lookingForElementAt, -1);
+            mv.visitVarInsn(ILOAD, lookingForElementAt);
+            mv.visitJumpInsn(IFGT, continueLabel);
+            // we are done
+            cast(int.class, Object.class);
+            mv.visitVarInsn(ASTORE, result);
+            mv.visitJumpInsn(GOTO, breakLabel);
+            // try again
+            mv.visitLabel(continueLabel);
+            mv.visitInsn(elementType==double.class||elementType==long.class?POP2:POP);
+        }
+        else {
+            Label continueLabel = new Label();
+            mv.visitInsn(DUP);
+            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "sizeOf", "(Ljava/lang/Object;)I");
+            mv.visitInsn(DUP);
+            mv.visitVarInsn(ILOAD, lookingForElementAt);
+            mv.visitJumpInsn(IF_ICMPLT, continueLabel);
+            // we are done
+            mv.visitInsn(POP);
+            mv.visitVarInsn(ILOAD, lookingForElementAt);
+            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "elementAt", "(Ljava/lang/Object;I)Ljava/lang/Object;");
+            mv.visitVarInsn(ASTORE, result);
+            mv.visitJumpInsn(GOTO, breakLabel);
+            // try again
+            mv.visitLabel(continueLabel);
+            mv.visitVarInsn(ILOAD, lookingForElementAt);
+            mv.visitInsn(SWAP);
+            mv.visitInsn(ISUB);
+            mv.visitInsn(SWAP);
+            mv.visitInsn(POP);
+            mv.visitVarInsn(ISTORE, lookingForElementAt);
+        }
+    }
+
+    private void visitCondition(AST where) {
+        Class t = visitExpr(where);
+        if (t.isPrimitive()) {
+            if (t == boolean.class) {
+                // already boolean, do nothing
+            }
+            else {
+                throw new RuntimeException("Not Implemented!");
+            }
+        }
+        else {
+            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asBool", "(Ljava/lang/Object;)Z");
+        }
+    }
+
+    private void visitFor(AST forlets, AST body, int result, int lookingForElementAt, Label breakLabel) {
         pushScope();
         AST expr = (AST) forlets.first();
         String variable = expr.nth(1).getNodeText();
         AST varExpr = expr.nth(2);
 
         if (isForRange(varExpr)) {
-            visitForRange(variable, varExpr, forlets, body, result);
+            visitForRange(variable, varExpr, forlets, body, result, lookingForElementAt, breakLabel);
         }
         else {
-            visitForGeneral(variable, varExpr, forlets, body, result);
+            visitForGeneral(variable, varExpr, forlets, body, result, lookingForElementAt, breakLabel);
         }
 
         popScope();
@@ -404,7 +470,7 @@ public class Assembler implements Opcodes {
         return varExpr.getNodeType() == TO;
     }
 
-    private void visitForRange(String variable, AST range, AST forlets, AST body, int result) {
+    private void visitForRange(String variable, AST range, AST forlets, AST body, int result, int lookingForElementAt, Label breakLabel) {
         int i = define(variable, int.class);
         // TODO: if max is literal, use pushConst instead of variable
         int max = defineAnonymous();
@@ -421,7 +487,7 @@ public class Assembler implements Opcodes {
 
         // do
         mv.visitLabel(loop);
-        visitForLets((AST) forlets.next(), body, result);
+        visitForLets((AST) forlets.next(), body, result, lookingForElementAt, breakLabel);
 
         // i++
         mv.visitIincInsn(i, 1);
@@ -433,7 +499,7 @@ public class Assembler implements Opcodes {
         mv.visitJumpInsn(IF_ICMPLE, loop);
     }
 
-    private void visitForGeneral(String variable, AST varExpr, AST forlets, AST body, int result) {
+    private void visitForGeneral(String variable, AST varExpr, AST forlets, AST body, int result, int index, Label breakLabel) {
         int iterator = defineAnonymous();
         int element = define(variable, Object.class);
         Class collectionType = visitExpr(varExpr);
@@ -452,7 +518,7 @@ public class Assembler implements Opcodes {
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Iterator", "next", "()Ljava/lang/Object;");
         mv.visitVarInsn(ASTORE, element);
 
-        visitForLets((AST) forlets.next(), body, result);
+        visitForLets((AST) forlets.next(), body, result, index, breakLabel);
 
         // loop condition
         mv.visitLabel(condition);
@@ -461,7 +527,7 @@ public class Assembler implements Opcodes {
         mv.visitJumpInsn(IFNE, loop);
     }
 
-    private void visitLet(AST forlets, AST body, int result) {
+    private void visitLet(AST forlets, AST body, int result, int lookingForElementAt, Label breakLabel) {
         pushScope();
         AST expr = (AST) forlets.first();
         String variable = expr.nth(1).getNodeText();
@@ -485,29 +551,7 @@ public class Assembler implements Opcodes {
         }
 
 
-        visitForLets((AST) forlets.next(), body, result);
-//        if (where != null && !where.isNil()) {
-//            visitExpr(where);
-////            mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
-////            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z");
-//            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asBool", "(Ljava/lang/Object;)Z");
-//            Label endif = new Label();
-//            Label els = new Label();
-//            mv.visitJumpInsn(IFEQ, els);
-//            // if body
-//            Class t = visitExpr(body);
-//            Caster.castToObject(mv, t);
-//            mv.visitJumpInsn(GOTO, endif);
-//            // else body
-//            mv.visitLabel(els);
-//            pushNil();
-//            // end if
-//            mv.visitLabel(endif);
-//        }
-//        else
-//        {
-//            returnType = visitExpr(body);
-//        }
+        visitForLets((AST) forlets.next(), body, result, lookingForElementAt, breakLabel);
 
         popScope();
     }
@@ -538,8 +582,7 @@ public class Assembler implements Opcodes {
                 op = "to";
                 break;
             case INDEX:
-                op = "at";
-                break;
+                return visitIndex(expr.nth(1), expr.nth(2));
             case XPATH:
                 op = "xpath";
                 break;
@@ -670,6 +713,24 @@ public class Assembler implements Opcodes {
         }
     }
 
+    private Class visitIndex(AST list, AST at) {
+        if (list.getNodeType() == FLOWER) {
+            int index = defineAnonymous();
+            cast(visitExpr(at), int.class);
+            mv.visitVarInsn(ISTORE, index);
+            return visitFlower(list, index);
+        }
+        else {
+            return visitOp2("at", list, at);
+        }
+    }
+
+    private Class visitOp2(String op, AST left, AST right) {
+        cast(visitExpr(left), Object.class);
+        cast(visitExpr(right), Object.class);
+        return invokeBinaryOp(op);
+    }
+
     private Class<XML> visitNode(AST expr) {
         ArrayList<AST> list = new ArrayList<AST>();
         flattenNode(expr, list);
@@ -775,6 +836,10 @@ public class Assembler implements Opcodes {
     /// helper
     //////////////////////////////////////////////////
 
+    private Class cast(Class source, Class target) {
+        return Caster.cast(mv, source, target);
+    }
+
     private void pushConst(int n) {
         switch (n) {
             case -1:
@@ -819,7 +884,6 @@ public class Assembler implements Opcodes {
         mv.visitInsn(DUP);
         mv.visitMethodInsn(INVOKESPECIAL, className, "<init>", "()V");
     }
-
 
     private void pushNil() {
 //        newObject(NIL);
@@ -990,8 +1054,9 @@ public class Assembler implements Opcodes {
                             actual));
         }
     }
+
     //////////////////////////////////////////////////
-    /// analyze
+    /// scope
     //////////////////////////////////////////////////
     private void pushScope() {
         scope = new Scope(scope);

@@ -109,6 +109,23 @@ public class TestExpressions {
         assertEvalString("let $x := 7 where $x = 3 return $x", "");
     }
     @Test
+    public void testLoopAtOptimize() {
+        assertEvalString("(for $x in (3 to 5) return $x)[0]", "");
+        assertEvalString("(for $x in (3 to 5) return $x)[1]", "3");
+        assertEvalString("(for $x in (3 to 5) return $x)[2]", "4");
+        assertEvalString("(for $x in (3 to 5) return $x)[3]", "5");
+        assertEvalString("(for $x in (3 to 5) return $x)[4]", "");
+        assertEvalString("(for $x in ('a', 'b', 'c') return $x)[0]", "");
+        assertEvalString("(for $x in ('a', 'b', 'c') return $x)[1]", "a");
+        assertEvalString("(for $x in ('a', 'b', 'c') return $x)[2]", "b");
+        assertEvalString("(for $x in ('a', 'b', 'c') return $x)[3]", "c");
+        assertEvalString("(for $x in ('a', 'b', 'c') return $x)[4]", "");
+    }
+    @Test
+    public void testIfElse() {
+        assertEvalString("for $x in 1 to 20 return if ($x mod 2 = 0) then $x else ()", "2 4 6 8 10 12 14 16 18 20");
+    }
+    @Test
     public void testNil() {
         assertEvalString("(1 to 1)[0]", "");
         assertEvalString("(let $i := 2 where $i != 2 return $i)[1]", "");
