@@ -355,10 +355,18 @@ public class Assembler implements Opcodes {
         AST where = expr.nth(1);
         // loop body
         if (where != null && !where.isNil()) {
-            visitExpr(where);
-//            mv.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
-//            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z");
-            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asBool", "(Ljava/lang/Object;)Z");
+            Class t = visitExpr(where);
+            if (t.isPrimitive()) {
+                if (t == boolean.class) {
+                    // already boolean, do nothing
+                }
+                else {
+                    throw new RuntimeException("Not Implemented!");
+                }
+            }
+            else {
+                mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asBool", "(Ljava/lang/Object;)Z");
+            }
             Label endif = new Label();
             mv.visitJumpInsn(IFEQ, endif);
             // if body
@@ -518,11 +526,8 @@ public class Assembler implements Opcodes {
                 op = "negative";
                 break;
             case EQ:
-                op = "eq";
-                break;
             case NE:
-                op = "ne";
-                break;
+                return visitArithmeticCompare(expr);
             case AND:
                 op = "and";
                 break;
@@ -629,6 +634,55 @@ public class Assembler implements Opcodes {
     private Class invokeBinaryOp(String methodName) {
         mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, methodName, "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
         return Object.class;
+    }
+
+    private Class visitArithmeticCompare(AST expr) {
+        if (expr.size() != 3) {
+            throw new RuntimeException("Not Implemented!");
+        }
+        int opType = expr.getNodeType();
+        AST leftTree = (AST)(expr.next().first());
+        AST rightTree = (AST)(expr.next().next().first());
+        Class leftType = visitExpr(leftTree);
+        if (leftType != int.class) {
+            Caster.cast(mv, leftType, Object.class);
+            Caster.cast(mv, visitExpr(rightTree), Object.class);
+            return invokeBinaryOp(opType == EQ ? "eq" : "ne");
+        }
+        else {
+            Class rightType = visitExpr(rightTree);
+            if (rightType == int.class) {
+                mv.visitInsn(ISUB);
+                if (opType == EQ) {
+                    Label trueLabel = new Label();
+                    Label falseLabel = new Label();
+                    Label doneLabel = new Label();
+                    mv.visitJumpInsn(IFEQ, trueLabel);
+                    mv.visitLabel(falseLabel);
+                    mv.visitInsn(ICONST_0);
+                    mv.visitJumpInsn(GOTO, doneLabel);
+                    mv.visitLabel(trueLabel);
+                    mv.visitInsn(ICONST_1);
+                    mv.visitLabel(doneLabel);
+                }
+                else {
+                    Label trueLabel = new Label();
+                    Label falseLabel = new Label();
+                    Label doneLabel = new Label();
+                    mv.visitJumpInsn(IFNE, trueLabel);
+                    mv.visitLabel(falseLabel);
+                    mv.visitInsn(ICONST_0);
+                    mv.visitJumpInsn(GOTO, doneLabel);
+                    mv.visitLabel(trueLabel);
+                    mv.visitInsn(ICONST_1);
+                    mv.visitLabel(doneLabel);
+                }
+                return boolean.class;
+            }
+            else {
+                throw new RuntimeException("Not Implemented!");
+            }
+        }
     }
 
     private Class<XML> visitNode(AST expr) {
