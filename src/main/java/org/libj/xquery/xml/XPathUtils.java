@@ -7,13 +7,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public class XPathUtils {
-    public static String[] parseSimpleEnoughXPath(String xpath) {
-        String[] tags = xpath.substring(1).split("/");
-        for (String t: tags) {
-
-        }
-        return tags;
-    }
     public static Node evalSimpleXPathOnDom(String xpath, Node node) {
         if (xpath.charAt(0) != '/') {
             throw new RuntimeException("Not Implemented!");

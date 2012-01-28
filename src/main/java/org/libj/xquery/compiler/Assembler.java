@@ -15,6 +15,7 @@ import org.libj.xquery.runtime.RecursiveList;
 import org.libj.xquery.xml.DomSimpleXPathXMLFactory;
 import org.libj.xquery.xml.XML;
 import org.libj.xquery.xml.XMLFactory;
+import org.libj.xquery.xml.str.StringXMLFactory;
 import org.objectweb.asm.*;
 
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ public class Assembler implements Opcodes {
 
     private Namespace namespace;
     private final String XML_FACTORY_IMPLEMENTATION;
-    public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION = DomSimpleXPathXMLFactory.class;
+    public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION = StringXMLFactory.class;
 
     MethodVisitor mv;
 

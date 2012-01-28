@@ -137,6 +137,7 @@ public class TestExpressions {
     @Test
     public void testNode() {
         assertEvalString("<x/>", "<x/>");
+        assertEvalString("<x><w/><a>2</a></x>", "<x><w/><a>2</a></x>");
         assertEvalString("<x>{2}</x>", "<x>2</x>");
         assertEvalString("<x>{1.1 + 2}</x>", "<x>3.1</x>");
         assertEvalString("<x>$x</x>", "<x>$x</x>");
@@ -150,6 +151,8 @@ public class TestExpressions {
     public void testXPath() {
         assertEvalString("let $x := <x><a>2</a></x> return $x/a", "<a>2</a>");
         assertEvalString("let $x := <x><a>2</a></x> return $x/x/a", "");
+        assertEvalString("let $x := <x><a>2</a></x> return $x/a/b", "");
+        assertEvalString("let $x := <x><w/><a>2</a></x> return $x/a", "<a>2</a>");
     }
     @Test
     public void testQexoExamples() {
