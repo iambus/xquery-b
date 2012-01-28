@@ -2,11 +2,14 @@ package org.libj.xquery.xml.str;
 
 import org.libj.xquery.xml.NilXML;
 import org.libj.xquery.xml.XML;
+import org.libj.xquery.xml.XMLUtils;
 
 public class StringXML implements XML {
     private String xml;
     private int start;
     private int end = -1;
+    private String subs;
+    private String text;
 
     public StringXML(String xml, int start) {
         this.xml = xml;
@@ -31,6 +34,14 @@ public class StringXML implements XML {
         }
         return new StringXML(xml, i);
     }
+
+    public String text() {
+        if (text == null) {
+            text = XMLUtils.text(toString());
+        }
+        return text;
+    }
+
     private int selectNode(int i, String subNode) {
         int max = xml.length();
         int tagmax = subNode.length();
@@ -91,10 +102,13 @@ public class StringXML implements XML {
     }
 
     public String toString() {
-        if (end < 0) {
-            end = skipNode(start);
+        if (subs == null) {
+            if (end < 0) {
+                end = skipNode(start);
+            }
+            subs = xml.substring(start, end);
         }
-        return xml.substring(start, end);
+        return subs;
     }
     public static void main(String[] args) {
         XML x = new StringXML("<x><a>2</a></x>");

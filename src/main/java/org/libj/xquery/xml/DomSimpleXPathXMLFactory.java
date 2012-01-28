@@ -44,6 +44,17 @@ public class DomSimpleXPathXMLFactory implements XMLFactory {
         }
 
         public Object eval(String path) {
+            initNode();
+            Node node = XPathUtils.evalSimpleXPathOnDom(path, this.node);
+            if (node != null) {
+                return new DomSimpleXPathXML(node);
+            }
+            else {
+                return Nil.NIL;
+            }
+        }
+
+        private void initNode() {
             if (node == null) {
 //                        doc = XMLUtils.doc(xml);
                 try {
@@ -55,13 +66,11 @@ public class DomSimpleXPathXMLFactory implements XMLFactory {
                     throw new RuntimeException(e);
                 }
             }
-            Node node = XPathUtils.evalSimpleXPathOnDom(path, this.node);
-            if (node != null) {
-                return new DomSimpleXPathXML(node);
-            }
-            else {
-                return Nil.NIL;
-            }
+        }
+
+        public String text() {
+            initNode();
+            return node.getTextContent();
         }
 
         public String toString() {

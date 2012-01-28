@@ -10,6 +10,7 @@ import org.libj.xquery.xml.str.StringXML;
 import org.libj.xquery.xml.str.StringXMLFactory;
 
 import static org.libj.xquery.Asserts.assertEvalString;
+import static org.libj.xquery.Asserts.assertRepeatedCompileMillis;
 import static org.libj.xquery.Asserts.assertRepeatedEvalPerSecond;
 
 public class TestXPathPerformance {
@@ -86,7 +87,7 @@ public class TestXPathPerformance {
             "</Event>"; // 148 bytes
     @Test
     public void testEvent() {
-        assertRepeatedEvalPerSecond("let $event := "+event+" return $event/Location", 1000 * 500);
+        assertRepeatedEvalPerSecond("let $event := " + event + " return $event/Location", 1000 * 500);
         assertRepeatedEvalPerSecond("let $event := "+event+" return $event/Location", 1000 * 500);
     }
 
@@ -96,5 +97,12 @@ public class TestXPathPerformance {
         env.putVariable("event", new StringXML(event));
         assertRepeatedEvalPerSecond("$event/Location", 1000 * 1000, env);
         assertRepeatedEvalPerSecond("$event/Location", 1000 * 1000, env);
+    }
+
+    @Test
+    public void testEventText() {
+//        assertRepeatedEvalPerSecond("debug:print(fn:string($event))", 1, env);
+//        assertRepeatedEvalPerSecond("debug:print(fn:string("+event+"))", 1);
+        assertRepeatedEvalPerSecond("fn:string("+event+")", 1000 * 500);
     }
 }

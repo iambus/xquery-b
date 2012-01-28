@@ -11,6 +11,10 @@ public class NoXML implements XML {
         throw new UnsupportedOperationException("eval");
     }
 
+    public String text() {
+        return XMLUtils.text(xml);
+    }
+
     public String toString() {
         return xml;
     }

@@ -1,5 +1,6 @@
 package org.libj.xquery.namespace;
 
+import org.libj.xquery.lib.Debug;
 import org.libj.xquery.lib.Fn;
 import org.libj.xquery.runtime.Op;
 
@@ -7,10 +8,9 @@ public class DefaultRootNamespace extends RootNamespace {
     private JavaNamespace classNamespace = new JavaNamespace();
     public DefaultRootNamespace() {
         register("class", classNamespace);
-//        register("fn", new Fn());
         register("fn", new LibNamespace(Fn.class));
-//        register("op", new Op());
         register("op", new LibNamespace(Op.class));
+        register("debug", new LibNamespace(Debug.class));
         importDefault("fn");
     }
 

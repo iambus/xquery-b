@@ -62,6 +62,33 @@ public class XMLUtils {
         return writer.toString().replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "");
     }
 
+    public static String text(String xml) {
+//        return xml.replaceAll("<[^<>]*>", "");
+        StringBuilder builder = new StringBuilder();
+        int max = xml.length();
+        int i = 0;
+        while (i < max) {
+            char c = xml.charAt(i);
+            if (c == '<') {
+                break;
+            }
+            builder.append(c);
+            i++;
+        }
+        while (i < max) {
+            while (xml.charAt(i++) != '>') {
+            }
+            while (i < max) {
+                char c = xml.charAt(i);
+                if (c == '<') {
+                    break;
+                }
+                builder.append(c);
+                i++;
+            }
+        }
+        return builder.toString();
+    }
     public static XPath newXPath() {
         XPathFactory factory = XPathFactory.newInstance();
         XPath xpath = factory.newXPath();
@@ -75,5 +102,9 @@ public class XMLUtils {
         } catch (XPathExpressionException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static void main(String[] args) {
+        System.out.println(text("<x>2</x>"));
     }
 }

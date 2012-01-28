@@ -1,5 +1,6 @@
 package org.libj.xquery.compiler;
 
+import org.libj.xquery.runtime.Nil;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -59,6 +60,12 @@ public class Caster implements Opcodes {
             }
             else if (from == long.class) {
                 return castToLongObject(mv);
+            }
+            else if (from == void.class) {
+                // XXX: is it OK?
+                mv.visitFieldInsn(GETSTATIC, Assembler.NIL, "NIL", "L"+Assembler.NIL+";");
+                return Nil.class;
+//                throw new RuntimeException("Not Implemented! "+from+" to "+to);
             }
             else {
                 throw new RuntimeException("Not Implemented: "+from);

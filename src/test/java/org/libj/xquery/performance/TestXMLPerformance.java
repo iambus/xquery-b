@@ -14,4 +14,8 @@ public class TestXMLPerformance {
     public void testRepeatedXML() {
         assertEvalMillis("for $i in (1 to 1000*1000*2) return <x>{$i}</x>", 1000);
     }
+    @Test
+    public void testText() {
+        assertRepeatedEvalPerSecond("fn:string(<x>{2}</x>)", 1000*1000*5);
+    }
 }

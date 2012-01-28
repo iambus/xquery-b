@@ -5,6 +5,11 @@ public class NilXML implements XML {
     public Object eval(String path) {
         return this;
     }
+
+    public String text() {
+        return "";
+    }
+
     public String toString() {
         return "";
     }

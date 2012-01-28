@@ -4,6 +4,7 @@ import org.libj.xquery.annotation.Function;
 import org.libj.xquery.annotation.Namespace;
 import org.libj.xquery.namespace.StandardStaticNamespace;
 import org.libj.xquery.runtime.Op;
+import org.libj.xquery.xml.XML;
 
 @Namespace(name="fn")
 public class Fn extends StandardStaticNamespace {
@@ -25,7 +26,12 @@ public class Fn extends StandardStaticNamespace {
 
     @Function
     public static Object string(Object v) {
-        return v.toString();
+        if (v instanceof XML) {
+            return ((XML) v).text();
+        }
+        else {
+            return v.toString();
+        }
     }
 
     @Function

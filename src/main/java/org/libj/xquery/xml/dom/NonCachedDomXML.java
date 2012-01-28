@@ -20,4 +20,8 @@ public class NonCachedDomXML implements XML {
         }
         return XMLUtils.evalXPath(path, doc);
     }
+
+    public String text() {
+        return XMLUtils.text(xml);
+    }
 }

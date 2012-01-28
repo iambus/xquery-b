@@ -7,10 +7,13 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import java.io.IOException;
 import java.io.StringReader;
 
 public class CachedDomXML implements XML {
@@ -31,23 +34,36 @@ public class CachedDomXML implements XML {
     }
 
     public Object eval(String path) {
+        initNode();
+        Node result = null;
         try {
-            if (doc == null) {
-//                        doc = XMLUtils.doc(xml);
-                doc = documentBuilder.parse(new InputSource(new StringReader(xml)));
-                node = doc.getDocumentElement();
-            }
-//                return xpath.evaluate('.'+path, node, XPathConstants.NODE);
-            Node result = (Node) xpath.evaluate('.' + path, node, XPathConstants.NODE);
-            if (result != null) {
-                return new CachedDomXML(XMLUtils.xml(result), documentBuilder, xpath);
-            }
-            else {
-                return Nil.NIL;
-            }
-        } catch (Exception e) {
+            result = (Node) xpath.evaluate('.' + path, node, XPathConstants.NODE);
+        } catch (XPathExpressionException e) {
             throw new RuntimeException(e);
         }
+        if (result != null) {
+            return new CachedDomXML(XMLUtils.xml(result), documentBuilder, xpath);
+        } else {
+            return Nil.NIL;
+        }
+    }
+
+    private void initNode() {
+        if (doc == null) {
+            try {
+                doc = documentBuilder.parse(new InputSource(new StringReader(xml)));
+            } catch (SAXException e1) {
+                throw new RuntimeException(e1);
+            } catch (IOException e1) {
+                throw new RuntimeException(e1);
+            }
+            node = doc.getDocumentElement();
+        }
+    }
+
+    public String text() {
+        initNode();
+        return node.getTextContent();
     }
 
     public String toString() {

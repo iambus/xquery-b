@@ -59,7 +59,7 @@ public class Assembler implements Opcodes {
 //    private static final String QUERY_LIST = ArrayList.class.getName().replace('.', '/');
     private static final String QUERY_LIST = RecursiveList.class.getName().replace('.', '/');
     private static final String ENVIRONMENT_CLASS = Environment.class.getName().replace('.', '/');
-    private static final String NIL = Nil.class.getName().replace('.', '/');
+    static final String NIL = Nil.class.getName().replace('.', '/');
 
     private static final String RUNTIME_OP = Op.class.getName().replace('.', '/');
     private static final String XML_FACTORY_INTERFACE = XMLFactory.class.getName().replace('.', '/');
