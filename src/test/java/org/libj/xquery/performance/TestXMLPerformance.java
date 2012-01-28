@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import static org.libj.xquery.Asserts.*;
 
-public class TestSimpleXMLPerformance {
+public class TestXMLPerformance {
     @Test
     public void testMiniXML() {
         // without xpath, we can get almost 10 millions per second!

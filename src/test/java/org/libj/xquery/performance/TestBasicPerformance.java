@@ -4,7 +4,7 @@ import org.junit.Test;
 
 import static org.libj.xquery.Asserts.*;
 
-public class TestBasicExpressionPerformance {
+public class TestBasicPerformance {
     @Test
     public void testLiteral() {
         assertRepeatedEvalPerSecond(" 1 ", 1000*1000*1000);

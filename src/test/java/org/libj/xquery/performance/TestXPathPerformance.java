@@ -10,7 +10,7 @@ import org.libj.xquery.xml.str.StringXMLFactory;
 import static org.libj.xquery.Asserts.assertEvalString;
 import static org.libj.xquery.Asserts.assertRepeatedEvalPerSecond;
 
-public class TestSimpleXPathPerformance {
+public class TestXPathPerformance {
     @Test
     public void testMiniDefaultXPath() {
         assertRepeatedEvalPerSecond("let $x := <x><a>2</a></x> return $x/a", 500);
@@ -25,12 +25,12 @@ public class TestSimpleXPathPerformance {
     public void testMiniDomSimpleXPath() {
         org.libj.xquery.compiler.Compiler compiler = new Compiler();
         compiler.setXMLFactory(DomSimpleXPathXMLFactory.class);
-        assertRepeatedEvalPerSecond(compiler, "let $x := <x><a>2</a></x> return $x/a", 500);
+        assertRepeatedEvalPerSecond(compiler, "let $x := <x><a>2</a></x> return $x/a", 1000);
     }
     @Test
     public void testMiniStringXPath() {
         org.libj.xquery.compiler.Compiler compiler = new Compiler();
         compiler.setXMLFactory(StringXMLFactory.class);
-        assertRepeatedEvalPerSecond(compiler, "let $x := <x><a>2</a></x> return $x/a", 1000*1000*1);
+        assertRepeatedEvalPerSecond(compiler, "let $x := <x><a>2</a></x> return $x/a", 1000*1000*2);
     }
 }

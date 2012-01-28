@@ -46,17 +46,22 @@ public class XMLUtils {
     }
 
     public static String xml(Node node) {
+        TransformerFactory factory = TransformerFactory.newInstance();
+        return xml(factory, node);
+    }
+
+    public static String xml(TransformerFactory transformerFactory, Node node) {
         Writer writer = new StringWriter();
         DOMSource source = new DOMSource(node);
         StreamResult result = new StreamResult(writer);
-        TransformerFactory factory = TransformerFactory.newInstance();
         try {
-            factory.newTransformer().transform(source, result);
+            transformerFactory.newTransformer().transform(source, result);
         } catch (TransformerException e) {
             throw new RuntimeException(e);
         }
         return writer.toString().replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "");
     }
+
     public static XPath newXPath() {
         XPathFactory factory = XPathFactory.newInstance();
         XPath xpath = factory.newXPath();
