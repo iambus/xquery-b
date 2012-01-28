@@ -885,6 +885,25 @@ public class Assembler implements Opcodes {
         mv.visitMethodInsn(INVOKESPECIAL, className, "<init>", "()V");
     }
 
+    private void newArray(Class type, int length) {
+        pushConst(length);
+        if (type.isPrimitive()) {
+            throw new RuntimeException("Not Implemented!");
+        }
+        else {
+            mv.visitTypeInsn(ANEWARRAY, type.getName().replace('.', '/'));
+        }
+    }
+
+    private void pushToArray(Class type) {
+        if (type.isPrimitive()) {
+            throw new RuntimeException("Not Implemented!");
+        }
+        else {
+            mv.visitInsn(AASTORE);
+        }
+    }
+
     private void pushNil() {
 //        newObject(NIL);
         mv.visitInsn(ACONST_NULL);
@@ -952,10 +971,36 @@ public class Assembler implements Opcodes {
     private Class invokeFunction(NormalStaticFunction fn, AST arguments) {
         int n = arguments.size();
         Class<?>[] params = fn.getParameterTypes();
-        checkArgumentsNumber(n, fn.getParameterNumber());
-        for (int i = 0; i < n; i++) {
-            Class argumentType = visitExpr(arguments.nth(i));
-            Caster.cast(mv, argumentType, params[i]);
+        if (fn.isVarArgs()) {
+            if (n < params.length) {
+                throw new RuntimeException("Incorrect parameter number: "+n+" < "+params.length);
+            }
+            int normalParamameterNumber = params.length - 1;
+            int varParameterNumber = n - normalParamameterNumber;
+            for (int i = 0; i < normalParamameterNumber; i++) {
+                Class argumentType = visitExpr(arguments.nth(i));
+                Caster.cast(mv, argumentType, params[i]);
+            }
+            Class elementType = params[normalParamameterNumber];
+            if (!elementType.isArray()) {
+                throw new RuntimeException("Not Implemented!");
+            }
+            elementType = elementType.getComponentType();
+            newArray(elementType, varParameterNumber);
+            for (int i = 0; i < varParameterNumber; i++) {
+                mv.visitInsn(DUP);
+                pushConst(i);
+                Class argumentType = visitExpr(arguments.nth(normalParamameterNumber+i));
+                Caster.cast(mv, argumentType, elementType);
+                pushToArray(elementType);
+            }
+        }
+        else {
+            checkArgumentsNumber(n, params.length);
+            for (int i = 0; i < n; i++) {
+                Class argumentType = visitExpr(arguments.nth(i));
+                Caster.cast(mv, argumentType, params[i]);
+            }
         }
         mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
         return fn.getReturnType();
@@ -978,14 +1023,13 @@ public class Assembler implements Opcodes {
 
     private Class invokeFunction(StandardStaticVarlistFunction fn, AST arguments) {
         int n = arguments.size();
-        pushConst(n);
-        mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
+        newArray(Object.class, n);
         for (int i = 0; i < n; i++) {
             mv.visitInsn(DUP);
             pushConst(i);
             Class argumentType = visitExpr(arguments.nth(i));
-            Caster.castToObject(mv, argumentType);
-            mv.visitInsn(AASTORE);
+            cast(argumentType, Object.class);
+            pushToArray(Object.class);
         }
         mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
         return Object.class;
@@ -1034,7 +1078,8 @@ public class Assembler implements Opcodes {
             mv.visitMethodInsn(INVOKESPECIAL, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
         }
         else if (fn instanceof NormalStaticFunction) {
-            throw new RuntimeException("Not Implemented! "+fn);
+            Caster.castMany(mv, argumentTypes, fn.getParameterTypes());
+            mv.visitMethodInsn(INVOKESTATIC, fn.getClassName(), fn.getFunctionName(), fn.getSignature());
         }
         else if (fn instanceof NormalMethodFunction) {
             throw new RuntimeException("Not Implemented! "+fn);
@@ -1048,7 +1093,7 @@ public class Assembler implements Opcodes {
     private void checkArgumentsNumber(int expected, int actual) {
         if (actual != expected) {
             throw new RuntimeException(
-                    String.format("Too % arguments. Expected: %d, actual: %s",
+                    String.format("Too %s arguments. Expected: %d, actual: %s",
                             actual < expected ? "few" : "many",
                             expected,
                             actual));

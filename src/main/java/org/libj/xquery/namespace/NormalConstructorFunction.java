@@ -41,5 +41,9 @@ public class NormalConstructorFunction implements JavaFunction {
         return false;
     }
 
+    public boolean isVarArgs() {
+        return constructor.isVarArgs();
+    }
+
 
 }

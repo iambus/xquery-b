@@ -4,6 +4,19 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class Caster implements Opcodes {
+
+    public static Class dynamicCast(MethodVisitor mv, Class<?> from, Class<?> to) {
+        Class result = cast(mv, from, to);
+        if (result == to) {
+            return to;
+        }
+        if (result.isPrimitive() || to.isPrimitive()) {
+            throw new RuntimeException("Not Implemented!");
+        }
+        mv.visitTypeInsn(CHECKCAST, to.getName().replace('.', '/'));
+        return to;
+    }
+
     public static Class castObjectTo(MethodVisitor mv, Class to) {
         // convert object to object or primitive value, based on target type
         // Integer -> int
@@ -104,5 +117,52 @@ public class Caster implements Opcodes {
             return int.class;
         }
         throw new RuntimeException("Not Implemented!");
+    }
+
+    public static void castMany(MethodVisitor mv, Class[] from, Class[] to) {
+        if (from.length != to.length) {
+            throw new RuntimeException("Incorrect many cast");
+        }
+        int i = 0;
+        while (i < from.length && !needCast(from[i], to[i])) {
+            i++;
+        }
+        if (i >= from.length) {
+            // nothing to cast
+            return;
+        }
+        int n = from.length - i;
+        if (n == 1) {
+            cast(mv, from[i], to[i]);
+            return;
+        }
+        if (n == 2) {
+            if (from[i] == double.class || from[i] == long.class ||
+                from[i+1] == double.class || from[i+1] == long.class ||
+                to[i] == double.class || to[i] == long.class ||
+                to[i+1] == double.class || to[i+1] == long.class) {
+                throw new RuntimeException("Not Implemented!");
+            }
+            mv.visitInsn(SWAP);
+            cast(mv, from[i], to[i]);
+            mv.visitInsn(SWAP);
+            cast(mv, from[i+1], to[i+1]);
+            return;
+        }
+        throw new RuntimeException("Not Implemented!");
+    }
+    private static boolean needCast(Class from, Class to) {
+        if (from == to) {
+            return false;
+        }
+        if (!from.isPrimitive() && !to.isPrimitive()) {
+            return false;
+        }
+        if (!from.isPrimitive() || !to.isPrimitive()) {
+            return true;
+        }
+        else {
+            throw new RuntimeException("Not Implemented!");
+        }
     }
 }

@@ -1,10 +1,13 @@
 package org.libj.xquery.runtime;
 
+import org.libj.xquery.annotation.Function;
+import org.libj.xquery.annotation.Namespace;
 import org.libj.xquery.namespace.StandardStaticNamespace;
 import org.libj.xquery.xml.XML;
 
 import java.util.ArrayList;
 
+@Namespace(name="op")
 public class Op extends StandardStaticNamespace {
     public Op() {
         super(Op.class.getName());
@@ -96,10 +99,12 @@ public class Op extends StandardStaticNamespace {
     /// Below APIs are exported to namespace op:*
     //////////////////////////////////////////////////
 
+    @Function
     public static Object list(Object x) {
         return asList(x);
     }
 
+    @Function
     public static Object add(Object x, Object y) {
         if (x instanceof Integer && y instanceof Integer) {
             return (Integer) x + (Integer) y;
@@ -109,6 +114,7 @@ public class Op extends StandardStaticNamespace {
         return dx + dy;
     }
 
+    @Function
     public static Object subtract(Object x, Object y) {
         if (x instanceof Integer && y instanceof Integer) {
             return (Integer) x - (Integer) y;
@@ -118,6 +124,7 @@ public class Op extends StandardStaticNamespace {
         return dx - dy;
     }
 
+    @Function
     public static Object multiply(Object x, Object y) {
         if (x instanceof Integer && y instanceof Integer) {
             return (Integer) x * (Integer) y;
@@ -127,6 +134,7 @@ public class Op extends StandardStaticNamespace {
         return dx * dy;
     }
 
+    @Function
     public static Object div(Object x, Object y) {
         if (x instanceof Integer && y instanceof Integer) {
             return (Integer) x / (Integer) y;
@@ -136,6 +144,7 @@ public class Op extends StandardStaticNamespace {
         return dx / dy;
     }
 
+    @Function
     public static Object negative(Object x) {
         Number n = (Number) x;
         if (n instanceof Integer) {
@@ -149,6 +158,7 @@ public class Op extends StandardStaticNamespace {
         }
     }
 
+    @Function
     public static Object mod(Object x, Object y) {
         if (x instanceof Integer && y instanceof Integer) {
             return (Integer) x % (Integer) y;
@@ -158,35 +168,43 @@ public class Op extends StandardStaticNamespace {
         return dx % dy;
     }
 
+    @Function
     public static Object eq(Object x, Object y) {
         if (x instanceof List || y instanceof List) {
             throw new RuntimeException("Not Implemented!");
         }
         return x.equals(y);
     }
+
+    @Function
     public static Object ne(Object x, Object y) {
         return !(Boolean)eq(x, y);
     }
 
+    @Function
     public static Object and(Object x, Object y) {
         return asBool(x) && asBool(y);
     }
 
+    @Function
     public static Object or(Object x, Object y) {
         return asBool(x) || asBool(y);
     }
 
+    @Function
     public static Object to(Object x, Object y) {
         int start = (Integer)x;
         int end = (Integer)y;
         return new Range(start, end+1);
     }
 
+    @Function
     public static Object at(Object x, Object i) {
         int index = (Integer) i;
         return elementAt(x, index);
     }
 
+    @Function
     public static Object xpath(Object x, Object y) {
         return ((XML)x).eval((String) y);
     }

@@ -112,23 +112,16 @@ public class AST extends Cons {
 
     public String toString() {
         Object head = first();
+        if (!(head instanceof Token)) {
+            return toVectorString(this);
+        }
         Token token = (Token) head;
         if (token == null) {
             return "nil";
         }
         if (token.type == DECLARES || token.type == FORLETS) {
-            StringBuilder builder = new StringBuilder();
-            builder.append("["); // XXX: TODO: FIXME: the output doesn't make sense...
             AST subs = rest();
-            if (subs.size() > 0) {
-                builder.append(subs.first());
-                for (Object x: subs.rest()) {
-                    builder.append(' ');
-                    builder.append(x);
-                }
-            }
-            builder.append("]");
-            return builder.toString();
+            return toVectorString(subs);
         }
         if (isNil()) {
             return "nil";
@@ -175,6 +168,20 @@ public class AST extends Cons {
             node = (AST) node.next();
         }
         builder.append(")");
+        return builder.toString();
+    }
+
+    private String toVectorString(AST ast) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("["); // XXX: TODO: FIXME: the output doesn't make sense...
+        if (ast.size() > 0) {
+            builder.append(ast.first());
+            for (Object x : ast.rest()) {
+                builder.append(' ');
+                builder.append(x);
+            }
+        }
+        builder.append("]");
         return builder.toString();
     }
 }

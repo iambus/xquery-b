@@ -35,6 +35,10 @@ public class StaticFunction implements JavaFunction {
         return false;
     }
 
+    public boolean isVarArgs() {
+        return false;
+    }
+
     public int getParameterNumber() {
         return parseSignatureNumber(signature);
     }

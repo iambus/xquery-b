@@ -1,5 +1,7 @@
 package org.libj.xquery.namespace;
 
+import org.libj.xquery.annotation.AnnotationReader;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -13,7 +15,7 @@ public class ClassNamespace implements Namespace {
     private String className;
     private Class clazz;
     private List<Method> methods;
-    private HashMap<String, Function> methodTable;
+    private Map<String, Function> methodTable;
     private Function constructor;
 
     public ClassNamespace(String className) {
@@ -55,48 +57,55 @@ public class ClassNamespace implements Namespace {
 
     private void initMethods() {
         methods = getMethods(clazz);
-        methodTable = new HashMap<String, Function>();
-        HashMap<String, List<Method>> table = new HashMap<String, List<Method>>();
+        methodTable = createMethodTable(methods, false);
+    }
+
+    public static Map<String, Function> createMethodTable(List<Method> methods, boolean useAnnotationName) {
+        Map<String, Function> functionTable = new HashMap<String, Function>();
+        HashMap<String, List<Method>> methodTable = new HashMap<String, List<Method>>();
+        if (methods.isEmpty()) {
+            return functionTable;
+        }
+        String className = methods.get(0).getDeclaringClass().getName();
         for (Method method: methods) {
-            String name = method.getName();
+            String name = useAnnotationName ? AnnotationReader.functionName(method) : method.getName();
             if (isPublic(method)) {
-                if (table.containsKey(name)) {
-                    table.get(name).add(method);
+                if (methodTable.containsKey(name)) {
+                    methodTable.get(name).add(method);
                 }
                 else {
                     List<Method> overloaded = new ArrayList<Method>();
                     overloaded.add(method);
-                    table.put(name, overloaded);
+                    methodTable.put(name, overloaded);
                 }
             }
         }
-        for (Map.Entry<String, List<Method>> pair: table.entrySet()) {
+        for (Map.Entry<String, List<Method>> pair: methodTable.entrySet()) {
             String functionName = pair.getKey();
-            List<Method> methods = pair.getValue();
-            if (methods.isEmpty()) {
+            List<Method> overloadedMethods = pair.getValue();
+            if (overloadedMethods.isEmpty()) {
                 throw new RuntimeException("Not Implemented!");
             }
-            else if (methods.size() == 1) {
-                Method method = methods.get(0);
-                if (isStatic(method)) {
-                    methodTable.put(functionName, new NormalStaticFunction(className, method));
-                }
-                else {
-                    methodTable.put(functionName, new NormalMethodFunction(className, method));
-                }
+            else if (overloadedMethods.size() == 1) {
+                Method method = overloadedMethods.get(0);
+                    functionTable.put(functionName, toFunction(className, method));
             }
             else {
-                List <JavaFunction> overloaded = new ArrayList<JavaFunction>();
-                for (Method method: methods) {
-                    if (isStatic(method)) {
-                        overloaded.add(new NormalStaticFunction(className, method));
-                    }
-                    else {
-                        overloaded.add(new NormalMethodFunction(className, method));
-                    }
+                List <JavaFunction> overloadedFunctions = new ArrayList<JavaFunction>();
+                for (Method method: overloadedMethods) {
+                    overloadedFunctions.add(toFunction(className, method));
                 }
-                methodTable.put(functionName, new OverloadedFunction(className, functionName, overloaded));
+                functionTable.put(functionName, new OverloadedFunction(className, functionName, overloadedFunctions));
             }
+        }
+        return functionTable;
+    }
+
+    private static JavaFunction toFunction(String className, Method method) {
+        if (isStatic(method)) {
+            return new NormalStaticFunction(className, method);
+        } else {
+            return new NormalMethodFunction(className, method);
         }
     }
 

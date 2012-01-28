@@ -7,8 +7,10 @@ public class DefaultRootNamespace extends RootNamespace {
     private JavaNamespace classNamespace = new JavaNamespace();
     public DefaultRootNamespace() {
         register("class", classNamespace);
-        register("fn", new Fn());
-        register("op", new Op());
+//        register("fn", new Fn());
+        register("fn", new LibNamespace(Fn.class));
+//        register("op", new Op());
+        register("op", new LibNamespace(Op.class));
         importDefault("fn");
     }
 

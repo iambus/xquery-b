@@ -40,5 +40,9 @@ public class NormalMethodFunction implements JavaFunction {
         return true;
     }
 
+    public boolean isVarArgs() {
+        return method.isVarArgs();
+    }
+
 
 }

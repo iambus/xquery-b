@@ -18,4 +18,8 @@ public class NormalStaticFunction extends StaticFunction {
         return method.getReturnType();
     }
 
+    @Override
+    public boolean isVarArgs() {
+        return method.isVarArgs();
+    }
 }

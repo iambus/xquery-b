@@ -1,8 +1,11 @@
 package org.libj.xquery.lib;
 
+import org.libj.xquery.annotation.Function;
+import org.libj.xquery.annotation.Namespace;
 import org.libj.xquery.namespace.StandardStaticNamespace;
 import org.libj.xquery.runtime.Op;
 
+@Namespace(name="fn")
 public class Fn extends StandardStaticNamespace {
     public Fn() {
         super(Fn.class.getName());
@@ -20,19 +23,22 @@ public class Fn extends StandardStaticNamespace {
     /// string
     //////////////////////////////////////////////////
 
+    @Function
     public static Object string(Object v) {
         return v.toString();
     }
 
+    @Function
     public static Object substring(Object s, Object start) {
         return ((String)s).substring((Integer)start-1);
     }
 
-
+    @Function
     public static Object substring(Object s, Object start, Object length) {
         return ((String)s).substring((Integer)start-1, (Integer)start-1+(Integer)length);
     }
 
+    @Function
     public static Object concat(Object...args) {
         StringBuilder buffer = new StringBuilder();
         for (Object x: args) {
@@ -40,7 +46,8 @@ public class Fn extends StandardStaticNamespace {
         }
         return buffer.toString();
     }
-    
+
+    @Function(name="string-join")
     public static Object string_join(Object x, Object y) {
         if (!Op.isList(x)) {
             return x.toString();
@@ -61,20 +68,25 @@ public class Fn extends StandardStaticNamespace {
         return buffer.toString();
     }
 
+    @Function(name="upper-cast")
     public static Object upper_case(Object x) {
         return ((String)x).toUpperCase();
     }
 
+    @Function(name="upper-cast")
     public static Object lower_case(Object x) {
         return ((String)x).toLowerCase();
     }
 
+    @Function
     public static Object contains(Object s, Object sub) {
         return ((String)s).contains((String) sub);
     }
+    @Function(name="starts-with")
     public static Object starts_with(Object s, Object sub) {
         return ((String)s).startsWith((String) sub);
     }
+    @Function(name="ends-with")
     public static Object ends_with(Object s, Object sub) {
         return ((String)s).endsWith((String) sub);
     }

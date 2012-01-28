@@ -1,5 +1,8 @@
 package org.libj.xquery.namespace;
 
+import java.util.LinkedList;
+import java.util.List;
+
 public class RootNamespace extends DictNamespace {
 
     public void register(String name, Symbol s) {
@@ -35,7 +38,7 @@ public class RootNamespace extends DictNamespace {
     }
 
     public void importDefault(String ns) {
-        importNamespace((DictNamespace) lookup(ns));
+        importNamespace((Namespace) lookup(ns));
     }
 
 }

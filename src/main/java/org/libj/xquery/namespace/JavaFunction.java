@@ -7,4 +7,5 @@ public interface JavaFunction extends Function {
     public Class<?>[] getParameterTypes();
     public Class<?> getReturnType();
     public boolean isMethod();
+    public boolean isVarArgs();
 }
