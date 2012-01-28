@@ -5,8 +5,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import org.libj.xquery.compiler.Compiler;
+
 public class Main {
     public static void repl() throws IOException {
+        Compiler compiler = new Compiler();
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         int n = 0;
         while (true) {
@@ -20,7 +23,7 @@ public class Main {
                 continue;
             }
             try {
-                System.out.println(Compile.eval(line));
+                System.out.println(compiler.eval(line));
             }
             catch (Exception e) {
                 e.printStackTrace();

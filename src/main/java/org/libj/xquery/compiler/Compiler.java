@@ -7,7 +7,6 @@ import org.libj.xquery.namespace.LibNamespace;
 import org.libj.xquery.namespace.Namespace;
 import org.libj.xquery.parser.AST;
 import org.libj.xquery.parser.Parser;
-import org.libj.xquery.runtime.Op;
 
 import java.io.*;
 
@@ -16,8 +15,14 @@ public class Compiler {
     private Namespace namespace = new DefaultRootNamespace();
     private DefaultClassLoader loader = new DefaultClassLoader();
 
+    private String defaultPackage = "org.libj.xquery.dynamic";
+
     public void registerLib(String prefix, Class c) {
         namespace.register(prefix, new LibNamespace(c));
+    }
+
+    public void setDefaultPackage(String defaultPackage) {
+        this.defaultPackage = defaultPackage;
     }
 
     // generate AST
@@ -114,12 +119,20 @@ public class Compiler {
 
     // class name
 
-    public static String randomClassName() {
-        return "org.libj.xquery.dynamic.Q$"+randomID();
+    public String randomClassName() {
+        return randomClassName(defaultPackage);
+    }
+
+    public String randomClassNameWithPrefix(String prefix) {
+        return randomClassName(defaultPackage, prefix);
     }
 
     public static String randomClassName(String packageName) {
-        return packageName + ".Q$"+randomID();
+        return randomClassName(packageName, "Q$");
+    }
+
+    public static String randomClassName(String packageName, String prefix) {
+        return packageName + '.' + prefix + randomID();
     }
 
     public static String randomID() {
