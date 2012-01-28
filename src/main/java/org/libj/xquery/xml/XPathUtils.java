@@ -14,16 +14,12 @@ public class XPathUtils {
         }
         return tags;
     }
-    public static Node evalSimpleXPathOnDom(String xpath, Document doc) {
+    public static Node evalSimpleXPathOnDom(String xpath, Node node) {
         if (xpath.charAt(0) != '/') {
             throw new RuntimeException("Not Implemented!");
         }
         String[] tags = xpath.substring(1).split("/");
-        Node node = doc.getDocumentElement();
-        if (!((Element) node).getTagName().equals(tags[0])) {
-            return null;
-        }
-        for (int i = 1; i < tags.length; i++) {
+        for (int i = 0; i < tags.length; i++) {
             String tag = tags[i];
             node = selectNode(node, tag);
             if (node == null) {

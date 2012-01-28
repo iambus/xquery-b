@@ -16,6 +16,7 @@ public class Compiler {
     private DefaultClassLoader loader = new DefaultClassLoader();
 
     private String defaultPackage = "org.libj.xquery.dynamic";
+    private Class xmlFactory = Assembler.DEFAUL_XML_FACTORY_IMPLEMENTATION;
 
     public void registerLib(String prefix, Class c) {
         namespace.register(prefix, new LibNamespace(c));
@@ -25,6 +26,9 @@ public class Compiler {
         this.defaultPackage = defaultPackage;
     }
 
+    public void setXMLFactory(Class factory) {
+        this.xmlFactory = factory;
+    }
     // generate AST
 
     public AST compileToAST(Reader reader) {
@@ -62,7 +66,7 @@ public class Compiler {
     // generate bytecode
 
     public byte[] compileToByteArray(AST ast, String className) {
-        Assembler assembler = new Assembler(className, ast, namespace);
+        Assembler assembler = new Assembler(className, ast, namespace, xmlFactory);
         return assembler.toByteArray();
     }
 

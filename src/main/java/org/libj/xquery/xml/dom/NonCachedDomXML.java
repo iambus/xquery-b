@@ -1,12 +1,14 @@
-package org.libj.xquery.xml;
+package org.libj.xquery.xml.dom;
 
+import org.libj.xquery.xml.XML;
+import org.libj.xquery.xml.XMLUtils;
 import org.w3c.dom.Document;
 
-public class DomXML implements XML {
+public class NonCachedDomXML implements XML {
     private String xml;
     private Document doc;
 
-    public DomXML(String xml) {
+    public NonCachedDomXML(String xml) {
         this.xml = xml;
     }
     public String toString() {

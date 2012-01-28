@@ -34,18 +34,21 @@ public class Assembler implements Opcodes {
     private final int temp_index = 3;
 
     private Namespace namespace;
+    private final String XML_FACTORY_IMPLEMENTATION;
+    public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION = DomSimpleXPathXMLFactory.class;
 
     MethodVisitor mv;
 
-    public Assembler(String className, AST ast, Namespace root) {
+    public Assembler(String className, AST ast, Namespace root, Class xmlFactory) {
         this.compiledClassName = className.replace('.', '/');
         this.ast = ast;
         this.namespace = root;
+        XML_FACTORY_IMPLEMENTATION = xmlFactory.getName().replace('.', '/');
         visitClass();
     }
 
     public Assembler(String className, AST ast) {
-        this(className, ast, new DefaultRootNamespace());
+        this(className, ast, new DefaultRootNamespace(), DEFAUL_XML_FACTORY_IMPLEMENTATION);
     }
 
     private static final String QUERY_BASE = XQuery.class.getName().replace('.', '/');
@@ -60,7 +63,7 @@ public class Assembler implements Opcodes {
     private static final String RUNTIME_OP = Op.class.getName().replace('.', '/');
     private static final String XML_FACTORY_INTERFACE = XMLFactory.class.getName().replace('.', '/');
 //    private static final String XML_FACTORY_IMPLEMENTATION = DomXMLFactory.class.getName().replace('.', '/');
-    private static final String XML_FACTORY_IMPLEMENTATION = DomSimpleXPathXMLFactory.class.getName().replace('.', '/');
+//    private static final String XML_FACTORY_IMPLEMENTATION = DomSimpleXPathXMLFactory.class.getName().replace('.', '/');
     private static final String XML_INTERFACE = XML.class.getName().replace('.', '/');
 
     private void visitClass() {

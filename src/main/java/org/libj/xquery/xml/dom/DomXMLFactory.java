@@ -1,6 +1,11 @@
-package org.libj.xquery.xml;
+package org.libj.xquery.xml.dom;
 
+import org.libj.xquery.xml.XML;
+import org.libj.xquery.xml.XMLFactory;
+import org.libj.xquery.xml.XMLUtils;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -8,6 +13,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
@@ -32,20 +38,7 @@ public class DomXMLFactory implements XMLFactory {
     }
 
     public XML toXML(final String xml) {
-        return new XML() {
-            private Document doc;
-
-            public Object eval(String path) {
-                try {
-                    if (doc == null) {
-//                        doc = XMLUtils.doc(xml);
-                        doc = documentBuilder.parse(new InputSource(new StringReader(xml)));
-                    }
-                    return xpath.evaluate(path, doc);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        };
+        return new CachedDomXML(xml, documentBuilder, xpath);
     }
+
 }

@@ -1,17 +1,24 @@
 package org.libj.xquery.xml;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.Writer;
 
 public class XMLUtils {
     public static String escapeXML(String xml) {
@@ -37,11 +44,25 @@ public class XMLUtils {
         }
         return doc;
     }
+
+    public static String xml(Node node) {
+        Writer writer = new StringWriter();
+        DOMSource source = new DOMSource(node);
+        StreamResult result = new StreamResult(writer);
+        TransformerFactory factory = TransformerFactory.newInstance();
+        try {
+            factory.newTransformer().transform(source, result);
+        } catch (TransformerException e) {
+            throw new RuntimeException(e);
+        }
+        return writer.toString().replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "");
+    }
     public static XPath newXPath() {
         XPathFactory factory = XPathFactory.newInstance();
         XPath xpath = factory.newXPath();
         return xpath;
     }
+
     public static String evalXPath(String path, Document doc) {
         XPath xpath = newXPath();
         try {

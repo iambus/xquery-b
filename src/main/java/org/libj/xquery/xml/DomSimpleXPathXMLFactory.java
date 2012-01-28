@@ -1,6 +1,8 @@
 package org.libj.xquery.xml;
 
+import org.libj.xquery.runtime.Nil;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -25,30 +27,42 @@ public class DomSimpleXPathXMLFactory implements XMLFactory {
     }
 
     public XML toXML(final String xml) {
-        return new XML() {
-            private Document doc;
-            public Object eval(String path) {
-                if (doc == null) {
+        return new DomSimpleXPathXML(xml);
+    }
+
+    private class DomSimpleXPathXML implements XML {
+        private Document doc;
+        public Element root;
+        private final String xml;
+
+        public DomSimpleXPathXML(String xml) {
+            this.xml = xml;
+        }
+
+        public Object eval(String path) {
+            if (doc == null) {
 //                        doc = XMLUtils.doc(xml);
-                    try {
-                        doc = documentBuilder.parse(new InputSource(new StringReader(xml)));
-                    } catch (SAXException e) {
-                        throw new RuntimeException(e);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-                Node node = XPathUtils.evalSimpleXPathOnDom(path, doc);
-                if (node != null) {
-                    return node.getTextContent();
-                }
-                else {
-                    return "";
+                try {
+                    doc = documentBuilder.parse(new InputSource(new StringReader(xml)));
+                    root = doc.getDocumentElement();
+                } catch (SAXException e) {
+                    throw new RuntimeException(e);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
             }
-            public String toString() {
-                return xml;
+            Node node = XPathUtils.evalSimpleXPathOnDom(path, root);
+            if (node != null) {
+                String xml = XMLUtils.xml(node);
+                return new DomSimpleXPathXML(xml);
             }
-        };
+            else {
+                return Nil.NIL;
+            }
+        }
+
+        public String toString() {
+            return xml;
+        }
     }
 }
