@@ -67,24 +67,60 @@ public class XMLUtils {
         StringBuilder builder = new StringBuilder();
         int max = xml.length();
         int i = 0;
+        // FIXME: duplicate code...
         while (i < max) {
             char c = xml.charAt(i);
             if (c == '<') {
                 break;
             }
-            builder.append(c);
-            i++;
+            if (c != '&') {
+                builder.append(c);
+                i++;
+            }
+            else if (xml.startsWith("&lt;", i)) {
+                builder.append('<');
+                i += 3;
+            }
+            else if (xml.startsWith("&gt;", i)) {
+                builder.append('>');
+                i += 3;
+            }
+            else if (xml.startsWith("&amp;", i)) {
+                builder.append('&');
+                i += 4;
+            }
+            else {
+                throw new RuntimeException("Not Implemented escape: "+xml.substring(i, xml.indexOf(';', i)+1));
+            }
         }
         while (i < max) {
             while (xml.charAt(i++) != '>') {
             }
+            // FIXME: duplicate code...
             while (i < max) {
                 char c = xml.charAt(i);
                 if (c == '<') {
                     break;
                 }
-                builder.append(c);
-                i++;
+                if (c != '&') {
+                    builder.append(c);
+                    i++;
+                }
+                else if (xml.startsWith("&lt;", i)) {
+                    builder.append('<');
+                    i += 4;
+                }
+                else if (xml.startsWith("&gt;", i)) {
+                    builder.append('>');
+                    i += 4;
+                }
+                else if (xml.startsWith("&amp;", i)) {
+                    builder.append('&');
+                    i += 5;
+                }
+                else {
+                    throw new RuntimeException("Not Implemented escape: "+xml.substring(i, xml.indexOf(';', i)+1));
+                }
             }
         }
         return builder.toString();

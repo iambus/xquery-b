@@ -160,5 +160,6 @@ public class TestExpressions {
         // http://www.gnu.org/software/qexo/XQuery-Intro.html
         assertEvalString("for $x in (3,4,5) return <a>{$x}</a>", "<a>3</a><a>4</a><a>5</a>");
         assertEvalString("string(<a>3+5 is {3+5}</a>)", "3+5 is 8");
+        assertEvalString("string(<a>&lt;</a>)", "<");
     }
 }
