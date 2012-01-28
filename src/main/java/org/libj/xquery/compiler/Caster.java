@@ -57,6 +57,9 @@ public class Caster implements Opcodes {
             else if (from == boolean.class) {
                 return castToBooleanObject(mv);
             }
+            else if (from == long.class) {
+                return castToLongObject(mv);
+            }
             else {
                 throw new RuntimeException("Not Implemented: "+from);
             }
@@ -96,6 +99,10 @@ public class Caster implements Opcodes {
     public static Class castToDoubleObject(MethodVisitor mv) {
         mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(D)Ljava/lang/Double;");
         return Double.class;
+    }
+    public static Class castToLongObject(MethodVisitor mv) {
+        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "valueOf", "(J)Ljava/lang/Long;");
+        return Boolean.class;
     }
     public static Class castToBooleanObject(MethodVisitor mv) {
         mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;");

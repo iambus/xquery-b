@@ -32,14 +32,19 @@ public class Assembler implements Opcodes {
     private final int result_index = 2;
     private final int temp_index = 3;
 
-    private RootNamespace namespace = new DefaultRootNamespace();
+    private Namespace namespace;
 
     MethodVisitor mv;
 
-    public Assembler(String className, AST ast) {
+    public Assembler(String className, AST ast, Namespace root) {
         this.compiledClassName = className.replace('.', '/');
         this.ast = ast;
+        this.namespace = root;
         visitClass();
+    }
+
+    public Assembler(String className, AST ast) {
+        this(className, ast, new DefaultRootNamespace());
     }
 
     private static final String QUERY_BASE = XQuery.class.getName().replace('.', '/');

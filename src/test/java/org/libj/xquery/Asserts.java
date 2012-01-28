@@ -3,6 +3,8 @@ package org.libj.xquery;
 import java.text.NumberFormat;
 import java.util.Locale;
 
+import org.libj.xquery.compiler.Compiler;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.libj.xquery.Compile.eval;
@@ -74,10 +76,15 @@ public class Asserts {
         assertRepeatedEvalPerSecond(script, n, null);
     }
 
-    public static void assertRepeatedCompileMillis(String script, int n, int targetMillis) {
+    public static void assertRepeatedCompileMillis(Compiler compiler, String script, int n, int targetMillis) {
         long start = System.currentTimeMillis();
         for (int i = 0; i < n; i++) {
-            XQuery q = compile(script);
+            if (compiler == null) {
+                XQuery q = compile(script);
+            }
+            else {
+                XQuery q = compiler.compile(script);
+            }
         }
         long end = System.currentTimeMillis();
         long executionMillis = end - start;
@@ -85,10 +92,17 @@ public class Asserts {
         logSpeed(n, executionMillis);
         assertTrue(String.format("Timeout: %d > %d (loop %s) for script: "+breakLine(script), executionMillis, targetMillis, number(n)), executionMillis < targetMillis);
     }
-
-    public static void assertRepeatedCompilePerSecond(String script, int n) {
-        assertRepeatedCompileMillis(script, n, 1000);
+    public static void assertRepeatedCompileMillis(String script, int n, int targetMillis) {
+        assertRepeatedCompileMillis(null, n, targetMillis);
     }
+
+    public static void assertRepeatedCompilePerSecond(Compiler compiler, String script, int n) {
+        assertRepeatedCompileMillis(compiler, script, n, 1000);
+    }
+    public static void assertRepeatedCompilePerSecond(String script, int n) {
+        assertRepeatedCompilePerSecond(null, script, n);
+    }
+
     private static void logTime(String script, long ms) {
         System.out.println("----------------------------------------");
         System.out.println("It takes "+ms+" ms to execute this script: " + breakLine(script));
