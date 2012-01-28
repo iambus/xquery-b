@@ -14,6 +14,7 @@ import java.io.*;
 public class Compiler {
 
     private Namespace namespace = new DefaultRootNamespace();
+    private DefaultClassLoader loader = new DefaultClassLoader();
 
     public void registerLib(String prefix, Class c) {
         namespace.register(prefix, new LibNamespace(c));
@@ -75,7 +76,7 @@ public class Compiler {
     }
 
     public Class compileToClass(AST ast, String className) {
-        return new DefaultClassLoader().define(className, compileToByteArray(ast, className));
+        return loader.define(className, compileToByteArray(ast, className));
     }
 
     public XQuery compileToXQuery(AST ast, String className) {
