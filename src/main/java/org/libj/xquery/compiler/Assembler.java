@@ -1,5 +1,6 @@
 package org.libj.xquery.compiler;
 
+import com.sun.org.apache.xerces.internal.impl.dv.dtd.ENTITYDatatypeValidator;
 import org.libj.xquery.Callback;
 import org.libj.xquery.Environment;
 import org.libj.xquery.XQuery;
@@ -196,6 +197,8 @@ public class Assembler implements Opcodes {
         switch (expr.getNodeType()) {
             case FLOWER:
                 return visitFlower(expr);
+            case IF:
+                return visitIf(expr);
             case LIST:
                 return visitList(expr);
             case CALL:
@@ -446,8 +449,20 @@ public class Assembler implements Opcodes {
             if (t == boolean.class) {
                 // already boolean, do nothing
             }
+            else if (t == int.class) {
+                Label trueLabel = new Label();
+                Label falseLabel = new Label();
+                Label doneLabel = new Label();
+                mv.visitJumpInsn(IFNE, trueLabel);
+                mv.visitLabel(falseLabel);
+                mv.visitInsn(ICONST_0);
+                mv.visitJumpInsn(GOTO, doneLabel);
+                mv.visitLabel(trueLabel);
+                mv.visitInsn(ICONST_1);
+                mv.visitLabel(doneLabel);
+            }
             else {
-                throw new RuntimeException("Not Implemented!");
+                throw new RuntimeException("Not Implemented! "+t);
             }
         }
         else {
@@ -555,12 +570,43 @@ public class Assembler implements Opcodes {
             mv.visitVarInsn(ASTORE, index);
         }
 
-
         visitForLets((AST) forlets.next(), body, result, lookingForElementAt, breakLabel);
 
         popScope();
     }
 
+    private Class visitIf(AST expr) {
+        visitCondition(expr.nth(1));
+        Label thenLabel = new Label();
+        Label elseLabel = new Label();
+        Label thenCast = new Label();
+        Label elseCast = new Label();
+        Label endLabel = new Label();
+        mv.visitJumpInsn(IFEQ, elseLabel);
+        // then
+        mv.visitLabel(thenLabel);
+        Class thenType = visitExpr(expr.nth(2));
+        mv.visitJumpInsn(GOTO, thenCast);
+        // else
+        mv.visitLabel(elseLabel);
+        Class elseType = visitExpr(expr.nth(3));
+        if (thenType == elseType) {
+            mv.visitLabel(thenCast);
+            return thenType;
+        }
+        if (thenType.isPrimitive() && !elseType.isPrimitive()) {
+            mv.visitJumpInsn(GOTO, endLabel);
+            // convert then primitive to object
+            mv.visitLabel(thenCast);
+            cast(thenType, Object.class);
+            mv.visitLabel(endLabel);
+            return Object.class;
+        }
+        else if (!thenType.isPrimitive() && elseType.isPrimitive()) {
+            throw new RuntimeException("Not Implemented!");
+        }
+        throw new RuntimeException("Not Implemented!");
+    }
     private Class visitOp(AST expr) {
         int type = expr.getNodeType();
         String op;

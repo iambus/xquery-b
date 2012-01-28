@@ -139,8 +139,16 @@ public class Parser extends LLkParser {
         return root;
     }
 
-    private AST ifExpr() {
-        throw new RuntimeException("Not Implemented!");
+    private AST ifExpr() throws IOException {
+        AST ast = new AST(consume(IF));
+        match(LPAREN);
+        ast.appendLast(expr());
+        match(RPAREN);
+        match(THEN);
+        ast.appendLast(expr());
+        match(ELSE);
+        ast.appendLast(expr());
+        return ast;
     }
 
     private AST body() throws IOException {
