@@ -9,14 +9,14 @@ Quickstart
 ----------
 Use in Java:
 
-	import org.libj.xquery.Compiler;
+	import org.libj.xquery.Compile;
 
 	XQuery q = Compiler.compile("string(<a>3+5 is {3+5}</a>)");
 	System.out.println(q.eval());
 
 REPL from command line:
 
-	java org.libj.xquery.Compiler
+	java org.libj.xquery.Compile
 
 Installation
 ------------

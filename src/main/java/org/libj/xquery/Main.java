@@ -20,7 +20,7 @@ public class Main {
                 continue;
             }
             try {
-                System.out.println(Compiler.eval(line));
+                System.out.println(Compile.eval(line));
             }
             catch (Exception e) {
                 e.printStackTrace();
@@ -37,7 +37,7 @@ public class Main {
             String className = args[0];
             File source = new File(xqueryPath);
             File target = new File(className.replace('.', '/')+".class");
-            Compiler.compileToFile(Compiler.compileToAST(source), className, target);
+            Compile.compileToFile(Compile.compileToAST(source), className, target);
         }
         else {
             System.out.println("java org.libj.xquery.Main");

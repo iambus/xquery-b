@@ -1,14 +1,12 @@
 package org.libj.xquery;
 
-import org.libj.xquery.namespace.StaticFunction;
-
 import java.text.NumberFormat;
 import java.util.Locale;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.libj.xquery.Compiler.eval;
-import static org.libj.xquery.Compiler.compile;
+import static org.libj.xquery.Compile.eval;
+import static org.libj.xquery.Compile.compile;
 
 public class Asserts {
     public static void assertEval(String script, Object expected) {

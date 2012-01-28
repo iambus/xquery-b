@@ -11,7 +11,7 @@ import org.objectweb.asm.*;
 
 import java.io.*;
 
-public class Compiler {
+public class Compile {
     public static AST compileToAST(Reader reader) {
         try {
             Lexer lexer = new Lexer(reader);
