@@ -21,13 +21,14 @@ public class Cons<E> implements Iterable<E> {
     public void car(E x) {
         car = x;
     }
-    public void cdr(Cons x) {
+    public Cons<E> cdr(Cons<E> x) {
         cdr = x;
+        return x;
     }
     public E first() {
         return car;
     }
-    public Cons next() {
+    public Cons<E> next() {
         return cdr;
     }
 

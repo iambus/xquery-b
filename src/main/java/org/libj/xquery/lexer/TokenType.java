@@ -63,6 +63,8 @@ public class TokenType {
     public static final int LIST = 207;
     public static final int INDEX = 208;
 
+    public static final int CAST = 301;
+
     private static Map<Integer, String> types;
 
     private static Map<Integer, String> staticTypes () {

@@ -27,12 +27,21 @@ public class AST extends Cons<Unit> implements Unit {
     public Token getToken() {
         return ((Element) first()).getToken();
     }
+
     public int getNodeType() {
         return getToken().type;
     }
 
     public String getNodeText() {
         return getToken().text;
+    }
+
+    public Element getElement() {
+        return (Element) first();
+    }
+
+    public Class getEvalType() {
+        return ((TypedUnit) first()).getType();
     }
 
     public AST rest() {
@@ -52,7 +61,7 @@ public class AST extends Cons<Unit> implements Unit {
             }
 
             @Override
-            public void cdr(Cons x) {
+            public Cons cdr(Cons x) {
                 throw new NullPointerException("Nil access");
             }
 
@@ -84,6 +93,11 @@ public class AST extends Cons<Unit> implements Unit {
             @Override
             public String toString() {
                 return "nil";
+            }
+
+            @Override
+            public boolean isNil() {
+                return true;
             }
         };
     }
@@ -119,10 +133,10 @@ public class AST extends Cons<Unit> implements Unit {
         if (head == null) {
             return "nil";
         }
-        if (!(head instanceof Token)) {
+        if (!(head instanceof Element)) {
             return toVectorString(this);
         }
-        Token token = (Token) head;
+        Token token = ((Element) head).getToken();
         if (token.type == DECLARES || token.type == FORLETS) {
             AST subs = rest();
             return toVectorString(subs);
