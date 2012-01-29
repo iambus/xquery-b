@@ -21,44 +21,20 @@ public class OnePassEvalAssembler implements Opcodes {
     private Scope freeScope = new Scope();
     private int locals = LOCAL_VAR_START; // index 2 is used as temporary double variable
     private Namespace namespace;
-    private final String XML_FACTORY_IMPLEMENTATION;
 
     private final MethodVisitor mv;
 
-    public OnePassEvalAssembler(MethodVisitor mv, String compiledClassName, Namespace namespace, String XML_FACTORY_IMPLEMENTATION) {
+    public OnePassEvalAssembler(MethodVisitor mv, String compiledClassName, Namespace namespace) {
         this.compiledClassName = compiledClassName;
         this.namespace = namespace;
-        this.XML_FACTORY_IMPLEMENTATION = XML_FACTORY_IMPLEMENTATION;
         this.mv = mv;
     }
 
-    private void visitDeclares(AST declares) {
-        for (Object declare: declares.rest()) {
-            visitDeclare((AST) declare);
-        }
+    public Class visit(AST ast) {
+        return visitExpr(ast);
     }
 
-    private void visitDeclare(AST declare) {
-        if (declare.nth(1).getNodeType() == NAMESPACE) {
-            visitDeclareNamespace(declare);
-        }
-    }
-
-    private void visitDeclareNamespace(AST declare) {
-        String alias = declare.nth(2).getNodeText();
-        String uri = declare.nth(3).getNodeText();
-        if (uri.startsWith("class:")) {
-            namespace.register(alias, namespace.lookup(uri));
-        }
-        else if (uri.startsWith("http:")) {
-            namespace.register(alias, new URI(uri));
-        }
-        else {
-            throw new RuntimeException("Not Implemented declare namespace: "+uri);
-        }
-    }
-
-    public Class visitExpr(AST expr) {
+    private Class visitExpr(AST expr) {
         switch (expr.getNodeType()) {
             case FLOWER:
                 return visitFlower(expr);
@@ -815,16 +791,6 @@ public class OnePassEvalAssembler implements Opcodes {
         }
     }
 
-    private void pushNil() {
-//        newObject(NIL);
-        mv.visitInsn(ACONST_NULL);
-    }
-
-    private void pushNilObject() {
-//        newObject(NIL);
-        mv.visitFieldInsn(GETSTATIC, NIL, "NIL", "L"+NIL+";");
-    }
-
     private Class newList() {
         newObject(QUERY_LIST);
         return org.libj.xquery.runtime.List.class;
@@ -834,18 +800,6 @@ public class OnePassEvalAssembler implements Opcodes {
 //        mv.visitMethodInsn(INVOKEVIRTUAL, QUERY_LIST, "add", "(Ljava/lang/Object;)Z");
 //        mv.visitInsn(POP);
         mv.visitMethodInsn(INVOKEVIRTUAL, QUERY_LIST, "add", "(Ljava/lang/Object;)V");
-    }
-
-    private void log(String message) {
-        mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-        mv.visitLdcInsn(message);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V");
-    }
-
-    private void log() {
-        mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-        mv.visitInsn(SWAP);
-        mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V");
     }
 
     private Class invokeFunction(String functionName, AST arguments) {

@@ -156,8 +156,8 @@ public class Assembler implements Opcodes {
         AST declares = ast.nth(1);
         AST code = ast.nth(2);
         visitDeclares(declares);
-//        new Walker(code);
-        return new OnePassEvalAssembler(mv, compiledClassName, namespace, XML_FACTORY_IMPLEMENTATION).visitExpr(code);
+        return new OnePassEvalAssembler(mv, compiledClassName, namespace).visit(code);
+//        return new TwoPassEvalAssembler(mv, compiledClassName, namespace).visit(code);
     }
 
     private void visitDeclares(AST declares) {
@@ -254,44 +254,9 @@ public class Assembler implements Opcodes {
         mv.visitMethodInsn(INVOKESPECIAL, className, "<init>", "()V");
     }
 
-    private void newArray(Class type, int length) {
-        pushConst(length);
-        if (type.isPrimitive()) {
-            throw new RuntimeException("Not Implemented!");
-        }
-        else {
-            mv.visitTypeInsn(ANEWARRAY, type.getName().replace('.', '/'));
-        }
-    }
-
-    private void pushToArray(Class type) {
-        if (type.isPrimitive()) {
-            throw new RuntimeException("Not Implemented!");
-        }
-        else {
-            mv.visitInsn(AASTORE);
-        }
-    }
-
-    private void pushNil() {
-//        newObject(NIL);
-        mv.visitInsn(ACONST_NULL);
-    }
-
     private void pushNilObject() {
 //        newObject(NIL);
         mv.visitFieldInsn(GETSTATIC, NIL, "NIL", "L"+NIL+";");
-    }
-
-    private Class newList() {
-        newObject(QUERY_LIST);
-        return org.libj.xquery.runtime.List.class;
-    }
-
-    private void pushToList() {
-//        mv.visitMethodInsn(INVOKEVIRTUAL, QUERY_LIST, "add", "(Ljava/lang/Object;)Z");
-//        mv.visitInsn(POP);
-        mv.visitMethodInsn(INVOKEVIRTUAL, QUERY_LIST, "add", "(Ljava/lang/Object;)V");
     }
 
     private void log(String message) {
