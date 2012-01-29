@@ -27,38 +27,25 @@ public class Walker {
         switch (expr.getNodeType()) {
             case FLOWER:
                 return walkFlower(expr);
+            case IF:
+                return walkIf(expr);
             case NODE:
                 return walkNode(expr);
+            case LIST:
+                return walkList(expr);
             case VARIABLE:
                 return walkVariable(expr);
             case NUMBER:
                 return walkNumber(expr.getToken());
-            case EQ:
-                return walkComparison(expr);
+            case STRING:
+                return walkString(expr.getToken());
+            case PLUS: case MINUS: case MULTIPLY: case DIV: case NEGATIVE: case MOD:
+            case EQ: case NE: case AND: case OR:
+            case TO: case INDEX: case XPATH:
+                return walkOp(expr);
             default:
                 throw new RuntimeException("Not Implemented! "+expr);
         }
-    }
-
-    private AST walkVariable(AST expr) {
-        String variable = expr.getNodeText();
-        if (!isFree(variable)) {
-            Class t = resolveType(variable);
-            return assocType(expr, t);
-        }
-        else {
-            int index = resolveFree(variable);
-            return new AST(new VariableElement(expr.getElement(), Object.class, index));
-        }
-    }
-
-    private AST walkComparison(AST expr) {
-        int op = expr.getNodeType();
-        AST left = walkExpr(expr.nth(1));
-        AST right = walkExpr(expr.nth(2));
-        assoc1(expr, left);
-        assoc2(expr, right);
-        return unifyArithmetic(expr);
     }
 
     private AST walkNumber(Token token) {
@@ -73,12 +60,111 @@ public class Walker {
         }
     }
 
+    private AST walkString(Token token) {
+        return new AST(new ConstantElement(token, token.text, String.class));
+    }
+
+    private AST walkVariable(AST expr) {
+        String variable = expr.getNodeText();
+        if (!isFree(variable)) {
+            Class t = resolveType(variable);
+            return assocType(expr, t);
+        }
+        else {
+            int index = resolveFree(variable);
+            return new AST(new VariableElement(expr.getElement(), Object.class, index));
+        }
+    }
+
+    private AST walkOp(AST expr) {
+        int type = expr.getNodeType();
+        switch (type) {
+            case PLUS: case MINUS: case MULTIPLY: case DIV: case MOD:
+                return walkBinaryArithmetic(expr);
+            case NEGATIVE:
+                throw new RuntimeException("Not Implemented!");
+            case EQ: case NE:
+                return walkComparison(expr);
+            case AND: case OR:
+                return walkLogic(expr);
+            case TO:
+                return walkTo(expr);
+            case INDEX:
+                return walkIndex(expr);
+            case XPATH:
+                return walkXPath(expr);
+            default:
+                throw new RuntimeException("Not Implemented! "+toTypeName(type));
+        }
+    }
+
+    private AST walkBinaryArithmetic(AST expr) {
+        return unifyArithmetic(walkSub2(expr));
+    }
+
+    private AST walkSub2(AST expr) {
+        AST left = walkExpr(expr.nth(1));
+        AST right = walkExpr(expr.nth(2));
+        assoc1(expr, left);
+        assoc2(expr, right);
+        return expr;
+    }
+
+    private AST walkLogic(AST expr) {
+        AST left = castTo(walkExpr(expr.nth(1)), boolean.class);
+        AST right = castTo(walkExpr(expr.nth(2)), boolean.class);
+        assoc1(expr, left);
+        assoc2(expr, right);
+        assocType(expr, boolean.class);
+        return expr;
+    }
+
+    private AST walkComparison(AST expr) {
+        return assocType(walkBinaryArithmetic(expr), boolean.class);
+    }
+
+    private AST walkXPath(AST expr) {
+        assocType(expr, XML_INTERFACE_TYPE);
+        assoc1(expr, walkVariable(expr.nth(1)));
+        return expr;
+    }
+
+    private AST walkIndex(AST expr) {
+        AST left = walkExpr(expr.nth(1));
+        AST right = castTo(walkExpr(expr.nth(2)), int.class);
+        assoc1(expr, left);
+        assoc2(expr, right);
+        assocType(expr, Object.class);
+        return expr;
+    }
+
+    private AST walkTo(AST expr) {
+        AST left = castTo(walkExpr(expr.nth(1)), int.class);
+        AST right = castTo(walkExpr(expr.nth(2)), int.class);
+        assoc1(expr, left);
+        assoc2(expr, right);
+        assocType(expr, LIST_CLASS_TYPE);
+        return expr;
+    }
+
+    private AST walkList(AST expr) {
+        AST ast = new AST(expr.getElement());
+        assocType(ast, LIST_CLASS_TYPE);
+        for (Unit e: expr.rest()) {
+            ast.appendLast(castTo(walkExpr((AST) e), Object.class));
+        }
+        return ast;
+    }
+
+    private AST walkIf(AST expr) {
+        throw new RuntimeException("Not Implemented!");
+    }
 
     private AST walkFlower(AST expr) {
         AST forlets = expr.nth(1).rest();
         AST body = (AST) expr.next().next().first();
         AST where =  (AST) expr.next().next().next().first();
-        expr = new AST(new TypedElement(expr.getElement(), org.libj.xquery.runtime.List.class));
+        expr = new AST(new TypedElement(expr.getElement(), LIST_CLASS_TYPE));
         expr.cdr(walkForlet(forlets, body, where));
         return expr;
     }
@@ -89,10 +175,10 @@ public class Walker {
         }
         else {
             switch (((AST)forlets.first()).getNodeType()) {
-                case FOR:
-                    throw new RuntimeException("Not Implemented!");
                 case LET:
                     return walkLet(forlets, body, where);
+                case FOR:
+                    return walkFor(forlets, body, where);
                 default:
                     throw new RuntimeException("Wrong code!");
             }
@@ -128,6 +214,75 @@ public class Walker {
         AST thisLet = new AST(expr);
         thisLet.cdr((Cons<Unit>) result.first());
         result.car(thisLet);
+
+        popScope();
+        return result;
+    }
+
+    private AST walkFor(AST forlets, AST body, AST where) {
+        if (((AST)forlets.first()).nth(2).getNodeType() == TO) {
+            return walkForRange(forlets, body, where);
+        }
+        else {
+            return walkForGeneral(forlets, body, where);
+        }
+    }
+
+    private AST walkForRange(AST forlets, AST body, AST where) {
+        pushScope();
+
+        AST expr = (AST) forlets.first();
+        AST variableExpr = expr.nth(1);
+        String variableName = variableExpr.getNodeText();
+        AST rangeExpr = expr.nth(2);
+
+        AST start = castTo(walkExpr(rangeExpr.nth(1)), int.class);
+        AST end = castTo(walkExpr(rangeExpr.nth(2)), int.class);
+        int element = define(variableName, Object.class);
+        int iterator = defineAnonymous();
+        if (iterator != element + 1) {
+            throw new RuntimeException("There must be an anonymous variable after iterator!");
+        }
+        variableExpr = new AST(new VariableElement(variableExpr.getElement(), int.class, element));
+
+        assocType(expr, LIST_CLASS_TYPE);
+        assoc1(expr, variableExpr);
+        assoc2(expr, start);
+        expr.appendLast(end);
+
+        AST result = walkForlet(forlets.rest(), body, where);
+        AST thisFor = new AST(expr);
+        thisFor.cdr((Cons<Unit>) result.first());
+        result.car(thisFor);
+
+        popScope();
+        return result;
+    }
+
+    private AST walkForGeneral(AST forlets, AST body, AST where) {
+        pushScope();
+
+        AST expr = (AST) forlets.first();
+        AST variableExpr = expr.nth(1);
+        String variableName = variableExpr.getNodeText();
+        AST collectionExpr = expr.nth(2);
+
+        collectionExpr = castTo(walkExpr(collectionExpr), Object.class);
+        int element = define(variableName, Object.class);
+        int iterator = defineAnonymous();
+        if (iterator != element + 1) {
+            throw new RuntimeException("There must be an anonymous variable after iterator!");
+        }
+        variableExpr = new AST(new VariableElement(variableExpr.getElement(), Object.class, element));
+
+        assocType(expr, LIST_CLASS_TYPE);
+        assoc1(expr, variableExpr);
+        assoc2(expr, collectionExpr);
+
+        AST result = walkForlet(forlets.rest(), body, where);
+        AST thisFor = new AST(expr);
+        thisFor.cdr((Cons<Unit>) result.first());
+        result.car(thisFor);
 
         popScope();
         return result;
@@ -221,6 +376,23 @@ public class Walker {
         }
     }
 
+    private AST castTo(AST expr, Class target) {
+        Class source = expr.getEvalType();
+        if (source == target) {
+            return expr;
+        }
+        else if (!source.isPrimitive() && !target.isPrimitive()) {
+            if (target == Object.class) {
+                return expr;
+            }
+            else {
+                throw new RuntimeException("Not Implemented! " + source + " to "+target);
+            }
+        }
+        else {
+            return new AST(new CastUnit(expr, source, target));
+        }
+    }
 
     //////////////////////////////////////////////////
     /// scope

@@ -17,6 +17,6 @@ public class TwoPassEvalAssembler {
 
     public Class visit(AST ast) {
         new Walker(ast);
-        return Object.class;
+        throw new RuntimeException("You can ignore this...");
     }
 }

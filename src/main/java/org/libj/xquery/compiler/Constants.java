@@ -27,10 +27,13 @@ public class Constants {
     public static final String XML_FACTORY_INTERFACE = XMLFactory.class.getName().replace('.', '/');
 //    public static final String XML_FACTORY_IMPLEMENTATION = DomXMLFactory.class.getName().replace('.', '/');
 //    public static final String XML_FACTORY_IMPLEMENTATION = DomSimpleXPathXMLFactory.class.getName().replace('.', '/');
+    public static final Class XML_INTERFACE_TYPE = XML.class;
     public static final String XML_INTERFACE = XML.class.getName().replace('.', '/');
 
 //    public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION = StringXMLFactory.class;
     public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION = StringNamespaceXMLFactory.class;
+
+    public static final Class LIST_CLASS_TYPE = org.libj.xquery.runtime.List.class;
 
     public static final int LOCAL_ENV_INDEX = 1;
     public static final int LOCAL_TEMP_INDEX = 2;
