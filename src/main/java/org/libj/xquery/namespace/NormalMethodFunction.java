@@ -27,7 +27,6 @@ public class NormalMethodFunction implements JavaFunction {
         return signature;
     }
 
-
     public Class<?>[] getParameterTypes() {
         return method.getParameterTypes();
     }

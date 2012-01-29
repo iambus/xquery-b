@@ -1,6 +1,7 @@
 package org.libj.xquery.compiler;
 
 import org.libj.xquery.lexer.Token;
+import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.*;
 import org.libj.xquery.xml.XML;
 
@@ -14,16 +15,20 @@ public class Walker {
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
     private Scope scope = new Scope();
     private Scope freeScope = new Scope();
+    private Namespace namespace;
 
     private int locals = LOCAL_VAR_START; // index 2 is used as temporary double variable
 
-    public Walker(AST tree) {
+    public Walker(AST tree, Namespace namespace) {
         ast = tree;
-        AST result = walkExpr(tree);
-        System.out.println(result);
+        this.namespace = namespace;
     }
 
-    public AST walkExpr(AST expr) {
+    public AST walk() {
+        return walkExpr(ast);
+    }
+
+    private AST walkExpr(AST expr) {
         switch (expr.getNodeType()) {
             case FLOWER:
                 return walkFlower(expr);
@@ -43,6 +48,8 @@ public class Walker {
             case EQ: case NE: case AND: case OR:
             case TO: case INDEX: case XPATH:
                 return walkOp(expr);
+            case CALL:
+                return walkCall(expr);
             default:
                 throw new RuntimeException("Not Implemented! "+expr);
         }
@@ -354,6 +361,91 @@ public class Walker {
         return target;
     }
 
+    private AST walkCall(AST expr) {
+        String functionName = expr.nth(1).getNodeText();
+        Function fn = (Function) namespace.lookup(functionName);
+//        return invokeFunction(functionName, ((AST) expr.next()).rest());
+        if (fn instanceof JavaFunction) {
+            return walkFunction((JavaFunction) fn, expr);
+        }
+        else if (fn instanceof OverloadedFunction) {
+            return walkFunction((OverloadedFunction) fn, expr);
+        }
+        else {
+            throw new RuntimeException("Not Implemented: " + fn);
+        }
+    }
+
+    private AST walkFunctionArguments(JavaFunction fn, AST expr, AST arguments) {
+        expr.cdr(null);
+        assoc0(expr, new FunctionElement(expr.getElement(), fn.getReturnType(), fn));
+
+        if (fn.isMethod()) {
+            expr.appendLast(castTo((AST) arguments.first(), Object.class)); // should I cast it to the Method class?
+            arguments = arguments.rest();
+        }
+
+        Class<?>[] parameterTypes = fn.getParameterTypes();
+        int parameterSize = parameterTypes.length;
+        int argumentSize = arguments.size();
+
+        if (!fn.isVarArgs()) {
+            if (parameterSize != argumentSize) {
+                throw new RuntimeException(
+                        String.format("Too %s arguments. Expected: %d, actual: %s",
+                                argumentSize < parameterSize ? "few" : "many",
+                                parameterSize,
+                                argumentSize));
+            }
+            for (int i = 0; i < argumentSize; i++) {
+                expr.appendLast(castTo(arguments.nth(i), parameterTypes[i]));
+            }
+            return expr;
+        }
+        else {
+            int normalParamameterNumber = parameterSize - 1;
+            int varParameterNumber = argumentSize - normalParamameterNumber;
+            if (varParameterNumber < 0) {
+                throw new RuntimeException("Not Implemented!");
+            }
+            for (int i = 0; i < normalParamameterNumber; i++) {
+                expr.appendLast(castTo(arguments.nth(i), parameterTypes[i]));
+            }
+            Class elementType = parameterTypes[normalParamameterNumber];
+            if (!elementType.isArray()) {
+                throw new RuntimeException("Not Implemented!");
+            }
+            elementType = elementType.getComponentType();
+            for (int i = 0; i < varParameterNumber; i++) {
+                expr.appendLast(castTo(arguments.nth(normalParamameterNumber+i), elementType));
+            }
+            return expr;
+        }
+    }
+    private AST walkFunction(JavaFunction fn, AST expr) {
+        AST arguments = expr.rest().rest();
+        AST newExpr = new AST(expr.getElement());
+        for (Unit arg: arguments) {
+            newExpr.appendLast(walkExpr((AST)arg));
+        }
+        return walkFunctionArguments(fn, expr, newExpr.rest());
+    }
+
+
+    private AST walkFunction(OverloadedFunction dispatcher, AST expr) {
+        AST arguments = expr.rest().rest();
+        int n = arguments.size();
+
+        AST newExpr = new AST(expr.getElement());
+        Class[] argumentTypes = new Class[n];
+        for (int i = 0; i < n; i++) {
+            AST arg = walkExpr(arguments.nth(i));
+            newExpr.appendLast(arg);
+            argumentTypes[i] = arg.getEvalType();
+        }
+        JavaFunction fn = dispatcher.resolveFunction(argumentTypes);
+        return walkFunctionArguments(fn, newExpr, newExpr.rest());
+    }
 
     //////////////////////////////////////////////////
     /// caster
@@ -476,7 +568,7 @@ public class Walker {
         return tree;
     }
     private AST assocType(AST tree, Class type) {
-        Element e = (Element) tree.first();
+        Element e = tree.getElement();
         return assoc0(tree, new TypedElement(e, type));
     }
     private AST astree(Unit u1, Unit u2) {

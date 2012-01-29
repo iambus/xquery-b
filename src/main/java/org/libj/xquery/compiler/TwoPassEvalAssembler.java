@@ -16,7 +16,7 @@ public class TwoPassEvalAssembler {
     }
 
     public Class visit(AST ast) {
-        new Walker(ast);
+        ast = new Walker(ast, namespace).walk();
         throw new RuntimeException("You can ignore this...");
     }
 }
