@@ -1,47 +1,45 @@
 package org.libj.xquery.parser;
 
-import com.sun.corba.se.impl.ior.OldJIDLObjectKeyTemplate;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class Cons implements Iterable {
-    private Object car;
+public class Cons<E> implements Iterable<E> {
+    private E car;
     private Cons cdr;
 
-    public Cons(Object car, Cons cdr) {
+    public Cons(E car, Cons<E> cdr) {
         this.cdr = cdr;
         this.car = car;
     }
-    public Cons(Object car) {
+    public Cons(E car) {
         this(car, null);
     }
     public Cons() {
         this(null);
     }
-    public void car(Object x) {
+    public void car(E x) {
         car = x;
     }
     public void cdr(Cons x) {
         cdr = x;
     }
-    public Object first() {
+    public E first() {
         return car;
     }
     public Cons next() {
         return cdr;
     }
 
-    public static Iterator<Object> iterator(final Cons i) {
-        return new Iterator<Object>() {
-            private Cons it = i;
+    public static <E> Iterator<E> iterator(final Cons<E> i) {
+        return new Iterator<E>() {
+            private Cons<E> it = i;
             public boolean hasNext() {
                 return it != null;
             }
 
-            public Object next() {
-                Object v = it.first();
+            public E next() {
+                E v = it.first();
                 it = it.next();
                 return v;
             }
@@ -52,20 +50,20 @@ public class Cons implements Iterable {
         };
     }
 
-    public Iterator<Object> iterator() {
-        final Cons i = this;
+    public Iterator<E> iterator() {
+        final Cons<E> i = this;
         return iterator(i);
     }
 
-    public static List<Object> toList(Cons list) {
-        List<Object> result = new ArrayList<Object>();
+    public static <E> List<E> toList(Cons<E> list) {
+        List<E> result = new ArrayList<E>();
         while (list != null) {
             result.add(list.first());
             list = list.next();
         }
         return result;
     }
-    public List<Object> toList() {
+    public List<E> toList() {
         return toList(this);
     }
     public static int size(Cons list) {

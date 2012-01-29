@@ -6,14 +6,18 @@ import static org.libj.xquery.lexer.TokenType.*;
 import java.util.Iterator;
 import java.util.List;
 
-public class AST extends Cons {
+public class AST extends Cons<Unit> implements Unit {
     
     public AST() {
         // do nothing
     }
     
-    public AST(Object x) {
+    public AST(Unit x) {
         super(x);
+    }
+    
+    public AST(Token  t) {
+        this(new Element(t));
     }
     
     public AST(int tokenType) {
@@ -21,7 +25,7 @@ public class AST extends Cons {
     }
 
     public Token getToken() {
-        return (Token) first();
+        return ((Element) first()).getToken();
     }
     public int getNodeType() {
         return getToken().type;
@@ -43,7 +47,7 @@ public class AST extends Cons {
             }
 
             @Override
-            public void car(Object x) {
+            public void car(Unit x) {
                 throw new NullPointerException("Nil access");
             }
 
@@ -53,7 +57,7 @@ public class AST extends Cons {
             }
 
             @Override
-            public Object first() {
+            public Unit first() {
                 throw new NullPointerException("Nil access");
             }
 
@@ -63,12 +67,12 @@ public class AST extends Cons {
             }
 
             @Override
-            public List<Object> toList() {
+            public List<Unit> toList() {
                 return toList(null);
             }
 
             @Override
-            public Iterator<Object> iterator() {
+            public Iterator<Unit> iterator() {
                 return iterator(null);
             }
 
@@ -107,18 +111,18 @@ public class AST extends Cons {
     }
 
     public boolean isNil() {
-        return getToken() == null;
+        return first() == null;
     }
 
     public String toString() {
-        Object head = first();
+        Unit head = first();
+        if (head == null) {
+            return "nil";
+        }
         if (!(head instanceof Token)) {
             return toVectorString(this);
         }
         Token token = (Token) head;
-        if (token == null) {
-            return "nil";
-        }
         if (token.type == DECLARES || token.type == FORLETS) {
             AST subs = rest();
             return toVectorString(subs);
@@ -176,7 +180,7 @@ public class AST extends Cons {
         builder.append("["); // XXX: TODO: FIXME: the output doesn't make sense...
         if (ast.size() > 0) {
             builder.append(ast.first());
-            for (Object x : ast.rest()) {
+            for (Unit x : ast.rest()) {
                 builder.append(' ');
                 builder.append(x);
             }
