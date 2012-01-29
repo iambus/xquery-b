@@ -892,6 +892,7 @@ public class Assembler implements Opcodes {
             else {
                 if (buffer.length() != 0) {
                     target.add(new AST(new Token(TEXT, buffer.toString())));
+                    buffer.setLength(0);
                 }
                 target.add(node);
             }
