@@ -63,7 +63,7 @@ public class Caster implements Opcodes {
             }
             else if (from == void.class) {
                 // XXX: is it OK?
-                mv.visitFieldInsn(GETSTATIC, Assembler.NIL, "NIL", "L"+Assembler.NIL+";");
+                mv.visitFieldInsn(GETSTATIC, Constants.NIL, "NIL", "L"+Constants.NIL+";");
                 return Nil.class;
 //                throw new RuntimeException("Not Implemented! "+from+" to "+to);
             }

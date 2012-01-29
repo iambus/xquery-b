@@ -1,14 +1,9 @@
 package org.libj.xquery.compiler;
 
-import org.libj.xquery.Environment;
 import org.libj.xquery.lexer.Token;
 import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.AST;
-import org.libj.xquery.runtime.Nil;
-import org.libj.xquery.runtime.Op;
-import org.libj.xquery.runtime.RecursiveList;
 import org.libj.xquery.xml.XML;
-import org.libj.xquery.xml.str.StringNamespaceXMLFactory;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -16,7 +11,7 @@ import org.objectweb.asm.Opcodes;
 import java.util.ArrayList;
 
 import static org.libj.xquery.lexer.TokenType.*;
-import static org.libj.xquery.lexer.TokenType.TEXT;
+import static org.libj.xquery.compiler.Constants.*;
 
 public class OnePassEvalAssembler implements Opcodes {
     private String compiledClassName;
@@ -24,19 +19,9 @@ public class OnePassEvalAssembler implements Opcodes {
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
     private Scope scope = new Scope();
     private Scope freeScope = new Scope();
-    private int locals = 4; // index 2 is used as temporary double variable
-    private final int environment_index = 1;
-    private final int temp_index = 2;
+    private int locals = LOCAL_VAR_START; // index 2 is used as temporary double variable
     private Namespace namespace;
     private final String XML_FACTORY_IMPLEMENTATION;
-    //    public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION = StringXMLFactory.class;
-    public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION = StringNamespaceXMLFactory.class;
-    private static final String RUNTIME_OP = Op.class.getName().replace('.', '/');
-
-    private static final String QUERY_LIST = RecursiveList.class.getName().replace('.', '/');
-    private static final String ENVIRONMENT_CLASS = Environment.class.getName().replace('.', '/');
-    private static final String XML_INTERFACE = XML.class.getName().replace('.', '/');
-    static final String NIL = Nil.class.getName().replace('.', '/');
 
     private final MethodVisitor mv;
 
@@ -131,7 +116,7 @@ public class OnePassEvalAssembler implements Opcodes {
         Label pushResult = new Label();
 //        mv.visitJumpInsn(IFNE, pushResult);
         // if environment == null
-        mv.visitVarInsn(ALOAD, environment_index);
+        mv.visitVarInsn(ALOAD, LOCAL_ENV_INDEX);
         Label initVariable = new Label();
         mv.visitJumpInsn(IFNONNULL, initVariable);
         // throw exception
@@ -142,7 +127,7 @@ public class OnePassEvalAssembler implements Opcodes {
         mv.visitInsn(ATHROW);
         // init free variable
         mv.visitLabel(initVariable);
-        mv.visitVarInsn(ALOAD, environment_index);
+        mv.visitVarInsn(ALOAD, LOCAL_ENV_INDEX);
         mv.visitLdcInsn(variable);
         mv.visitMethodInsn(INVOKEVIRTUAL, ENVIRONMENT_CLASS, "getVariable", "(Ljava/lang/String;)Ljava/lang/Object;");
         mv.visitVarInsn(ASTORE, index+1);
@@ -577,9 +562,9 @@ public class OnePassEvalAssembler implements Opcodes {
         if (leftType == rightType) {
             return rightType;
         } else if (leftType == int.class && rightType == double.class) {
-            mv.visitVarInsn(DSTORE, temp_index);
+            mv.visitVarInsn(DSTORE, LOCAL_TEMP_INDEX);
             Caster.castBetweenPrimitives(mv, int.class, double.class);
-            mv.visitVarInsn(DLOAD, temp_index);
+            mv.visitVarInsn(DLOAD, LOCAL_TEMP_INDEX);
             return double.class;
         } else if (leftType == double.class && rightType == int.class) {
             return Caster.castBetweenPrimitives(mv, int.class, double.class);

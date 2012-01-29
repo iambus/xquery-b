@@ -5,6 +5,7 @@ import org.libj.xquery.parser.*;
 import org.libj.xquery.xml.XML;
 
 import static org.libj.xquery.lexer.TokenType.*;
+import static org.libj.xquery.compiler.Constants.*;
 
 import java.util.ArrayList;
 
@@ -14,7 +15,7 @@ public class Walker {
     private Scope scope = new Scope();
     private Scope freeScope = new Scope();
 
-    private int locals = 4; // index 2 is used as temporary double variable
+    private int locals = LOCAL_VAR_START; // index 2 is used as temporary double variable
 
     public Walker(AST tree) {
         ast = tree;
