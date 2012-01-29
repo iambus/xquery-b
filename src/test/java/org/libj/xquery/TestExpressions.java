@@ -87,6 +87,7 @@ public class TestExpressions {
     }
     @Test
     public void testFor() {
+        assertEvalString("for $x in () return $x", "");
         assertEvalString("for $x in (3,4,5) return $x", "3 4 5");
         assertEvalString("for $x in (3,4,5) return $x - 2", "1 2 3");
         assertEvalString("for $x in (1 to 10) where $x mod 2 = 1 return $x", "1 3 5 7 9");

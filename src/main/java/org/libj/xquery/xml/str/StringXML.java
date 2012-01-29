@@ -5,10 +5,10 @@ import org.libj.xquery.xml.XML;
 import org.libj.xquery.xml.XMLUtils;
 
 public class StringXML implements XML {
-    private String xml;
-    private int start;
+    protected String xml;
+    protected int start;
     private int end = -1;
-    private String subs;
+    private String nodeXML;
     private String text;
 
     public StringXML(String xml, int start) {
@@ -42,7 +42,7 @@ public class StringXML implements XML {
         return text;
     }
 
-    private int selectNode(int i, String subNode) {
+    protected int selectNode(int i, String subNode) {
         int max = xml.length();
         int tagmax = subNode.length();
         // jump to the end of open tag
@@ -75,7 +75,8 @@ public class StringXML implements XML {
         }
         return -1;
     }
-    private int skipNode(int i) {
+
+    protected int skipNode(int i) {
         // jump to the end of open tag
         while (xml.charAt(i++) != '>') {
         }
@@ -102,13 +103,13 @@ public class StringXML implements XML {
     }
 
     public String toString() {
-        if (subs == null) {
+        if (nodeXML == null) {
             if (end < 0) {
                 end = skipNode(start);
             }
-            subs = xml.substring(start, end);
+            nodeXML = xml.substring(start, end);
         }
-        return subs;
+        return nodeXML;
     }
     public static void main(String[] args) {
         XML x = new StringXML("<x><a>2</a></x>");

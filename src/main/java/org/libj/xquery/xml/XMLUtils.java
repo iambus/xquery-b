@@ -21,6 +21,7 @@ import java.io.StringWriter;
 import java.io.Writer;
 
 public class XMLUtils {
+
     public static String escapeXML(String xml) {
         // TODO: this is incorrect and inefficient
         return xml.replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;");
@@ -125,6 +126,7 @@ public class XMLUtils {
         }
         return builder.toString();
     }
+
     public static XPath newXPath() {
         XPathFactory factory = XPathFactory.newInstance();
         XPath xpath = factory.newXPath();

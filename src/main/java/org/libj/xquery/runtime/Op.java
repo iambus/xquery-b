@@ -170,6 +170,15 @@ public class Op extends StandardStaticNamespace {
 
     @Function
     public static Object eq(Object x, Object y) {
+        if (x instanceof XML && y instanceof XML) {
+            return ((XML) x).text().equals(((XML) y).text());
+        }
+        if (x instanceof XML) {
+            return ((XML) x).text().equals(y.toString());
+        }
+        if (y instanceof XML) {
+            return x.toString().equals(((XML) y).text());
+        }
         if (x instanceof List || y instanceof List) {
             throw new RuntimeException("Not Implemented!");
         }

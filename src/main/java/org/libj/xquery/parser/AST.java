@@ -135,9 +135,6 @@ public class AST extends Cons {
         if (token.type == STRING) {
             return '"'+token.text.replace('"', '\'')+'"';
         }
-        if (token.type == XPATH) {
-            return "(xpath \""+token.text.replace("\"", "\\\"")+"\")";
-        }
         StringBuilder builder = new StringBuilder();
         builder.append("(");
         if (token.type == CALL) {
@@ -148,6 +145,9 @@ public class AST extends Cons {
         }
         else if (token.type == INDEX) {
             builder.append("at");
+        }
+        else if (token.type == INDEX) {
+            builder.append("xpath");
         }
         else if (token.type == FOR || token.type == LET || token.type == TO ||
                  token.type == AND || token.type == OR ||

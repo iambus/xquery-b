@@ -85,6 +85,7 @@ public class TestXPathPerformance {
             "\t</Peoples>\n" +
             "\t<Location>Nanjing</Location>\n" +
             "</Event>"; // 148 bytes
+
     @Test
     public void testEvent() {
         assertRepeatedEvalPerSecond("let $event := " + event + " return $event/Location", 1000 * 500);
@@ -104,5 +105,63 @@ public class TestXPathPerformance {
 //        assertRepeatedEvalPerSecond("debug:print(fn:string($event))", 1, env);
 //        assertRepeatedEvalPerSecond("debug:print(fn:string("+event+"))", 1);
         assertRepeatedEvalPerSecond("fn:string("+event+")", 1000 * 500);
+    }
+
+    /*
+<my:Event xmlns:my="http://xquery.libj.org/event/Mine">
+	<ID>EX2006</ID>
+	<Time>2006-XX-XX</Time>
+	<Peoples>
+		<Name>You</Name>
+		<Name>Me</Name>
+	</Peoples>
+	<Location>Nanjing</Location>
+	<your:story xmlns:your="http://xquery.libj.org/event/Yours">
+		<content>nothing</content>
+	</your:story>
+</my:Event>
+
+     */
+    private String nsevent = "<my:Event xmlns:my=\"http://xquery.libj.org/event/Mine\">\n" +
+            "\t<ID>EX2006</ID>\n" +
+            "\t<Time>2006-XX-XX</Time>\n" +
+            "\t<Peoples>\n" +
+            "\t\t<Name>You</Name>\n" +
+            "\t\t<Name>Me</Name>\n" +
+            "\t</Peoples>\n" +
+            "\t<Location>Nanjing</Location>\n" +
+            "\t<your:story xmlns:your=\"http://xquery.libj.org/event/Yours\">\n" +
+            "\t\t<content>nothing</content>\n" +
+            "\t</your:story>\n" +
+            "</my:Event>"; // 148 bytes
+
+    @Test
+    public void testEventNS() {
+        String xquery =
+                "declare namespace i = \"http://xquery.libj.org/event/Mine\";\n" +
+                "declare namespace u = \"http://xquery.libj.org/event/Yours\";\n" +
+                        "let $event := " + nsevent + "return $event/u:story/content";
+        assertRepeatedEvalPerSecond(xquery, 1000 * 300);
+    }
+    @Test
+    public void testEventNS2() {
+        String xquery =
+                "declare namespace i = \"http://xquery.libj.org/event/Mine\";\n" +
+                        "declare namespace u = \"http://xquery.libj.org/event/Yours\";\n" +
+                        "let $event := <x>" + nsevent + "</x> return string($event/i:Event/u:story/content)";
+        assertRepeatedEvalPerSecond(xquery, 1000 * 100);
+    }
+    @Test
+    public void testEvent3Fields() {
+        String xquery =
+                "declare namespace i = \"http://xquery.libj.org/event/Mine\";\n" +
+                        "declare namespace u = \"http://xquery.libj.org/event/Yours\";\n" +
+                        "let $event := " + nsevent + "\n" +
+                        "return <x>" +
+                        "<id>{string($event/ID)}</id>" +
+                        "<city>{string($event/Location)}</city>" +
+                        "<content>{string($event/u:story/content)}</content>" +
+                        "</x>";
+        assertRepeatedEvalPerSecond(xquery, 1000 * 100);
     }
 }

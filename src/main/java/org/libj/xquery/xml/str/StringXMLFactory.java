@@ -7,4 +7,8 @@ public class StringXMLFactory implements XMLFactory {
     public XML toXML(String xml) {
         return new StringXML(xml);
     }
+
+    public void registerNamespace(String prefix, String namespace) {
+        // ignore namespace
+    }
 }

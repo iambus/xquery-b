@@ -1,9 +1,8 @@
 package org.libj.xquery.compiler;
 
-import com.sun.org.apache.xerces.internal.impl.dv.dtd.ENTITYDatatypeValidator;
 import org.libj.xquery.Callback;
 import org.libj.xquery.Environment;
-import org.libj.xquery.XQuery;
+import org.libj.xquery.XQueryBase;
 import org.libj.xquery.lexer.Token;
 import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.AST;
@@ -12,10 +11,9 @@ import static org.libj.xquery.lexer.TokenType.*;
 import org.libj.xquery.runtime.Nil;
 import org.libj.xquery.runtime.Op;
 import org.libj.xquery.runtime.RecursiveList;
-import org.libj.xquery.xml.DomSimpleXPathXMLFactory;
 import org.libj.xquery.xml.XML;
 import org.libj.xquery.xml.XMLFactory;
-import org.libj.xquery.xml.str.StringXMLFactory;
+import org.libj.xquery.xml.str.StringNamespaceXMLFactory;
 import org.objectweb.asm.*;
 
 import java.util.ArrayList;
@@ -36,7 +34,8 @@ public class Assembler implements Opcodes {
 
     private Namespace namespace;
     private final String XML_FACTORY_IMPLEMENTATION;
-    public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION = StringXMLFactory.class;
+//    public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION = StringXMLFactory.class;
+    public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION = StringNamespaceXMLFactory.class;
 
     MethodVisitor mv;
 
@@ -52,7 +51,9 @@ public class Assembler implements Opcodes {
         this(className, ast, new DefaultRootNamespace(), DEFAUL_XML_FACTORY_IMPLEMENTATION);
     }
 
-    private static final String QUERY_BASE = XQuery.class.getName().replace('.', '/');
+//    private static final String QUERY_BASE = XQuery.class.getName().replace('.', '/');
+    private static final String QUERY_BASE = XQueryBase.class.getName().replace('.', '/');
+    private static final String SUPER_CLASS = XQueryBase.class.getName().replace('.', '/');
 
     private static final String QUERY_CALLBACK = Callback.class.getName().replace('.', '/');
 //    private static final String QUERY_LIST = CallbackList.class.getName().replace('.', '/');
@@ -69,10 +70,11 @@ public class Assembler implements Opcodes {
 
     private void visitClass() {
         cw.visit(V1_5, ACC_PUBLIC + ACC_SUPER, compiledClassName, null,
-                "java/lang/Object",
-                new String[] {QUERY_BASE});
+                SUPER_CLASS,
+                null);
         visitInit();
-        visitFactory();
+//        visitFactory();
+        visitNamespaces();
         visitEvalWithEnvironment();
         visitEval();
         visitEvalCallback();
@@ -105,11 +107,31 @@ public class Assembler implements Opcodes {
         mv.visitEnd();
     }
 
+    private void visitNamespaces() {
+        mv = cw.visitMethod(ACC_PROTECTED, "initNamespaces", "()V", null, null);
+        mv.visitCode();
+
+        for (Object declare: ast.nth(1).rest()) {
+            if (((AST)declare).nth(1).getNodeType() == NAMESPACE) {
+                String alias = ((AST) declare).nth(2).getNodeText();
+                String uri = ((AST) declare).nth(3).getNodeText();
+                mv.visitVarInsn(ALOAD, 0);
+                pushConst(alias);
+                pushConst(uri);
+                mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "registerNamespace", "(Ljava/lang/String;Ljava/lang/String;)V");
+            }
+        }
+
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+
     private void visitInit() {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V");
+        mv.visitMethodInsn(INVOKESPECIAL, SUPER_CLASS, "<init>", "()V");
         mv.visitInsn(RETURN);
         mv.visitMaxs(1, 1);
         mv.visitEnd();

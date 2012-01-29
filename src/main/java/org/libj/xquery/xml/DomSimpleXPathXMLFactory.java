@@ -32,6 +32,10 @@ public class DomSimpleXPathXMLFactory implements XMLFactory {
         return new DomSimpleXPathXML(xml);
     }
 
+    public void registerNamespace(String prefix, String namespace) {
+        throw new UnsupportedOperationException("registerNamespace");
+    }
+
     private class DomSimpleXPathXML implements XML {
         public Node node;
         private String xml;

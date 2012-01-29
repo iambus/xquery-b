@@ -41,4 +41,8 @@ public class DomXMLFactory implements XMLFactory {
         return new CachedDomXML(xml, documentBuilder, xpath);
     }
 
+    public void registerNamespace(String prefix, String namespace) {
+        throw new UnsupportedOperationException("registerNamespace");
+    }
+
 }
