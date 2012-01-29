@@ -825,28 +825,26 @@ public class Assembler implements Opcodes {
         else {
             newObject("java/lang/StringBuilder");
             for (AST element: list) {
-                switch (element.getNodeType()) {
-                    case TEXT: case TAGOPEN: case TAGCLOSE: case TAGUNIT:
-                        pushConst(element.getNodeText());
-                        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
-                        break;
-                    default:
-                        Class t = visitExpr(element);
-                        if (t.isPrimitive()) {
-                            if (t == int.class) {
-                                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(I)Ljava/lang/StringBuilder;");
-                            }
-                            else if (t == double.class) {
-                                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(D)Ljava/lang/StringBuilder;");
-                            }
-                            else {
-                                throw new RuntimeException("Not Implemented!");
-                            }
+                if (isNodeLiteral(element)) {
+                    pushConst(element.getNodeText());
+                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
+                }
+                else {
+                    Class t = visitExpr(element);
+                    if (t.isPrimitive()) {
+                        if (t == int.class) {
+                            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(I)Ljava/lang/StringBuilder;");
+                        }
+                        else if (t == double.class) {
+                            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(D)Ljava/lang/StringBuilder;");
                         }
                         else {
-                            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
+                            throw new RuntimeException("Not Implemented!");
                         }
-                        break;
+                    }
+                    else {
+                        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
+                    }
                 }
             }
             mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;");
@@ -869,13 +867,22 @@ public class Assembler implements Opcodes {
         }
     }
 
+    private boolean isNodeLiteral(AST node) {
+        switch (node.getNodeType()) {
+            case TEXT: case TAGOPEN: case TAGCLOSE: case TAGUNIT:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     private ArrayList<AST> mergeStringNode(ArrayList<AST> source) {
         ArrayList<AST> target = new ArrayList<AST>();
         StringBuilder buffer = new StringBuilder();
         for (int i = 0; i < source.size(); i++) {
             AST node = source.get(i);
-            if (node.getNodeType() == STRING) {
-                if (buffer.length() == 0 && i + 1 < source.size() && source.get(i+1).getNodeType()!=STRING) {
+            if (isNodeLiteral(node)) {
+                if (buffer.length() == 0 && i + 1 < source.size() && !isNodeLiteral(source.get(i+1))) {
                     target.add(node);
                 }
                 else {
@@ -884,13 +891,13 @@ public class Assembler implements Opcodes {
             }
             else {
                 if (buffer.length() != 0) {
-                    target.add(new AST(new Token(STRING, buffer.toString())));
+                    target.add(new AST(new Token(TEXT, buffer.toString())));
                 }
                 target.add(node);
             }
         }
         if (buffer.length() != 0) {
-            target.add(new AST(new Token(STRING, buffer.toString())));
+            target.add(new AST(new Token(TEXT, buffer.toString())));
         }
         return target;
     }
