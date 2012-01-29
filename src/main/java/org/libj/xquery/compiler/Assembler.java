@@ -2,6 +2,7 @@ package org.libj.xquery.compiler;
 
 import org.libj.xquery.Callback;
 import org.libj.xquery.Environment;
+import org.libj.xquery.XQuery;
 import org.libj.xquery.XQueryBase;
 import org.libj.xquery.lexer.Token;
 import org.libj.xquery.namespace.*;
@@ -51,9 +52,10 @@ public class Assembler implements Opcodes {
         this(className, ast, new DefaultRootNamespace(), DEFAUL_XML_FACTORY_IMPLEMENTATION);
     }
 
-//    private static final String QUERY_BASE = XQuery.class.getName().replace('.', '/');
-    private static final String QUERY_BASE = XQueryBase.class.getName().replace('.', '/');
-    private static final String SUPER_CLASS = XQueryBase.class.getName().replace('.', '/');
+    private static final String QUERY_BASE = XQuery.class.getName().replace('.', '/');
+//    private static final String QUERY_BASE = XQueryBase.class.getName().replace('.', '/');
+    private static final String SUPER_CLASS = Object.class.getName().replace('.', '/');
+//    private static final String SUPER_CLASS = XQueryBase.class.getName().replace('.', '/');
 
     private static final String QUERY_CALLBACK = Callback.class.getName().replace('.', '/');
 //    private static final String QUERY_LIST = CallbackList.class.getName().replace('.', '/');
@@ -71,10 +73,10 @@ public class Assembler implements Opcodes {
     private void visitClass() {
         cw.visit(V1_5, ACC_PUBLIC + ACC_SUPER, compiledClassName, null,
                 SUPER_CLASS,
-                null);
+                new String[]{QUERY_BASE});
         visitInit();
-//        visitFactory();
-        visitNamespaces();
+        visitFactory();
+//        visitNamespaces();
         visitEvalWithEnvironment();
         visitEval();
         visitEvalCallback();
@@ -96,6 +98,18 @@ public class Assembler implements Opcodes {
         mv.visitVarInsn(ALOAD, 0);
         newObject(XML_FACTORY_IMPLEMENTATION);
         mv.visitFieldInsn(PUTFIELD, compiledClassName, "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
+        // register namespaces
+        for (Object declare: ast.nth(1).rest()) {
+            if (((AST)declare).nth(1).getNodeType() == NAMESPACE) {
+                String alias = ((AST) declare).nth(2).getNodeText();
+                String uri = ((AST) declare).nth(3).getNodeText();
+                mv.visitVarInsn(ALOAD, 0);
+                mv.visitFieldInsn(GETFIELD, compiledClassName, "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
+                pushConst(alias);
+                pushConst(uri);
+                mv.visitMethodInsn(INVOKEINTERFACE, XML_FACTORY_INTERFACE, "registerNamespace", "(Ljava/lang/String;Ljava/lang/String;)V");
+            }
+        }
         mv.visitLabel(endIf);
         // enf if
         mv.visitVarInsn(ALOAD, 0);

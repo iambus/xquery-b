@@ -6,6 +6,7 @@ import org.libj.xquery.compiler.*;
 import org.libj.xquery.compiler.Compiler;
 import org.libj.xquery.xml.DomSimpleXPathXMLFactory;
 import org.libj.xquery.xml.dom.DomXMLFactory;
+import org.libj.xquery.xml.str.StringNamespaceXMLFactory;
 import org.libj.xquery.xml.str.StringXML;
 import org.libj.xquery.xml.str.StringXMLFactory;
 
@@ -20,7 +21,7 @@ public class TestXPathPerformance {
 
     @Test
     public void testMiniDefaultXPath() {
-        assertRepeatedEvalPerSecond("let $x := <x><a>2</a></x> return $x/a", 500);
+        assertRepeatedEvalPerSecond("let $x := <x><a>2</a></x> return $x/a", 1000*1000*3);
     }
     @Test
     public void testMiniDomXPath() {
@@ -38,11 +39,18 @@ public class TestXPathPerformance {
     public void testMiniStringXPath() {
         org.libj.xquery.compiler.Compiler compiler = new Compiler();
         compiler.setXMLFactory(StringXMLFactory.class);
-        assertRepeatedEvalPerSecond(compiler, "let $x := <x><a>2</a></x> return $x/a", 1000*1000*2);
+        assertRepeatedEvalPerSecond(compiler, "let $x := <x><a>2</a></x> return $x/a", 1000*1000*3);
+    }
+
+    @Test
+    public void testMiniStringNamespaceXPath() {
+        org.libj.xquery.compiler.Compiler compiler = new Compiler();
+        compiler.setXMLFactory(StringNamespaceXMLFactory.class);
+        assertRepeatedEvalPerSecond(compiler, "let $x := <x><a>2</a></x> return $x/a", 1000*1000*3);
     }
 
     //
-    // test on StringXMLFactory
+    // test on StringNamespaceXMLFactory
     //
 
     private String xml = "<books>\n" +
@@ -62,17 +70,17 @@ public class TestXPathPerformance {
     @Test
     public void testBook() {
         org.libj.xquery.compiler.Compiler compiler = new Compiler();
-        compiler.setXMLFactory(StringXMLFactory.class);
+        compiler.setXMLFactory(StringNamespaceXMLFactory.class);
         System.out.println(xml.length());
-        assertRepeatedEvalPerSecond(compiler, "let $x := "+xml+" return $x/book", 1000*100);
+        assertRepeatedEvalPerSecond(compiler, "let $x := "+xml+" return $x/book", 1000*1000);
     }
 
     @Test
     public void testBookName() {
         org.libj.xquery.compiler.Compiler compiler = new Compiler();
-        compiler.setXMLFactory(StringXMLFactory.class);
+        compiler.setXMLFactory(StringNamespaceXMLFactory.class);
         System.out.println(xml.length());
-        assertRepeatedEvalPerSecond(compiler, "let $x := " + xml + " return $x/book/name", 1000 * 100);
+        assertRepeatedEvalPerSecond(compiler, "let $x := " + xml + " return $x/book/name", 1000 * 1000);
     }
 
 
@@ -88,8 +96,8 @@ public class TestXPathPerformance {
 
     @Test
     public void testEvent() {
-        assertRepeatedEvalPerSecond("let $event := " + event + " return $event/Location", 1000 * 500);
-        assertRepeatedEvalPerSecond("let $event := "+event+" return $event/Location", 1000 * 500);
+        assertRepeatedEvalPerSecond("let $event := " + event + " return $event/Location", 1000 * 1000);
+        assertRepeatedEvalPerSecond("let $event := "+event+" return $event/Location", 1000 * 1000);
     }
 
     @Test
