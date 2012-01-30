@@ -131,6 +131,11 @@ public class TestExpressions {
         assertEvalString("for $x in 1 to 20 return if ($x mod 2 = 0) then $x else ()", "2 4 6 8 10 12 14 16 18 20");
     }
     @Test
+    public void testVariable() {
+        assertEvalString("let $x := 1 let $y := 7 return $x+$y", "8");
+//        assertEval("let $x := 1 let $y := 7 return $x+$y", 8);
+    }
+    @Test
     public void testNil() {
         assertEvalString("()", "");
         assertEvalString("let $x := 2 return ()", "");

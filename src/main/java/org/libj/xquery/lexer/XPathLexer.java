@@ -36,6 +36,8 @@ public class XPathLexer {
                 case ')':
                 case '}':
                 case ',':
+                case '+':
+                case '-':
                     return;
                 default:
                     append();
