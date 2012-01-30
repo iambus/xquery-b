@@ -62,6 +62,8 @@ public class TokenType {
     public static final int CALL = 206;
     public static final int LIST = 207;
     public static final int INDEX = 208;
+    public static final int FORRANGE = 211;
+    public static final int FLOWERAT = 212;
 
     public static final int CAST = 301;
 

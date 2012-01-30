@@ -446,7 +446,9 @@ public class OnePassEvalAssembler implements Opcodes {
         else if (!thenType.isPrimitive() && elseType.isPrimitive()) {
             throw new RuntimeException("Not Implemented!");
         }
-        throw new RuntimeException("Not Implemented!");
+        else {
+            throw new RuntimeException("Not Implemented!");
+        }
     }
     private Class visitOp(AST expr) {
         int type = expr.getNodeType();

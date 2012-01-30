@@ -130,7 +130,10 @@ public class Caster implements Opcodes {
             mv.visitInsn(D2I);
             return int.class;
         }
-        throw new RuntimeException("Not Implemented!");
+        if (from == int.class && to == boolean.class) {
+            return boolean.class;
+        }
+        throw new RuntimeException("Not Implemented! "+from+" to "+to);
     }
 
     public static void castMany(MethodVisitor mv, Class[] from, Class[] to) {

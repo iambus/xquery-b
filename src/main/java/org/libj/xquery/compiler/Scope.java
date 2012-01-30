@@ -35,6 +35,10 @@ public class Scope {
         return s;
     }
 
+    public Map<String, Symbol> getSymbols() {
+        return symbols;
+    }
+
     public String toString() {
         return symbols.toString();
     }

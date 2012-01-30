@@ -9,6 +9,7 @@ import static org.libj.xquery.lexer.TokenType.*;
 import static org.libj.xquery.compiler.Constants.*;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 public class Walker {
     private AST ast;
@@ -22,6 +23,14 @@ public class Walker {
     public Walker(AST tree, Namespace namespace) {
         ast = tree;
         this.namespace = namespace;
+    }
+
+    public int getLocals() {
+        return locals;
+    }
+
+    public Map<String, Symbol> getFreeVariables() {
+        return freeScope.getSymbols();
     }
 
     public AST walk() {
@@ -74,8 +83,7 @@ public class Walker {
     private AST walkVariable(AST expr) {
         String variable = expr.getNodeText();
         if (!isFree(variable)) {
-            Class t = resolveType(variable);
-            return assocType(expr, t);
+            return new AST(new VariableElement(expr.getElement(), resolveType(variable), resolve(variable)));
         }
         else {
             int index = resolveFree(variable);
@@ -89,7 +97,7 @@ public class Walker {
             case PLUS: case MINUS: case MULTIPLY: case DIV: case MOD:
                 return walkBinaryArithmetic(expr);
             case NEGATIVE:
-                throw new RuntimeException("Not Implemented!");
+                return walkNegative(expr);
             case EQ: case NE:
                 return walkComparison(expr);
             case AND: case OR:
@@ -107,6 +115,13 @@ public class Walker {
 
     private AST walkBinaryArithmetic(AST expr) {
         return unifyArithmetic(walkSub2(expr));
+    }
+
+    private AST walkNegative(AST expr) {
+        AST v = walkExpr(expr.nth(1));
+        assoc1(expr, v);
+        assocType(expr, v.getEvalType());
+        return expr;
     }
 
     private AST walkSub2(AST expr) {
@@ -132,17 +147,29 @@ public class Walker {
 
     private AST walkXPath(AST expr) {
         assocType(expr, XML_INTERFACE_TYPE);
-        assoc1(expr, walkVariable(expr.nth(1)));
+        assoc1(expr, castTo(walkVariable(expr.nth(1)), XML_INTERFACE_TYPE));
         return expr;
     }
 
     private AST walkIndex(AST expr) {
-        AST left = walkExpr(expr.nth(1));
-        AST right = castTo(walkExpr(expr.nth(2)), int.class);
-        assoc1(expr, left);
-        assoc2(expr, right);
-        assocType(expr, Object.class);
-        return expr;
+        AST list = expr.nth(1);
+        AST at = expr.nth(2);
+        if (list.getNodeType() == FLOWER) {
+            AST flower = walkFlower(list);
+            AST flowerAt = castTo(walkExpr(at), int.class);
+            expr = new AST(FLOWERAT);
+            expr.appendLast(flower);
+            expr.appendLast(flowerAt);
+            return expr;
+        }
+        else {
+            AST left = castTo(walkExpr(list), Object.class);
+            AST right = castTo(walkExpr(at), int.class);
+            assoc1(expr, left);
+            assoc2(expr, right);
+            assocType(expr, Object.class);
+            return expr;
+        }
     }
 
     private AST walkTo(AST expr) {
@@ -164,7 +191,22 @@ public class Walker {
     }
 
     private AST walkIf(AST expr) {
-        throw new RuntimeException("Not Implemented!");
+        AST condition = walkExpr(expr.nth(1));
+        AST thenValue = walkExpr(expr.nth(2));
+        AST elseValue = walkExpr(expr.nth(3));
+        assoc1(expr, castTo(condition, boolean.class));
+        if (elseValue.getEvalType() == thenValue.getEvalType()) {
+            assoc2(expr, thenValue);
+            assoc3(expr, elseValue);
+            assocType(expr, elseValue.getEvalType());
+            return expr;
+        }
+        else {
+            assoc2(expr, castTo(thenValue, Object.class));
+            assoc3(expr, castTo(elseValue, Object.class));
+            assocType(expr, Object.class);
+            return expr;
+        }
     }
 
     private AST walkFlower(AST expr) {
@@ -245,17 +287,15 @@ public class Walker {
 
         AST start = castTo(walkExpr(rangeExpr.nth(1)), int.class);
         AST end = castTo(walkExpr(rangeExpr.nth(2)), int.class);
-        int element = define(variableName, Object.class);
-        int iterator = defineAnonymous();
-        if (iterator != element + 1) {
-            throw new RuntimeException("There must be an anonymous variable after iterator!");
-        }
+        int element = define(variableName, int.class);
+
         variableExpr = new AST(new VariableElement(variableExpr.getElement(), int.class, element));
 
         assocType(expr, LIST_CLASS_TYPE);
         assoc1(expr, variableExpr);
         assoc2(expr, start);
         expr.appendLast(end);
+        expr.getToken().type = FORRANGE;
 
         AST result = walkForlet(forlets.rest(), body, where);
         AST thisFor = new AST(expr);
@@ -276,10 +316,6 @@ public class Walker {
 
         collectionExpr = castTo(walkExpr(collectionExpr), Object.class);
         int element = define(variableName, Object.class);
-        int iterator = defineAnonymous();
-        if (iterator != element + 1) {
-            throw new RuntimeException("There must be an anonymous variable after iterator!");
-        }
         variableExpr = new AST(new VariableElement(variableExpr.getElement(), Object.class, element));
 
         assocType(expr, LIST_CLASS_TYPE);
@@ -341,6 +377,7 @@ public class Walker {
             AST node = source.get(i);
             if (isNodeLiteral(node)) {
                 if (buffer.length() == 0 && i + 1 < source.size() && !isNodeLiteral(source.get(i+1))) {
+                    node.getToken().type = TEXT;
                     target.add(node);
                 }
                 else {
@@ -461,10 +498,46 @@ public class Walker {
             return expr;
         }
         else if (leftType.isPrimitive() && rightType.isPrimitive()) {
-            throw new RuntimeException("Not Implemented!");
+            // convert primitive to primitive
+            if (leftType == int.class && rightType == double.class) {
+                assocType(expr, double.class);
+                assoc1(expr, castTo(leftTree, double.class));
+                return expr;
+            }
+            else if (leftType == double.class && rightType == int.class) {
+                assocType(expr, double.class);
+                assoc2(expr, castTo(rightTree, double.class));
+                return expr;
+            }
+            else {
+                throw new RuntimeException("Not Implemented! "+leftType+" + "+rightType);
+            }
+        }
+        else if (leftType == Object.class && rightType.isPrimitive()) {
+            assocType(expr, Object.class);
+            assoc2(expr, castTo(rightTree, Object.class));
+            return expr;
+        }
+        else if (leftType.isPrimitive() && rightType == Object.class) {
+            assocType(expr, Object.class);
+            assoc1(expr, castTo(leftTree, Object.class));
+            return expr;
+        }
+        else if (leftType == XML_INTERFACE_TYPE || rightType == XML_INTERFACE_TYPE) {
+            assocType(expr, String.class);
+            assoc1(expr, castTo(leftTree, String.class));
+            assoc2(expr, castTo(rightTree, String.class));
+            return expr;
+        }
+        else if (!leftType.isPrimitive() && !rightType.isPrimitive()) {
+            // object -> object
+            assocType(expr, Object.class);
+            assoc1(expr, castTo(leftTree, Object.class));
+            assoc2(expr, castTo(rightTree, Object.class));
+            return expr;
         }
         else {
-            throw new RuntimeException("Not Implemented!");
+            throw new RuntimeException("Not Implemented! "+leftType+" to "+rightType);
         }
     }
 
@@ -474,15 +547,17 @@ public class Walker {
             return expr;
         }
         else if (!source.isPrimitive() && !target.isPrimitive()) {
+            // object to object
             if (target == Object.class) {
                 return expr;
             }
             else {
-                throw new RuntimeException("Not Implemented! " + source + " to "+target);
+                return new AST(new CastElement(expr, source, target));
+//                throw new RuntimeException("Not Implemented! " + source + " to "+target);
             }
         }
         else {
-            return new AST(new CastUnit(expr, source, target));
+            return new AST(new CastElement(expr, source, target));
         }
     }
 
@@ -498,10 +573,6 @@ public class Walker {
             throw new CompilerException("Internal error: no more scope to pop");
         }
         scope = scope.getEnclosingScope();
-    }
-
-    private int defineAnonymous() {
-        return locals++;
     }
 
     private int define(String name, Class type) {
@@ -565,6 +636,10 @@ public class Walker {
     }
     private AST assoc2(AST tree, Unit x) {
         tree.next().next().car(x);
+        return tree;
+    }
+    private AST assoc3(AST tree, Unit x) {
+        tree.next().next().next().car(x);
         return tree;
     }
     private AST assocType(AST tree, Class type) {
