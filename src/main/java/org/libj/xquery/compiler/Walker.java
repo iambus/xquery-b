@@ -1,6 +1,7 @@
 package org.libj.xquery.compiler;
 
 import org.libj.xquery.lexer.Token;
+import org.libj.xquery.lisp.Cons;
 import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.*;
 import org.libj.xquery.xml.XML;
@@ -214,7 +215,7 @@ public class Walker {
         AST body = (AST) expr.next().next().first();
         AST where =  (AST) expr.next().next().next().first();
         expr = new AST(new TypedElement(expr.getElement(), LIST_CLASS_TYPE));
-        expr.cdr(walkForlet(forlets, body, where));
+        expr.setCdr(walkForlet(forlets, body, where));
         return expr;
     }
 
@@ -261,8 +262,8 @@ public class Walker {
 
         AST result = walkForlet(forlets.rest(), body, where);
         AST thisLet = new AST(expr);
-        thisLet.cdr((Cons<Unit>) result.first());
-        result.car(thisLet);
+        thisLet.setCdr((Cons<Unit>) result.first());
+        result.setCar(thisLet);
 
         popScope();
         return result;
@@ -299,8 +300,8 @@ public class Walker {
 
         AST result = walkForlet(forlets.rest(), body, where);
         AST thisFor = new AST(expr);
-        thisFor.cdr((Cons<Unit>) result.first());
-        result.car(thisFor);
+        thisFor.setCdr((Cons<Unit>) result.first());
+        result.setCar(thisFor);
 
         popScope();
         return result;
@@ -324,8 +325,8 @@ public class Walker {
 
         AST result = walkForlet(forlets.rest(), body, where);
         AST thisFor = new AST(expr);
-        thisFor.cdr((Cons<Unit>) result.first());
-        result.car(thisFor);
+        thisFor.setCdr((Cons<Unit>) result.first());
+        result.setCar(thisFor);
 
         popScope();
         return result;
@@ -414,7 +415,7 @@ public class Walker {
     }
 
     private AST walkFunctionArguments(JavaFunction fn, AST expr, AST arguments) {
-        expr.cdr(null);
+        expr.setCdr(null);
         assoc0(expr, new FunctionElement(expr.getElement(), fn.getReturnType(), fn));
 
         if (fn.isMethod()) {
@@ -627,19 +628,19 @@ public class Walker {
     /// utils
     //////////////////////////////////////////////////
     private AST assoc0(AST tree, Unit x) {
-        tree.car(x);
+        tree.setCar(x);
         return tree;
     }
     private AST assoc1(AST tree, Unit x) {
-        tree.next().car(x);
+        tree.next().setCar(x);
         return tree;
     }
     private AST assoc2(AST tree, Unit x) {
-        tree.next().next().car(x);
+        tree.next().next().setCar(x);
         return tree;
     }
     private AST assoc3(AST tree, Unit x) {
-        tree.next().next().next().car(x);
+        tree.next().next().next().setCar(x);
         return tree;
     }
     private AST assocType(AST tree, Class type) {
@@ -648,27 +649,27 @@ public class Walker {
     }
     private AST astree(Unit u1, Unit u2) {
         AST root = new AST(u1);
-        root.cdr(new AST(u2));
+        root.setCdr(new AST(u2));
         return root;
     }
     private AST astree(Unit u1, Unit u2, Unit u3) {
         AST root = new AST(u1);
-        root.cdr(new AST(u2)).cdr(new AST(u3));
+        root.setCdr(new AST(u2)).setCdr(new AST(u3));
         return root;
     }
     private AST astree(Unit u1, Unit u2, Unit u3, Unit u4) {
         AST root = new AST(u1);
-        root.cdr(new AST(u2)).cdr(new AST(u3)).cdr(new AST(u4));
+        root.setCdr(new AST(u2)).setCdr(new AST(u3)).setCdr(new AST(u4));
         return root;
     }
     private AST pair(AST x, AST y) {
         x = new AST(x);
-        x.cdr(new AST(y));
+        x.setCdr(new AST(y));
         return x;
     }
     private AST tuple(AST x, AST y, AST z) {
         x = new AST(x);
-        x.cdr(new AST(y)).cdr(new AST(z));
+        x.setCdr(new AST(y)).setCdr(new AST(z));
         return x;
     }
 

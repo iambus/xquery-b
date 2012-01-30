@@ -1,4 +1,4 @@
-package org.libj.xquery.parser;
+package org.libj.xquery.lisp;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -6,7 +6,7 @@ import java.util.List;
 
 public class Cons<E> implements Iterable<E> {
     private E car;
-    private Cons cdr;
+    private Cons<E> cdr;
 
     public Cons(E car, Cons<E> cdr) {
         this.cdr = cdr;
@@ -18,10 +18,10 @@ public class Cons<E> implements Iterable<E> {
     public Cons() {
         this(null);
     }
-    public void car(E x) {
+    public void setCar(E x) {
         car = x;
     }
-    public Cons<E> cdr(Cons<E> x) {
+    public Cons<E> setCdr(Cons<E> x) {
         cdr = x;
         return x;
     }
@@ -30,6 +30,31 @@ public class Cons<E> implements Iterable<E> {
     }
     public Cons<E> next() {
         return cdr;
+    }
+
+    public Cons<E> conj(E x) {
+        return new Cons<E>(x, this);
+    }
+
+    public static <E> Cons<E> cons(E x, Cons<E> list) {
+        return new Cons<E>(x, list);
+    }
+
+    public static <E> Cons<E> list(E...elements) {
+        Cons<E> result = null;
+        for (int i = elements.length - 1; i >= 0; i--) {
+            result = new Cons<E>(elements[i], result);
+        }
+        return result;
+    }
+
+    public static <E> Cons<E> append(Cons<E> list, E x) {
+        if (list == null) {
+            return new Cons<E>(x);
+        }
+        else {
+            return new Cons<E>(list.car, append(list.cdr, x));
+        }
     }
 
     public static <E> Iterator<E> iterator(final Cons<E> i) {
@@ -64,9 +89,11 @@ public class Cons<E> implements Iterable<E> {
         }
         return result;
     }
+
     public List<E> toList() {
         return toList(this);
     }
+
     public static int size(Cons list) {
         int n = 0;
         while (list != null) {
@@ -75,6 +102,7 @@ public class Cons<E> implements Iterable<E> {
         }
         return n;
     }
+
     public int size() {
         return size(this);
     }

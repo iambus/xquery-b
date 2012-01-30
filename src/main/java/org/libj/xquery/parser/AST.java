@@ -1,6 +1,8 @@
 package org.libj.xquery.parser;
 
 import org.libj.xquery.lexer.Token;
+import org.libj.xquery.lisp.Cons;
+
 import static org.libj.xquery.lexer.TokenType.*;
 
 import java.util.Iterator;
@@ -56,12 +58,12 @@ public class AST extends Cons<Unit> implements Unit {
             }
 
             @Override
-            public void car(Unit x) {
+            public void setCar(Unit x) {
                 throw new NullPointerException("Nil access");
             }
 
             @Override
-            public Cons cdr(Cons x) {
+            public Cons setCdr(Cons x) {
                 throw new NullPointerException("Nil access");
             }
 
@@ -106,7 +108,7 @@ public class AST extends Cons<Unit> implements Unit {
         while (list.next() != null) {
             list = list.next();
         }
-        list.cdr(new AST(t));
+        list.setCdr(new AST(t));
     }
 
     public void appendLast(Token t) {

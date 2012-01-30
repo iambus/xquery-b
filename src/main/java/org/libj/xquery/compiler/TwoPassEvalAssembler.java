@@ -235,6 +235,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
             Label trueLabel = new Label();
             Label falseLabel = new Label();
             Label doneLabel = new Label();
+            // is this better than DCMPL?
             mv.visitJumpInsn(expr.getNodeType() == EQ ? IF_ICMPEQ : IF_ICMPNE, trueLabel);
             mv.visitLabel(falseLabel);
             mv.visitInsn(ICONST_0);
