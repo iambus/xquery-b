@@ -1,8 +1,10 @@
 package org.libj.xquery.lisp;
 
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
 
 public class Cons<E> implements Iterable<E> {
     private E car;
@@ -18,13 +20,7 @@ public class Cons<E> implements Iterable<E> {
     public Cons() {
         this(null);
     }
-    public void setCar(E x) {
-        car = x;
-    }
-    public Cons<E> setCdr(Cons<E> x) {
-        cdr = x;
-        return x;
-    }
+
     public E first() {
         return car;
     }
@@ -94,6 +90,17 @@ public class Cons<E> implements Iterable<E> {
         return toList(this);
     }
 
+    public E nth(int i) {
+        if (i < 0) {
+            throw new RuntimeException("Negative index");
+        }
+        else if (i == 0) {
+            return first();
+        }
+        else {
+            return next().nth(--i);
+        }
+    }
     public static int size(Cons list) {
         int n = 0;
         while (list != null) {
@@ -106,4 +113,52 @@ public class Cons<E> implements Iterable<E> {
     public int size() {
         return size(this);
     }
+
+
+    public Cons<E> assoc(int n, E x) {
+        if (n == 0) {
+            return cons(x, next());
+        }
+        else {
+            return cons(first(), next().assoc(--n, x));
+        }
+    }
+
+
+    public static Cons rest(Cons list) {
+        Cons rest = list.next();
+        if (rest != null) {
+            return rest;
+        }
+        return new Cons() {
+            @Override
+            public Iterator iterator() {
+                return new Iterator<Object>() {
+
+                    public boolean hasNext() {
+                        return false;
+                    }
+
+                    public Object next() {
+                        throw new UnsupportedOperationException("next");
+                    }
+
+                    public void remove() {
+                        throw new UnsupportedOperationException("remove");
+                    }
+                };
+            }
+
+            @Override
+            public int size() {
+                return 0;
+            }
+        };
+    }
+
+    public static boolean isNil(Cons list) {
+        return list == null || list.first() == null;
+    }
+
+
 }

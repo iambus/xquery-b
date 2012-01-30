@@ -1,5 +1,6 @@
 package org.libj.xquery.compiler;
 
+import org.libj.xquery.lisp.Cons;
 import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.*;
 import org.libj.xquery.runtime.Range;
@@ -26,7 +27,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
         this.mv = mv;
     }
 
-    public Class visit(AST ast) {
+    public Class visit(Cons ast) {
         Walker walker = new Walker(ast, namespace);
         ast = walker.walk();
         locals = walker.getLocals();
@@ -46,8 +47,8 @@ public class TwoPassEvalAssembler  implements Opcodes {
         }
     }
 
-    private Class visitExpr(AST expr) {
-        switch (expr.getNodeType()) {
+    private Class visitExpr(Cons expr) {
+        switch (AST.getNodeType(expr)) {
             case FLOWER:
                 return visitFlower(expr);
             case FLOWERAT:
@@ -65,16 +66,16 @@ public class TwoPassEvalAssembler  implements Opcodes {
             case VARIABLE:
                 return visitVariable(expr);
             case STRING:
-                mv.visitLdcInsn(expr.getNodeText());
+                mv.visitLdcInsn(AST.getNodeText(expr));
                 return String.class;
             case NUMBER:
-                return visitNumber(expr.getElement());
+                return visitNumber(AST.getElement(expr));
             case CAST:
-                return visitCast((CastElement) expr.getElement());
+                return visitCast((CastElement) AST.getElement(expr));
             case NODE:
                 return visitNode(expr);
             default:
-                throw new RuntimeException("Not Implemented: "+toTypeName(expr.getNodeType()));
+                throw new RuntimeException("Not Implemented: "+toTypeName(AST.getNodeType(expr)));
         }
     }
 
@@ -93,8 +94,8 @@ public class TwoPassEvalAssembler  implements Opcodes {
         }
     }
 
-    private Class visitVariable(AST expr) {
-        VariableElement var = (VariableElement) expr.getElement();
+    private Class visitVariable(Cons expr) {
+        VariableElement var = (VariableElement) AST.getElement(expr);
         Class t = var.getType();
         if (t.isPrimitive()) {
             if (t == int.class) {
@@ -114,8 +115,8 @@ public class TwoPassEvalAssembler  implements Opcodes {
     }
 
 
-    private Class visitOp(AST expr) {
-        switch (expr.getNodeType()) {
+    private Class visitOp(Cons expr) {
+        switch (AST.getNodeType(expr)) {
             case PLUS: case MINUS: case MULTIPLY: case DIV: case MOD:
                 return visitBinaryArithmetic(expr);
             case NEGATIVE:
@@ -133,15 +134,15 @@ public class TwoPassEvalAssembler  implements Opcodes {
             case XPATH:
                 return visitXPath(expr);
             default:
-                throw new RuntimeException("Not Implemented! "+toTypeName(expr.getNodeType()));
+                throw new RuntimeException("Not Implemented! "+toTypeName(AST.getNodeType(expr)));
         }
     }
 
-    private Class visitBinaryArithmetic(AST expr) {
-        visitExpr(expr.nth(1));
-        Class t = visitExpr(expr.nth(2));
+    private Class visitBinaryArithmetic(Cons expr) {
+        visitExpr(AST.nthAST(expr, 1));
+        Class t = visitExpr(AST.nthAST(expr, 2));
         if (t == int.class) {
-            switch (expr.getNodeType()) {
+            switch (AST.getNodeType(expr)) {
                 case PLUS:
                     mv.visitInsn(IADD);
                     break;
@@ -163,7 +164,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
             return t;
         }
         else if (t == double.class) {
-            switch (expr.getNodeType()) {
+            switch (AST.getNodeType(expr)) {
                 case PLUS:
                     mv.visitInsn(DADD);
                     break;
@@ -186,7 +187,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
         }
         else if (!t.isPrimitive()) {
             String op;
-            switch (expr.getNodeType()) {
+            switch (AST.getNodeType(expr)) {
                 case PLUS:
                     op = "add";
                     break;
@@ -213,8 +214,8 @@ public class TwoPassEvalAssembler  implements Opcodes {
         }
     }
 
-    private Class visitNegative(AST expr) {
-        Class t = visitExpr(expr.nth(1));
+    private Class visitNegative(Cons expr) {
+        Class t = visitExpr(AST.nthAST(expr, 1));
         if (t == int.class) {
             mv.visitInsn(INEG);
             return t;
@@ -228,15 +229,15 @@ public class TwoPassEvalAssembler  implements Opcodes {
         }
     }
 
-    private Class visitCompare(AST expr) {
-        visitExpr(expr.nth(1));
-        Class t = visitExpr(expr.nth(2));
+    private Class visitCompare(Cons expr) {
+        visitExpr(AST.nthAST(expr, 1));
+        Class t = visitExpr(AST.nthAST(expr, 2));
         if (t == int.class) {
             Label trueLabel = new Label();
             Label falseLabel = new Label();
             Label doneLabel = new Label();
             // is this better than DCMPL?
-            mv.visitJumpInsn(expr.getNodeType() == EQ ? IF_ICMPEQ : IF_ICMPNE, trueLabel);
+            mv.visitJumpInsn(AST.getNodeType(expr) == EQ ? IF_ICMPEQ : IF_ICMPNE, trueLabel);
             mv.visitLabel(falseLabel);
             mv.visitInsn(ICONST_0);
             mv.visitJumpInsn(GOTO, doneLabel);
@@ -250,7 +251,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
             Label falseLabel = new Label();
             Label doneLabel = new Label();
             mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "compare", "(DD)I");
-            mv.visitJumpInsn(expr.getNodeType() == EQ ? IFEQ : IFNE, trueLabel);
+            mv.visitJumpInsn(AST.getNodeType(expr) == EQ ? IFEQ : IFNE, trueLabel);
             mv.visitLabel(falseLabel);
             mv.visitInsn(ICONST_0);
             mv.visitJumpInsn(GOTO, doneLabel);
@@ -260,7 +261,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
             return boolean.class;
         }
         else if (!t.isPrimitive()) {
-            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, expr.getNodeType() == EQ ? "eq" : "ne", "(Ljava/lang/Object;Ljava/lang/Object;)Z");
+            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, AST.getNodeType(expr) == EQ ? "eq" : "ne", "(Ljava/lang/Object;Ljava/lang/Object;)Z");
             return boolean.class;
         }
         else {
@@ -268,12 +269,12 @@ public class TwoPassEvalAssembler  implements Opcodes {
         }
     }
 
-    private Class visitAnd(AST expr) {
-        visitExpr(expr.nth(1));
+    private Class visitAnd(Cons expr) {
+        visitExpr(AST.nthAST(expr, 1));
         Label falseLabel = new Label();
         Label endLabel = new Label();
         mv.visitJumpInsn(IFEQ, falseLabel);
-        visitExpr(expr.nth(2));
+        visitExpr(AST.nthAST(expr, 2));
         mv.visitJumpInsn(GOTO, endLabel);
         mv.visitLabel(falseLabel);
         pushConst(false);
@@ -281,12 +282,12 @@ public class TwoPassEvalAssembler  implements Opcodes {
         return boolean.class;
     }
 
-    private Class visitOr(AST expr) {
-        visitExpr(expr.nth(1));
+    private Class visitOr(Cons expr) {
+        visitExpr(AST.nthAST(expr, 1));
         Label trueLabel = new Label();
         Label endLabel = new Label();
         mv.visitJumpInsn(IFNE, trueLabel);
-        visitExpr(expr.nth(2));
+        visitExpr(AST.nthAST(expr, 2));
         mv.visitJumpInsn(GOTO, endLabel);
         mv.visitLabel(trueLabel);
         pushConst(true);
@@ -295,70 +296,70 @@ public class TwoPassEvalAssembler  implements Opcodes {
     }
 
 
-    private Class visitRange(AST expr) {
+    private Class visitRange(Cons expr) {
         Class<Range> rangeClass = Range.class;
         String rangeClassName = rangeClass.getName().replace('.', '/');
         mv.visitTypeInsn(NEW, rangeClassName);
         mv.visitInsn(DUP);
-        visitExpr(expr.nth(1));
-        visitExpr(expr.nth(2));
+        visitExpr(AST.nthAST(expr, 1));
+        visitExpr(AST.nthAST(expr, 2));
         mv.visitInsn(ICONST_1);
         mv.visitInsn(IADD);
         mv.visitMethodInsn(INVOKESPECIAL, rangeClassName, "<init>", "(II)V");
         return rangeClass;
     }
 
-    private Class visitIndex(AST expr) {
-        AST list = expr.nth(1);
-        AST at = expr.nth(2);
+    private Class visitIndex(Cons expr) {
+        Cons list = AST.nthAST(expr, 1);
+        Cons at = AST.nthAST(expr, 2);
         visitExpr(list);
         visitExpr(at);
         mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "elementAt", "(Ljava/lang/Object;I)Ljava/lang/Object;");
         return Object.class;
     }
 
-    private Class visitList(AST expr) {
+    private Class visitList(Cons expr) {
         Class t = newList();
-        for (Unit e: expr.rest()) {
+        for (Object e: Cons.rest(expr)) {
             mv.visitInsn(DUP);
-            visitExpr((AST) e);
+            visitExpr((Cons) e);
             pushToList();
         }
         return t;
     }
 
-    private Class visitIf(AST expr) {
-        visitExpr(expr.nth(1));
+    private Class visitIf(Cons expr) {
+        visitExpr(AST.nthAST(expr, 1));
         Label thenLabel = new Label();
         Label elseLabel = new Label();
         Label endLabel = new Label();
         mv.visitJumpInsn(IFEQ, elseLabel);
         // then
         mv.visitLabel(thenLabel);
-        visitExpr(expr.nth(2));
+        visitExpr(AST.nthAST(expr, 2));
         mv.visitJumpInsn(GOTO, endLabel);
         // else
         mv.visitLabel(elseLabel);
-        visitExpr(expr.nth(3));
+        visitExpr(AST.nthAST(expr, 3));
 
         mv.visitLabel(endLabel);
-        return expr.getEvalType();
+        return AST.getEvalType(expr);
     }
 
 
-    private Class visitFlower(AST expr) {
+    private Class visitFlower(Cons expr) {
         return visitFlower(expr, -1);
     }
 
-    private Class visitFlowerAt(AST expr) {
-        visitExpr(expr.nth(2));
+    private Class visitFlowerAt(Cons expr) {
+        visitExpr(AST.nthAST(expr, 2));
         int index = defineAnonymous();
         mv.visitVarInsn(ISTORE, index);
-        return visitFlower(expr.nth(1), index);
+        return visitFlower(AST.nthAST(expr, 1), index);
     }
 
 
-    private Class visitFlower(AST expr, int lookingForElementAt) {
+    private Class visitFlower(Cons expr, int lookingForElementAt) {
         Label breakLabel = null;
         if (lookingForElementAt > 0) {
             breakLabel = new Label();
@@ -367,8 +368,8 @@ public class TwoPassEvalAssembler  implements Opcodes {
         int result = defineAnonymous();
         mv.visitVarInsn(ASTORE, result);
 
-        AST forlets = expr.nth(1);
-        AST body = (AST) expr.next().next();
+        Cons forlets = AST.nthAST(expr, 1);
+        Cons body = expr.next().next();
 
         visitForLets(forlets, body, result, lookingForElementAt, breakLabel);
 
@@ -379,12 +380,12 @@ public class TwoPassEvalAssembler  implements Opcodes {
         return t;
     }
 
-    private void visitForLets(AST forlets, AST body, int result, int lookingForElementAt, Label breakLabel) {
-        if (forlets == null || forlets.isNil()) {
+    private void visitForLets(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
+        if (forlets == null || Cons.isNil(forlets)) {
             visitFlowerWhereBody(body, result, lookingForElementAt, breakLabel);
         }
         else {
-            switch (((AST)forlets.first()).getNodeType()) {
+            switch (AST.getNodeType(((Cons) forlets.first()))) {
                 case FOR:
                     visitForGeneral(forlets, body, result, lookingForElementAt, breakLabel);
                     break;
@@ -400,11 +401,11 @@ public class TwoPassEvalAssembler  implements Opcodes {
         }
     }
 
-    private void visitFlowerWhereBody(AST expr, int result, int lookingForElementAt, Label breakLabel) {
-        AST body = expr.nth(0);
-        AST where = expr.nth(1);
+    private void visitFlowerWhereBody(Cons expr, int result, int lookingForElementAt, Label breakLabel) {
+        Cons body = AST.nthAST(expr, 0);
+        Cons where = AST.nthAST(expr, 1);
         // loop body
-        if (where != null && !where.isNil()) {
+        if (where != null && !Cons.isNil(where)) {
             visitCondition(where);
             Label endif = new Label();
             mv.visitJumpInsn(IFEQ, endif);
@@ -427,14 +428,14 @@ public class TwoPassEvalAssembler  implements Opcodes {
         }
     }
 
-    private void visitFlowerBody(AST body, int result) {
+    private void visitFlowerBody(Cons body, int result) {
         mv.visitVarInsn(ALOAD, result);
         Class elementType = visitExpr(body);
         Caster.castToObject(mv, elementType);
         pushToList();
     }
 
-    private void visitFlowerBodyAt(AST body, int result, int lookingForElementAt, Label breakLabel) {
+    private void visitFlowerBodyAt(Cons body, int result, int lookingForElementAt, Label breakLabel) {
         mv.visitVarInsn(ILOAD, lookingForElementAt);
         mv.visitJumpInsn(IFLE, breakLabel);
         Class elementType = visitExpr(body);
@@ -475,7 +476,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
         }
     }
 
-    private void visitCondition(AST where) {
+    private void visitCondition(Cons where) {
         // TODO: remove this. the cast should be done in walker
         Class t = visitExpr(where);
         if (t.isPrimitive()) {
@@ -503,17 +504,17 @@ public class TwoPassEvalAssembler  implements Opcodes {
         }
     }
 
-    private void visitForRange(AST forlets, AST body, int result, int lookingForElementAt, Label breakLabel) {
-        AST expr = (AST) forlets.first();
-        VariableElement variable = (VariableElement) expr.nth(1).getElement();
-        AST range = expr.rest();
+    private void visitForRange(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
+        Cons expr = (Cons) forlets.first();
+        VariableElement variable = (VariableElement) AST.getElement(AST.nthAST(expr, 1));
+        Cons range = Cons.rest(expr);
 
         int i = variable.getRef();
         // TODO: if max is literal, use pushConst instead of variable
         int max = defineAnonymous();
-        visitExpr(range.nth(1));
+        visitExpr(AST.nthAST(range, 1));
         mv.visitVarInsn(ISTORE, i);
-        visitExpr(range.nth(2));
+        visitExpr(AST.nthAST(range, 2));
         mv.visitVarInsn(ISTORE, max);
 
         Label condition = new Label();
@@ -522,7 +523,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
 
         // do
         mv.visitLabel(loop);
-        visitForLets((AST) forlets.next(), body, result, lookingForElementAt, breakLabel);
+        visitForLets(forlets.next(), body, result, lookingForElementAt, breakLabel);
 
         // i++
         mv.visitIincInsn(i, 1);
@@ -534,10 +535,10 @@ public class TwoPassEvalAssembler  implements Opcodes {
         mv.visitJumpInsn(IF_ICMPLE, loop);
     }
 
-    private void visitForGeneral(AST forlets, AST body, int result, int index, Label breakLabel) {
-        AST expr = (AST) forlets.first();
-        VariableElement variable = (VariableElement) expr.nth(1).getElement();
-        AST varExpr = expr.nth(2);
+    private void visitForGeneral(Cons forlets, Cons body, int result, int index, Label breakLabel) {
+        Cons expr = (Cons) forlets.first();
+        VariableElement variable = (VariableElement) AST.getElement(AST.nthAST(expr, 1));
+        Cons varExpr = AST.nthAST(expr, 2);
 
         int iterator = defineAnonymous();
         int element = variable.getRef();
@@ -557,7 +558,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Iterator", "next", "()Ljava/lang/Object;");
         mv.visitVarInsn(ASTORE, element);
 
-        visitForLets((AST) forlets.next(), body, result, index, breakLabel);
+        visitForLets(forlets.next(), body, result, index, breakLabel);
 
         // loop condition
         mv.visitLabel(condition);
@@ -568,10 +569,10 @@ public class TwoPassEvalAssembler  implements Opcodes {
 
 
 
-    private void visitLet(AST forlets, AST body, int result, int lookingForElementAt, Label breakLabel) {
-        AST expr = (AST) forlets.first();
-        VariableElement variable = (VariableElement) expr.nth(1).getElement();
-        AST varExpr = expr.nth(2);
+    private void visitLet(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
+        Cons expr = (Cons) forlets.first();
+        VariableElement variable = (VariableElement) AST.getElement(AST.nthAST(expr, 1));
+        Cons varExpr = AST.nthAST(expr, 2);
 
         Class varType = visitExpr(varExpr);
         int index = variable.getRef();
@@ -590,16 +591,16 @@ public class TwoPassEvalAssembler  implements Opcodes {
             mv.visitVarInsn(ASTORE, index);
         }
 
-        visitForLets((AST) forlets.next(), body, result, lookingForElementAt, breakLabel);
+        visitForLets(forlets.next(), body, result, lookingForElementAt, breakLabel);
 
     }
 
 
 
 
-    private Class visitCall(AST expr) {
-        Function fn = ((FunctionElement) expr.getElement()).getFunction();
-        AST arguments = expr.rest();
+    private Class visitCall(Cons expr) {
+        Function fn = ((FunctionElement) AST.getElement(expr)).getFunction();
+        Cons arguments = Cons.rest(expr);
         if (fn instanceof JavaFunction) {
             visitJavaFunction((JavaFunction) fn, arguments);
             return ((JavaFunction) fn).getReturnType();
@@ -609,7 +610,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
         }
     }
 
-    private void visitJavaFunction(JavaFunction fn, AST arguments) {
+    private void visitJavaFunction(JavaFunction fn, Cons arguments) {
         if (fn instanceof NormalConstructorFunction) {
             mv.visitTypeInsn(NEW, fn.getClassName());
             mv.visitInsn(DUP);
@@ -624,7 +625,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
                 throw new RuntimeException("Not Implemented!");
             }
             for (int i = 0; i < normalParamameterNumber; i++) {
-                visitExpr(arguments.nth(i));
+                visitExpr(AST.nthAST(arguments, i));
             }
             Class elementType = parameterTypes[normalParamameterNumber];
             if (!elementType.isArray()) {
@@ -635,13 +636,13 @@ public class TwoPassEvalAssembler  implements Opcodes {
             for (int i = 0; i < varParameterNumber; i++) {
                 mv.visitInsn(DUP);
                 pushConst(i);
-                visitExpr(arguments.nth(normalParamameterNumber+i));
+                visitExpr(AST.nthAST(arguments, normalParamameterNumber + i));
                 pushToArray(elementType);
             }
         }
         else {
-            for (Unit arg: arguments) {
-                visitExpr((AST) arg);
+            for (Object arg: arguments) {
+                visitExpr((Cons) arg);
             }
         }
         if (fn instanceof NormalStaticFunction) {
@@ -657,11 +658,11 @@ public class TwoPassEvalAssembler  implements Opcodes {
             throw new RuntimeException("Not Implemented!");
         }
     }
-    private Class visitNode(AST expr) {
+    private Class visitNode(Cons expr) {
         mv.visitVarInsn(ALOAD, 0);
-        AST subs = expr.rest();
+        Cons subs = Cons.rest(expr);
         if (subs.size() == 1) {
-            Element singleton = ((AST) subs.first()).getElement();
+            Element singleton = AST.getElement(((Cons) subs.first()));
             switch (singleton.getToken().type) {
                 case TEXT:
                     pushConst(singleton.getToken().text);
@@ -672,10 +673,10 @@ public class TwoPassEvalAssembler  implements Opcodes {
         }
         else {
             newObject("java/lang/StringBuilder");
-            for (Unit n: subs) {
-                AST element = (AST) n;
-                if (element.getNodeType() == TEXT) {
-                    pushConst(element.getNodeText());
+            for (Object n: subs) {
+                Cons element = (Cons) n;
+                if (AST.getNodeType(element) == TEXT) {
+                    pushConst(AST.getNodeText(element));
                     mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
                 }
                 else {
@@ -702,13 +703,13 @@ public class TwoPassEvalAssembler  implements Opcodes {
         return XML.class;
     }
 
-    private Class visitXPath(AST expr) {
-        visitExpr(expr.nth(1));
-        String xpath = expr.nth(2).getNodeText();
+    private Class visitXPath(Cons expr) {
+        visitExpr(AST.nthAST(expr, 1));
+        String xpath = AST.getNodeText(AST.nthAST(expr, 2));
         pushConst(xpath);
         // TODO: use the XML_INTERFACE method invoke
         mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "xpath", "(L"+XML_INTERFACE+";Ljava/lang/String;)L"+XML_INTERFACE+";");
-        return expr.getEvalType();
+        return AST.getEvalType(expr);
     }
 
 

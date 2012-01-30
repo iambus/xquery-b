@@ -2,10 +2,10 @@ package org.libj.xquery.compiler;
 
 import org.libj.xquery.XQuery;
 import org.libj.xquery.lexer.Lexer;
+import org.libj.xquery.lisp.Cons;
 import org.libj.xquery.namespace.DefaultRootNamespace;
 import org.libj.xquery.namespace.LibNamespace;
 import org.libj.xquery.namespace.Namespace;
-import org.libj.xquery.parser.AST;
 import org.libj.xquery.parser.Parser;
 
 import java.io.*;
@@ -31,7 +31,7 @@ public class Compiler {
     }
     // generate AST
 
-    public AST compileToAST(Reader reader) {
+    public Cons compileToAST(Reader reader) {
         try {
             Lexer lexer = new Lexer(reader);
             Parser parser = new Parser(lexer);
@@ -41,16 +41,16 @@ public class Compiler {
         }
     }
 
-    public AST compileToAST(String xquery) {
+    public Cons compileToAST(String xquery) {
         return compileToAST(new StringReader(xquery));
     }
 
-    public AST compileToAST(FileInputStream input) {
+    public Cons compileToAST(FileInputStream input) {
         Reader reader = new InputStreamReader(input);
         return compileToAST(reader);
     }
 
-    public AST compileToAST(File path) {
+    public Cons compileToAST(File path) {
         try {
             FileInputStream input = new FileInputStream(path);
             try {
@@ -65,12 +65,12 @@ public class Compiler {
 
     // generate bytecode
 
-    public byte[] compileToByteArray(AST ast, String className) {
+    public byte[] compileToByteArray(Cons ast, String className) {
         Assembler assembler = new Assembler(className, ast, namespace, xmlFactory);
         return assembler.toByteArray();
     }
 
-    public void compileToFile(AST ast, String className, File path) {
+    public void compileToFile(Cons ast, String className, File path) {
         try {
             byte[] bytes = compileToByteArray(ast, className);
             FileOutputStream output = new FileOutputStream(path);
@@ -84,11 +84,11 @@ public class Compiler {
         }
     }
 
-    public Class compileToClass(AST ast, String className) {
+    public Class compileToClass(Cons ast, String className) {
         return loader.define(className, compileToByteArray(ast, className));
     }
 
-    public XQuery compileToXQuery(AST ast, String className) {
+    public XQuery compileToXQuery(Cons ast, String className) {
         Class c = compileToClass(ast, className);
         try {
             return (XQuery)c.newInstance();
@@ -99,7 +99,7 @@ public class Compiler {
         }
     }
 
-    public XQuery compileToXQuery(AST ast) {
+    public XQuery compileToXQuery(Cons ast) {
         return compileToXQuery(ast, randomClassName());
     }
 

@@ -1,17 +1,16 @@
 package org.libj.xquery.compiler;
 
 import static org.libj.xquery.compiler.Constants.*;
+
+import org.libj.xquery.lisp.Cons;
 import org.libj.xquery.namespace.*;
-import org.libj.xquery.parser.AST;
 import static org.libj.xquery.lexer.TokenType.*;
 
-import org.libj.xquery.xml.str.StringNamespaceXMLFactory;
+import org.libj.xquery.parser.AST;
 import org.objectweb.asm.*;
 
-import java.util.ArrayList;
-
 public class Assembler implements Opcodes {
-    private AST ast;
+    private Cons ast;
     private ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
     private String compiledClassName;
 
@@ -20,7 +19,7 @@ public class Assembler implements Opcodes {
 
     private MethodVisitor mv;
 
-    public Assembler(String className, AST ast, Namespace root, Class xmlFactory) {
+    public Assembler(String className, Cons ast, Namespace root, Class xmlFactory) {
         this.compiledClassName = className.replace('.', '/');
         this.ast = ast;
         this.namespace = root;
@@ -28,7 +27,7 @@ public class Assembler implements Opcodes {
         visitClass();
     }
 
-    public Assembler(String className, AST ast) {
+    public Assembler(String className, Cons ast) {
         this(className, ast, new DefaultRootNamespace(), DEFAUL_XML_FACTORY_IMPLEMENTATION);
     }
 
@@ -61,10 +60,10 @@ public class Assembler implements Opcodes {
         newObject(XML_FACTORY_IMPLEMENTATION);
         mv.visitFieldInsn(PUTFIELD, compiledClassName, "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
         // register namespaces
-        for (Object declare: ast.nth(1).rest()) {
-            if (((AST)declare).nth(1).getNodeType() == NAMESPACE) {
-                String alias = ((AST) declare).nth(2).getNodeText();
-                String uri = ((AST) declare).nth(3).getNodeText();
+        for (Object declare: Cons.rest(AST.nthAST(ast, 1))) {
+            if (AST.getNodeType(AST.nthAST(((Cons) declare), 1)) == NAMESPACE) {
+                String alias = AST.getNodeText(AST.nthAST(((Cons) declare), 2));
+                String uri = AST.getNodeText(AST.nthAST(((Cons) declare), 3));
                 mv.visitVarInsn(ALOAD, 0);
                 mv.visitFieldInsn(GETFIELD, compiledClassName, "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
                 pushConst(alias);
@@ -87,10 +86,10 @@ public class Assembler implements Opcodes {
         mv = cw.visitMethod(ACC_PROTECTED, "initNamespaces", "()V", null, null);
         mv.visitCode();
 
-        for (Object declare: ast.nth(1).rest()) {
-            if (((AST)declare).nth(1).getNodeType() == NAMESPACE) {
-                String alias = ((AST) declare).nth(2).getNodeText();
-                String uri = ((AST) declare).nth(3).getNodeText();
+        for (Object declare: Cons.rest(AST.nthAST(ast, 1))) {
+            if (AST.getNodeType(AST.nthAST(((Cons) declare), 1)) == NAMESPACE) {
+                String alias = AST.getNodeText(AST.nthAST(((Cons) declare), 2));
+                String uri = AST.getNodeText(AST.nthAST(((Cons) declare), 3));
                 mv.visitVarInsn(ALOAD, 0);
                 pushConst(alias);
                 pushConst(uri);
@@ -153,28 +152,28 @@ public class Assembler implements Opcodes {
     }
 
     private Class visitAST() {
-        AST declares = ast.nth(1);
-        AST code = ast.nth(2);
+        Cons declares = AST.nthAST(ast, 1);
+        Cons code = AST.nthAST(ast, 2);
         visitDeclares(declares);
 //        return new OnePassEvalAssembler(mv, compiledClassName, namespace).visit(code);
         return new TwoPassEvalAssembler(mv, compiledClassName, namespace).visit(code);
     }
 
-    private void visitDeclares(AST declares) {
-        for (Object declare: declares.rest()) {
-            visitDeclare((AST) declare);
+    private void visitDeclares(Cons declares) {
+        for (Object declare: Cons.rest(declares)) {
+            visitDeclare((Cons) declare);
         }
     }
 
-    private void visitDeclare(AST declare) {
-        if (declare.nth(1).getNodeType() == NAMESPACE) {
+    private void visitDeclare(Cons declare) {
+        if (AST.getNodeType(AST.nthAST(declare, 1)) == NAMESPACE) {
             visitDeclareNamespace(declare);
         }
     }
 
-    private void visitDeclareNamespace(AST declare) {
-        String alias = declare.nth(2).getNodeText();
-        String uri = declare.nth(3).getNodeText();
+    private void visitDeclareNamespace(Cons declare) {
+        String alias = AST.getNodeText(AST.nthAST(declare, 2));
+        String uri = AST.getNodeText(AST.nthAST(declare, 3));
         if (uri.startsWith("class:")) {
             namespace.register(alias, namespace.lookup(uri));
         }

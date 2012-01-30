@@ -5,145 +5,62 @@ import org.libj.xquery.lisp.Cons;
 
 import static org.libj.xquery.lexer.TokenType.*;
 
-import java.util.Iterator;
-import java.util.List;
+public class AST {
 
-public class AST extends Cons<Unit> implements Unit {
-    
-    public AST() {
-        // do nothing
-    }
-    
-    public AST(Unit x) {
-        super(x);
-    }
-    
-    public AST(Token  t) {
-        this(new Element(t));
-    }
-    
-    public AST(int tokenType) {
-        this(new Token(tokenType, null));
+    public static Cons createAST(Token t) {
+        return createAST(new Element(t));
     }
 
-    public Token getToken() {
-        return ((Element) first()).getToken();
+    public static Cons createAST(int tokenType) {
+        return createAST(new Token(tokenType, null));
     }
 
-    public int getNodeType() {
-        return getToken().type;
+    public static Cons createAST(Unit x) {
+        return new Cons(x);
     }
 
-    public String getNodeText() {
-        return getToken().text;
+    public static Cons createAnyAST(Object x) {
+        return new Cons(x);
     }
 
-    public Element getElement() {
-        return (Element) first();
+    public static Cons createAST() {
+        return new Cons();
     }
 
-    public Class getEvalType() {
-        return ((TypedUnit) first()).getType();
+    public static Token getToken(Cons units) {
+        return ((Element) units.first()).getToken();
     }
 
-    public AST rest() {
-        AST rest = (AST) next();
-        if (rest != null) {
-            return rest;
-        }
-        return new AST() {
-            @Override
-            public Cons next() {
-                throw new NullPointerException("Nil access");
-            }
-
-            @Override
-            public void setCar(Unit x) {
-                throw new NullPointerException("Nil access");
-            }
-
-            @Override
-            public Cons setCdr(Cons x) {
-                throw new NullPointerException("Nil access");
-            }
-
-            @Override
-            public Unit first() {
-                throw new NullPointerException("Nil access");
-            }
-
-            @Override
-            public int size() {
-                return 0;
-            }
-
-            @Override
-            public List<Unit> toList() {
-                return toList(null);
-            }
-
-            @Override
-            public Iterator<Unit> iterator() {
-                return iterator(null);
-            }
-
-            @Override
-            public AST nth(int i) {
-                throw new NullPointerException("Nil access");
-            }
-
-            @Override
-            public String toString() {
-                return "nil";
-            }
-
-            @Override
-            public boolean isNil() {
-                return true;
-            }
-        };
-    }
-    public void appendLast(AST t) {
-        Cons list = this;
-        while (list.next() != null) {
-            list = list.next();
-        }
-        list.setCdr(new AST(t));
+    public static int getNodeType(Cons units) {
+        return getToken(units).type;
     }
 
-    public void appendLast(Token t) {
-        appendLast(new AST(t));
+    public static String getNodeText(Cons units) {
+        return getToken(units).text;
     }
 
-    public AST nth(int i) {
-        Cons list = this;
-        while (i-- > 0) {
-            list = list.next();
-            if (list == null) {
-                throw new IndexOutOfBoundsException(""+i);
-            }
-        }
-        return (AST) list.first();
+    public static Element getElement(Cons units) {
+        return (Element) units.first();
     }
 
-    public boolean isNil() {
-        return first() == null;
+    public static Class getEvalType(Cons units) {
+        return ((TypedUnit) units.first()).getType();
     }
 
-    public String toString() {
-        Unit head = first();
+    public static String toString(Cons ast) {
+        Unit head = (Unit) ast.first();
         if (head == null) {
             return "nil";
         }
         if (!(head instanceof Element)) {
-            return toVectorString(this);
+            return toVectorString(ast);
         }
         Token token = ((Element) head).getToken();
         if (token.type == DECLARES || token.type == FORLETS) {
-            AST subs = rest();
+            Cons subs = Cons.rest(ast);
             return toVectorString(subs);
         }
-        if (isNil()) {
+        if (Cons.isNil(ast)) {
             return "nil";
         }
         if (token.type == NUMBER || token.type == VARIABLE || token.type == WORD) {
@@ -170,9 +87,9 @@ public class AST extends Cons<Unit> implements Unit {
             builder.append("xpath");
         }
         else if (token.type == FOR || token.type == LET || token.type == TO ||
-                 token.type == AND || token.type == OR ||
-                 token.type == PLUS || token.type == MINUS || token.type == MULTIPLY || token.type == DIV ||
-                 token.type == EQ || token.type == ASSIGN) {
+                token.type == AND || token.type == OR ||
+                token.type == PLUS || token.type == MINUS || token.type == MULTIPLY || token.type == DIV ||
+                token.type == EQ || token.type == ASSIGN) {
             builder.append(token.text);
         }
         else if (token.text == null) {
@@ -181,27 +98,31 @@ public class AST extends Cons<Unit> implements Unit {
         else {
             builder.append(token);
         }
-        AST node = (AST) next();
+        Cons node = ast.next();
         while (node != null) {
             builder.append(' ');
             builder.append(node.first());
-            node = (AST) node.next();
+            node = node.next();
         }
         builder.append(")");
         return builder.toString();
     }
 
-    private String toVectorString(AST ast) {
+    private static String toVectorString(Cons ast) {
         StringBuilder builder = new StringBuilder();
         builder.append("["); // XXX: TODO: FIXME: the output doesn't make sense...
         if (ast.size() > 0) {
             builder.append(ast.first());
-            for (Unit x : ast.rest()) {
+            for (Object x : Cons.rest(ast)) {
                 builder.append(' ');
                 builder.append(x);
             }
         }
         builder.append("]");
         return builder.toString();
+    }
+
+    public static Cons nthAST(Cons cons, int i) {
+        return (Cons) cons.nth(i);
     }
 }

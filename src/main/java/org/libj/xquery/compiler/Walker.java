@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 public class Walker {
-    private AST ast;
+    private Cons ast;
     private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
     private Scope scope = new Scope();
     private Scope freeScope = new Scope();
@@ -21,7 +21,7 @@ public class Walker {
 
     private int locals = LOCAL_VAR_START; // index 2 is used as temporary double variable
 
-    public Walker(AST tree, Namespace namespace) {
+    public Walker(Cons tree, Namespace namespace) {
         ast = tree;
         this.namespace = namespace;
     }
@@ -34,12 +34,12 @@ public class Walker {
         return freeScope.getSymbols();
     }
 
-    public AST walk() {
+    public Cons walk() {
         return walkExpr(ast);
     }
 
-    private AST walkExpr(AST expr) {
-        switch (expr.getNodeType()) {
+    private Cons walkExpr(Cons expr) {
+        switch (AST.getNodeType(expr)) {
             case FLOWER:
                 return walkFlower(expr);
             case IF:
@@ -51,9 +51,9 @@ public class Walker {
             case VARIABLE:
                 return walkVariable(expr);
             case NUMBER:
-                return walkNumber(expr.getToken());
+                return walkNumber(AST.getToken(expr));
             case STRING:
-                return walkString(expr.getToken());
+                return walkString(AST.getToken(expr));
             case PLUS: case MINUS: case MULTIPLY: case DIV: case NEGATIVE: case MOD:
             case EQ: case NE: case AND: case OR:
             case TO: case INDEX: case XPATH:
@@ -65,35 +65,35 @@ public class Walker {
         }
     }
 
-    private AST walkNumber(Token token) {
+    private Cons walkNumber(Token token) {
         String text = token.text;
         if (text.indexOf('.') == -1) {
             int n = Integer.parseInt(text);
-            return new AST(new ConstantElement(token, n, int.class));
+            return AST.createAST(new ConstantElement(token, n, int.class));
         }
         else {
             double d = Double.parseDouble(text);
-            return new AST(new ConstantElement(token, d, double.class));
+            return AST.createAST(new ConstantElement(token, d, double.class));
         }
     }
 
-    private AST walkString(Token token) {
-        return new AST(new ConstantElement(token, token.text, String.class));
+    private Cons walkString(Token token) {
+        return AST.createAST(new ConstantElement(token, token.text, String.class));
     }
 
-    private AST walkVariable(AST expr) {
-        String variable = expr.getNodeText();
+    private Cons walkVariable(Cons expr) {
+        String variable = AST.getNodeText(expr);
         if (!isFree(variable)) {
-            return new AST(new VariableElement(expr.getElement(), resolveType(variable), resolve(variable)));
+            return AST.createAST(new VariableElement(AST.getElement(expr), resolveType(variable), resolve(variable)));
         }
         else {
             int index = resolveFree(variable);
-            return new AST(new VariableElement(expr.getElement(), Object.class, index));
+            return AST.createAST(new VariableElement(AST.getElement(expr), Object.class, index));
         }
     }
 
-    private AST walkOp(AST expr) {
-        int type = expr.getNodeType();
+    private Cons walkOp(Cons expr) {
+        int type = AST.getNodeType(expr);
         switch (type) {
             case PLUS: case MINUS: case MULTIPLY: case DIV: case MOD:
                 return walkBinaryArithmetic(expr);
@@ -114,117 +114,116 @@ public class Walker {
         }
     }
 
-    private AST walkBinaryArithmetic(AST expr) {
+    private Cons walkBinaryArithmetic(Cons expr) {
         return unifyArithmetic(walkSub2(expr));
     }
 
-    private AST walkNegative(AST expr) {
-        AST v = walkExpr(expr.nth(1));
-        assoc1(expr, v);
-        assocType(expr, v.getEvalType());
+    private Cons walkNegative(Cons expr) {
+        Cons v = walkExpr(AST.nthAST(expr, 1));
+        expr = assoc1(expr, v);
+        expr = assocType(expr, AST.getEvalType(v));
         return expr;
     }
 
-    private AST walkSub2(AST expr) {
-        AST left = walkExpr(expr.nth(1));
-        AST right = walkExpr(expr.nth(2));
-        assoc1(expr, left);
-        assoc2(expr, right);
+    private Cons walkSub2(Cons expr) {
+        Cons left = walkExpr(AST.nthAST(expr, 1));
+        Cons right = walkExpr(AST.nthAST(expr, 2));
+        expr = assoc1(expr, left);
+        expr = assoc2(expr, right);
         return expr;
     }
 
-    private AST walkLogic(AST expr) {
-        AST left = castTo(walkExpr(expr.nth(1)), boolean.class);
-        AST right = castTo(walkExpr(expr.nth(2)), boolean.class);
-        assoc1(expr, left);
-        assoc2(expr, right);
-        assocType(expr, boolean.class);
+    private Cons walkLogic(Cons expr) {
+        Cons left = castTo(walkExpr(AST.nthAST(expr, 1)), boolean.class);
+        Cons right = castTo(walkExpr(AST.nthAST(expr, 2)), boolean.class);
+        expr = assoc1(expr, left);
+        expr = assoc2(expr, right);
+        expr = assocType(expr, boolean.class);
         return expr;
     }
 
-    private AST walkComparison(AST expr) {
+    private Cons walkComparison(Cons expr) {
         return assocType(walkBinaryArithmetic(expr), boolean.class);
     }
 
-    private AST walkXPath(AST expr) {
-        assocType(expr, XML_INTERFACE_TYPE);
-        assoc1(expr, castTo(walkVariable(expr.nth(1)), XML_INTERFACE_TYPE));
+    private Cons walkXPath(Cons expr) {
+        expr = assocType(expr, XML_INTERFACE_TYPE);
+        expr = assoc1(expr, castTo(walkVariable(AST.nthAST(expr, 1)), XML_INTERFACE_TYPE));
         return expr;
     }
 
-    private AST walkIndex(AST expr) {
-        AST list = expr.nth(1);
-        AST at = expr.nth(2);
-        if (list.getNodeType() == FLOWER) {
-            AST flower = walkFlower(list);
-            AST flowerAt = castTo(walkExpr(at), int.class);
-            expr = new AST(FLOWERAT);
-            expr.appendLast(flower);
-            expr.appendLast(flowerAt);
+    private Cons walkIndex(Cons expr) {
+        Cons list = AST.nthAST(expr, 1);
+        Cons at = AST.nthAST(expr, 2);
+        if (AST.getNodeType(list) == FLOWER) {
+            Cons flower = walkFlower(list);
+            Cons flowerAt = castTo(walkExpr(at), int.class);
+            expr = AST.createAST(FLOWERAT);
+            expr = Cons.append(expr, flower);
+            expr = Cons.append(expr, flowerAt);
             return expr;
         }
         else {
-            AST left = castTo(walkExpr(list), Object.class);
-            AST right = castTo(walkExpr(at), int.class);
-            assoc1(expr, left);
-            assoc2(expr, right);
-            assocType(expr, Object.class);
+            Cons left = castTo(walkExpr(list), Object.class);
+            Cons right = castTo(walkExpr(at), int.class);
+            expr = assoc1(expr, left);
+            expr = assoc2(expr, right);
+            expr = assocType(expr, Object.class);
             return expr;
         }
     }
 
-    private AST walkTo(AST expr) {
-        AST left = castTo(walkExpr(expr.nth(1)), int.class);
-        AST right = castTo(walkExpr(expr.nth(2)), int.class);
-        assoc1(expr, left);
-        assoc2(expr, right);
-        assocType(expr, LIST_CLASS_TYPE);
+    private Cons walkTo(Cons expr) {
+        Cons left = castTo(walkExpr(AST.nthAST(expr, 1)), int.class);
+        Cons right = castTo(walkExpr(AST.nthAST(expr, 2)), int.class);
+        expr = assoc1(expr, left);
+        expr = assoc2(expr, right);
+        expr = assocType(expr, LIST_CLASS_TYPE);
         return expr;
     }
 
-    private AST walkList(AST expr) {
-        AST ast = new AST(expr.getElement());
-        assocType(ast, LIST_CLASS_TYPE);
-        for (Unit e: expr.rest()) {
-            ast.appendLast(castTo(walkExpr((AST) e), Object.class));
+    private Cons walkList(Cons expr) {
+        Cons ast = AST.createAST(AST.getElement(expr));
+        ast = assocType(ast, LIST_CLASS_TYPE);
+        for (Object e: Cons.rest(expr)) {
+            ast = Cons.append(ast, castTo(walkExpr((Cons) e), Object.class));
         }
         return ast;
     }
 
-    private AST walkIf(AST expr) {
-        AST condition = walkExpr(expr.nth(1));
-        AST thenValue = walkExpr(expr.nth(2));
-        AST elseValue = walkExpr(expr.nth(3));
-        assoc1(expr, castTo(condition, boolean.class));
-        if (elseValue.getEvalType() == thenValue.getEvalType()) {
-            assoc2(expr, thenValue);
-            assoc3(expr, elseValue);
-            assocType(expr, elseValue.getEvalType());
+    private Cons walkIf(Cons expr) {
+        Cons condition = walkExpr(AST.nthAST(expr, 1));
+        Cons thenValue = walkExpr(AST.nthAST(expr, 2));
+        Cons elseValue = walkExpr(AST.nthAST(expr, 3));
+        expr = assoc1(expr, castTo(condition, boolean.class));
+        if (AST.getEvalType(elseValue) == AST.getEvalType(thenValue)) {
+            expr = assoc2(expr, thenValue);
+            expr = assoc3(expr, elseValue);
+            expr = assocType(expr, AST.getEvalType(elseValue));
             return expr;
         }
         else {
-            assoc2(expr, castTo(thenValue, Object.class));
-            assoc3(expr, castTo(elseValue, Object.class));
-            assocType(expr, Object.class);
+            expr = assoc2(expr, castTo(thenValue, Object.class));
+            expr = assoc3(expr, castTo(elseValue, Object.class));
+            expr = assocType(expr, Object.class);
             return expr;
         }
     }
 
-    private AST walkFlower(AST expr) {
-        AST forlets = expr.nth(1).rest();
-        AST body = (AST) expr.next().next().first();
-        AST where =  (AST) expr.next().next().next().first();
-        expr = new AST(new TypedElement(expr.getElement(), LIST_CLASS_TYPE));
-        expr.setCdr(walkForlet(forlets, body, where));
-        return expr;
+    private Cons walkFlower(Cons expr) {
+        Cons forlets = Cons.rest(AST.nthAST(expr, 1));
+        Cons body = (Cons) expr.next().next().first();
+        Cons where =  (Cons) expr.next().next().next().first();
+        expr = AST.createAST(new TypedElement(AST.getElement(expr), LIST_CLASS_TYPE));
+        return Cons.cons(expr.first(), walkForlet(forlets, body, where));
     }
 
-    private AST walkForlet(AST forlets, AST body, AST where) {
-        if (forlets == null || forlets.isNil()) {
+    private Cons walkForlet(Cons forlets, Cons body, Cons where) {
+        if (forlets == null || Cons.isNil(forlets)) {
             return walkFlowerWhereBody(body, where);
         }
         else {
-            switch (((AST)forlets.first()).getNodeType()) {
+            switch (AST.getNodeType(((Cons) forlets.first()))) {
                 case LET:
                     return walkLet(forlets, body, where);
                 case FOR:
@@ -235,42 +234,42 @@ public class Walker {
         }
     }
 
-    private AST walkFlowerWhereBody(AST body, AST where) {
-        if (where != null && !where.isNil()) {
+    private Cons walkFlowerWhereBody(Cons body, Cons where) {
+        if (where != null && !Cons.isNil(where)) {
             where = walkExpr(where);
         }
         body = walkExpr(body);
         return tuple(null, body, where);
     }
 
-    private AST walkLet(AST forlets, AST body, AST where) {
+    private Cons walkLet(Cons forlets, Cons body, Cons where) {
         pushScope();
 
-        AST expr = (AST) forlets.first();
-        AST variableExpr = expr.nth(1);
-        String variableName = variableExpr.getNodeText();
-        AST valueExpr = expr.nth(2);
+        Cons expr = (Cons) forlets.first();
+        Cons variableExpr = AST.nthAST(expr, 1);
+        String variableName = AST.getNodeText(variableExpr);
+        Cons valueExpr = AST.nthAST(expr, 2);
 
         valueExpr = walkExpr(valueExpr);
-        Class valueType = valueExpr.getEvalType();
+        Class valueType = AST.getEvalType(valueExpr);
         int index = define(variableName, valueType);
-        variableExpr = new AST(new VariableElement(variableExpr.getElement(), valueType, index));
+        variableExpr = AST.createAST(new VariableElement(AST.getElement(variableExpr), valueType, index));
 
-        assocType(expr, valueType);
-        assoc1(expr, variableExpr);
-        assoc2(expr, valueExpr);
+        expr = assocType(expr, valueType);
+        expr = assoc1(expr, variableExpr);
+        expr = assoc2(expr, valueExpr);
 
-        AST result = walkForlet(forlets.rest(), body, where);
-        AST thisLet = new AST(expr);
-        thisLet.setCdr((Cons<Unit>) result.first());
-        result.setCar(thisLet);
+        Cons result = walkForlet(Cons.rest(forlets), body, where);
+        Cons thisLet = AST.createAnyAST(expr);
+        thisLet = Cons.cons(thisLet.first(), (Cons) result.first());
+        result = Cons.cons(thisLet, result.next());
 
         popScope();
         return result;
     }
 
-    private AST walkFor(AST forlets, AST body, AST where) {
-        if (((AST)forlets.first()).nth(2).getNodeType() == TO) {
+    private Cons walkFor(Cons forlets, Cons body, Cons where) {
+        if (AST.getNodeType(AST.nthAST(((Cons) forlets.first()), 2)) == TO) {
             return walkForRange(forlets, body, where);
         }
         else {
@@ -278,83 +277,83 @@ public class Walker {
         }
     }
 
-    private AST walkForRange(AST forlets, AST body, AST where) {
+    private Cons walkForRange(Cons forlets, Cons body, Cons where) {
         pushScope();
 
-        AST expr = (AST) forlets.first();
-        AST variableExpr = expr.nth(1);
-        String variableName = variableExpr.getNodeText();
-        AST rangeExpr = expr.nth(2);
+        Cons expr = (Cons) forlets.first();
+        Cons variableExpr = AST.nthAST(expr, 1);
+        String variableName = AST.getNodeText(variableExpr);
+        Cons rangeExpr = AST.nthAST(expr, 2);
 
-        AST start = castTo(walkExpr(rangeExpr.nth(1)), int.class);
-        AST end = castTo(walkExpr(rangeExpr.nth(2)), int.class);
+        Cons start = castTo(walkExpr(AST.nthAST(rangeExpr, 1)), int.class);
+        Cons end = castTo(walkExpr(AST.nthAST(rangeExpr, 2)), int.class);
         int element = define(variableName, int.class);
 
-        variableExpr = new AST(new VariableElement(variableExpr.getElement(), int.class, element));
+        variableExpr = AST.createAST(new VariableElement(AST.getElement(variableExpr), int.class, element));
 
-        assocType(expr, LIST_CLASS_TYPE);
-        assoc1(expr, variableExpr);
-        assoc2(expr, start);
-        expr.appendLast(end);
-        expr.getToken().type = FORRANGE;
+        expr = assocType(expr, LIST_CLASS_TYPE);
+        expr = assoc1(expr, variableExpr);
+        expr = assoc2(expr, start);
+        expr = Cons.append(expr, end);
+        AST.getToken(expr).type = FORRANGE;
 
-        AST result = walkForlet(forlets.rest(), body, where);
-        AST thisFor = new AST(expr);
-        thisFor.setCdr((Cons<Unit>) result.first());
-        result.setCar(thisFor);
+        Cons result = walkForlet(Cons.rest(forlets), body, where);
+        Cons thisFor = AST.createAnyAST(expr);
+        thisFor = Cons.cons(thisFor.first(), (Cons)result.first());
+        result = Cons.cons(thisFor, result.next());
 
         popScope();
         return result;
     }
 
-    private AST walkForGeneral(AST forlets, AST body, AST where) {
+    private Cons walkForGeneral(Cons forlets, Cons body, Cons where) {
         pushScope();
 
-        AST expr = (AST) forlets.first();
-        AST variableExpr = expr.nth(1);
-        String variableName = variableExpr.getNodeText();
-        AST collectionExpr = expr.nth(2);
+        Cons expr = (Cons) forlets.first();
+        Cons variableExpr = AST.nthAST(expr, 1);
+        String variableName = AST.getNodeText(variableExpr);
+        Cons collectionExpr = AST.nthAST(expr, 2);
 
         collectionExpr = castTo(walkExpr(collectionExpr), Object.class);
         int element = define(variableName, Object.class);
-        variableExpr = new AST(new VariableElement(variableExpr.getElement(), Object.class, element));
+        variableExpr = AST.createAST(new VariableElement(AST.getElement(variableExpr), Object.class, element));
 
-        assocType(expr, LIST_CLASS_TYPE);
-        assoc1(expr, variableExpr);
-        assoc2(expr, collectionExpr);
+        expr = assocType(expr, LIST_CLASS_TYPE);
+        expr = assoc1(expr, variableExpr);
+        expr = assoc2(expr, collectionExpr);
 
-        AST result = walkForlet(forlets.rest(), body, where);
-        AST thisFor = new AST(expr);
-        thisFor.setCdr((Cons<Unit>) result.first());
-        result.setCar(thisFor);
+        Cons result = walkForlet(Cons.rest(forlets), body, where);
+        Cons thisFor = AST.createAnyAST(expr);
+        thisFor = Cons.cons(thisFor.first(), (Cons)result.first());
+        result = Cons.cons(thisFor, result.next());
 
         popScope();
         return result;
     }
 
 
-    private AST walkNode(AST expr) {
-        ArrayList<AST> list = new ArrayList<AST>();
+    private Cons walkNode(Cons expr) {
+        ArrayList<Cons> list = new ArrayList<Cons>();
         flattenNode(expr, list);
         list = mergeStringNode(list);
-        expr = new AST(expr.getElement());
-        for (AST ast: list) {
+        expr = AST.createAST(AST.getElement(expr));
+        for (Cons<Unit> ast: list) {
             if (isNodeLiteral(ast)) {
-                expr.appendLast(ast);
+                expr = Cons.append(expr, ast);
             }
             else {
-                expr.appendLast(walkExpr(ast));
+                expr = Cons.append(expr, walkExpr(ast));
             }
         }
-        assocType(expr, XML.class);
+        expr = assocType(expr, XML.class);
         return expr;
     }
 
-    private void flattenNode(AST expr, ArrayList<AST> list) {
-        switch (expr.getNodeType()) {
+    private void flattenNode(Cons expr, ArrayList<Cons> list) {
+        switch (AST.getNodeType(expr)) {
             case NODE:
-                for (Object node: expr.rest()) {
-                    flattenNode((AST) node, list);
+                for (Object node: Cons.rest(expr)) {
+                    flattenNode((Cons) node, list);
                 }
                 break;
             default:
@@ -362,8 +361,8 @@ public class Walker {
         }
     }
 
-    private boolean isNodeLiteral(AST node) {
-        switch (node.getNodeType()) {
+    private boolean isNodeLiteral(Cons node) {
+        switch (AST.getNodeType(node)) {
             case TEXT: case TAGOPEN: case TAGCLOSE: case TAGUNIT:
                 return true;
             default:
@@ -371,38 +370,38 @@ public class Walker {
         }
     }
 
-    private ArrayList<AST> mergeStringNode(ArrayList<AST> source) {
-        ArrayList<AST> target = new ArrayList<AST>();
+    private ArrayList<Cons> mergeStringNode(ArrayList<Cons> source) {
+        ArrayList<Cons> target = new ArrayList<Cons>();
         StringBuilder buffer = new StringBuilder();
         for (int i = 0; i < source.size(); i++) {
-            AST node = source.get(i);
+            Cons node = source.get(i);
             if (isNodeLiteral(node)) {
                 if (buffer.length() == 0 && i + 1 < source.size() && !isNodeLiteral(source.get(i+1))) {
-                    node.getToken().type = TEXT;
+                    AST.getToken(node).type = TEXT;
                     target.add(node);
                 }
                 else {
-                    buffer.append(node.getNodeText());
+                    buffer.append(AST.getNodeText(node));
                 }
             }
             else {
                 if (buffer.length() != 0) {
-                    target.add(new AST(new Token(TEXT, buffer.toString())));
+                    target.add(AST.createAST(new Token(TEXT, buffer.toString())));
                     buffer.setLength(0);
                 }
                 target.add(node);
             }
         }
         if (buffer.length() != 0) {
-            target.add(new AST(new Token(TEXT, buffer.toString())));
+            target.add(AST.createAST(new Token(TEXT, buffer.toString())));
         }
         return target;
     }
 
-    private AST walkCall(AST expr) {
-        String functionName = expr.nth(1).getNodeText();
+    private Cons walkCall(Cons expr) {
+        String functionName = AST.getNodeText(AST.nthAST(expr, 1));
         Function fn = (Function) namespace.lookup(functionName);
-//        return invokeFunction(functionName, ((AST) expr.next()).rest());
+//        return invokeFunction(functionName, ((Cons) expr.next()).rest());
         if (fn instanceof JavaFunction) {
             return walkFunction((JavaFunction) fn, expr);
         }
@@ -414,13 +413,12 @@ public class Walker {
         }
     }
 
-    private AST walkFunctionArguments(JavaFunction fn, AST expr, AST arguments) {
-        expr.setCdr(null);
-        assoc0(expr, new FunctionElement(expr.getElement(), fn.getReturnType(), fn));
+    private Cons walkFunctionArguments(JavaFunction fn, Cons expr, Cons arguments) {
+        expr = new Cons(new FunctionElement(AST.getElement(expr), fn.getReturnType(), fn));
 
         if (fn.isMethod()) {
-            expr.appendLast(castTo((AST) arguments.first(), Object.class)); // should I cast it to the Method class?
-            arguments = arguments.rest();
+            expr = Cons.append(expr, castTo((Cons) arguments.first(), Object.class)); // should I cast it to the Method class?
+            arguments = Cons.rest(arguments);
         }
 
         Class<?>[] parameterTypes = fn.getParameterTypes();
@@ -436,7 +434,7 @@ public class Walker {
                                 argumentSize));
             }
             for (int i = 0; i < argumentSize; i++) {
-                expr.appendLast(castTo(arguments.nth(i), parameterTypes[i]));
+                expr = Cons.append(expr, castTo(AST.nthAST(arguments, i), parameterTypes[i]));
             }
             return expr;
         }
@@ -447,7 +445,7 @@ public class Walker {
                 throw new RuntimeException("Not Implemented!");
             }
             for (int i = 0; i < normalParamameterNumber; i++) {
-                expr.appendLast(castTo(arguments.nth(i), parameterTypes[i]));
+                expr = Cons.append(expr, castTo(AST.nthAST(arguments, i), parameterTypes[i]));
             }
             Class elementType = parameterTypes[normalParamameterNumber];
             if (!elementType.isArray()) {
@@ -455,59 +453,59 @@ public class Walker {
             }
             elementType = elementType.getComponentType();
             for (int i = 0; i < varParameterNumber; i++) {
-                expr.appendLast(castTo(arguments.nth(normalParamameterNumber+i), elementType));
+                expr = Cons.append(expr, castTo(AST.nthAST(arguments, normalParamameterNumber + i), elementType));
             }
             return expr;
         }
     }
-    private AST walkFunction(JavaFunction fn, AST expr) {
-        AST arguments = expr.rest().rest();
-        AST newExpr = new AST(expr.getElement());
-        for (Unit arg: arguments) {
-            newExpr.appendLast(walkExpr((AST)arg));
+    private Cons walkFunction(JavaFunction fn, Cons expr) {
+        Cons arguments = Cons.rest(Cons.rest(expr));
+        Cons newExpr = AST.createAST(AST.getElement(expr));
+        for (Object arg: arguments) {
+            newExpr = Cons.append(newExpr, walkExpr((Cons) arg));
         }
-        return walkFunctionArguments(fn, expr, newExpr.rest());
+        return walkFunctionArguments(fn, expr, Cons.rest(newExpr));
     }
 
 
-    private AST walkFunction(OverloadedFunction dispatcher, AST expr) {
-        AST arguments = expr.rest().rest();
+    private Cons walkFunction(OverloadedFunction dispatcher, Cons expr) {
+        Cons arguments = Cons.rest(Cons.rest(expr));
         int n = arguments.size();
 
-        AST newExpr = new AST(expr.getElement());
+        Cons newExpr = AST.createAST(AST.getElement(expr));
         Class[] argumentTypes = new Class[n];
         for (int i = 0; i < n; i++) {
-            AST arg = walkExpr(arguments.nth(i));
-            newExpr.appendLast(arg);
-            argumentTypes[i] = arg.getEvalType();
+            Cons arg = walkExpr(AST.nthAST(arguments, i));
+            newExpr = Cons.append(newExpr, arg);
+            argumentTypes[i] = AST.getEvalType(arg);
         }
         JavaFunction fn = dispatcher.resolveFunction(argumentTypes);
-        return walkFunctionArguments(fn, newExpr, newExpr.rest());
+        return walkFunctionArguments(fn, newExpr, Cons.rest(newExpr));
     }
 
     //////////////////////////////////////////////////
     /// caster
     //////////////////////////////////////////////////
 
-    private AST unifyArithmetic(AST expr) {
-        AST leftTree = expr.nth(1);
-        AST rightTree = expr.nth(2);
-        Class leftType = leftTree.getEvalType();
-        Class rightType = rightTree.getEvalType();
+    private Cons unifyArithmetic(Cons expr) {
+        Cons leftTree = AST.nthAST(expr, 1);
+        Cons rightTree = AST.nthAST(expr, 2);
+        Class leftType = AST.getEvalType(leftTree);
+        Class rightType = AST.getEvalType(rightTree);
         if (leftType == rightType) {
-            assocType(expr, leftType);
+            expr = assocType(expr, leftType);
             return expr;
         }
         else if (leftType.isPrimitive() && rightType.isPrimitive()) {
             // convert primitive to primitive
             if (leftType == int.class && rightType == double.class) {
-                assocType(expr, double.class);
-                assoc1(expr, castTo(leftTree, double.class));
+                expr = assocType(expr, double.class);
+                expr = assoc1(expr, castTo(leftTree, double.class));
                 return expr;
             }
             else if (leftType == double.class && rightType == int.class) {
-                assocType(expr, double.class);
-                assoc2(expr, castTo(rightTree, double.class));
+                expr = assocType(expr, double.class);
+                expr = assoc2(expr, castTo(rightTree, double.class));
                 return expr;
             }
             else {
@@ -515,26 +513,26 @@ public class Walker {
             }
         }
         else if (leftType == Object.class && rightType.isPrimitive()) {
-            assocType(expr, Object.class);
-            assoc2(expr, castTo(rightTree, Object.class));
+            expr = assocType(expr, Object.class);
+            expr = assoc2(expr, castTo(rightTree, Object.class));
             return expr;
         }
         else if (leftType.isPrimitive() && rightType == Object.class) {
-            assocType(expr, Object.class);
-            assoc1(expr, castTo(leftTree, Object.class));
+            expr = assocType(expr, Object.class);
+            expr = assoc1(expr, castTo(leftTree, Object.class));
             return expr;
         }
         else if (leftType == XML_INTERFACE_TYPE || rightType == XML_INTERFACE_TYPE) {
-            assocType(expr, String.class);
-            assoc1(expr, castTo(leftTree, String.class));
-            assoc2(expr, castTo(rightTree, String.class));
+            expr = assocType(expr, String.class);
+            expr = assoc1(expr, castTo(leftTree, String.class));
+            expr = assoc2(expr, castTo(rightTree, String.class));
             return expr;
         }
         else if (!leftType.isPrimitive() && !rightType.isPrimitive()) {
             // object -> object
-            assocType(expr, Object.class);
-            assoc1(expr, castTo(leftTree, Object.class));
-            assoc2(expr, castTo(rightTree, Object.class));
+            expr = assocType(expr, Object.class);
+            expr = assoc1(expr, castTo(leftTree, Object.class));
+            expr = assoc2(expr, castTo(rightTree, Object.class));
             return expr;
         }
         else {
@@ -542,8 +540,8 @@ public class Walker {
         }
     }
 
-    private AST castTo(AST expr, Class target) {
-        Class source = expr.getEvalType();
+    private Cons castTo(Cons expr, Class target) {
+        Class source = AST.getEvalType(expr);
         if (source == target) {
             return expr;
         }
@@ -553,12 +551,12 @@ public class Walker {
                 return expr;
             }
             else {
-                return new AST(new CastElement(expr, source, target));
+                return AST.createAST(new CastElement(expr, source, target));
 //                throw new RuntimeException("Not Implemented! " + source + " to "+target);
             }
         }
         else {
-            return new AST(new CastElement(expr, source, target));
+            return AST.createAST(new CastElement(expr, source, target));
         }
     }
 
@@ -627,50 +625,24 @@ public class Walker {
     //////////////////////////////////////////////////
     /// utils
     //////////////////////////////////////////////////
-    private AST assoc0(AST tree, Unit x) {
-        tree.setCar(x);
-        return tree;
+    private Cons assoc0(Cons tree, Object x) {
+        return tree.assoc(0, x);
     }
-    private AST assoc1(AST tree, Unit x) {
-        tree.next().setCar(x);
-        return tree;
+    private Cons assoc1(Cons tree, Object x) {
+        return tree.assoc(1, x);
     }
-    private AST assoc2(AST tree, Unit x) {
-        tree.next().next().setCar(x);
-        return tree;
+    private Cons assoc2(Cons tree, Object x) {
+        return tree.assoc(2, x);
     }
-    private AST assoc3(AST tree, Unit x) {
-        tree.next().next().next().setCar(x);
-        return tree;
+    private Cons assoc3(Cons tree, Object x) {
+        return tree.assoc(3, x);
     }
-    private AST assocType(AST tree, Class type) {
-        Element e = tree.getElement();
+    private Cons assocType(Cons tree, Class type) {
+        Element e = AST.getElement(tree);
         return assoc0(tree, new TypedElement(e, type));
     }
-    private AST astree(Unit u1, Unit u2) {
-        AST root = new AST(u1);
-        root.setCdr(new AST(u2));
-        return root;
-    }
-    private AST astree(Unit u1, Unit u2, Unit u3) {
-        AST root = new AST(u1);
-        root.setCdr(new AST(u2)).setCdr(new AST(u3));
-        return root;
-    }
-    private AST astree(Unit u1, Unit u2, Unit u3, Unit u4) {
-        AST root = new AST(u1);
-        root.setCdr(new AST(u2)).setCdr(new AST(u3)).setCdr(new AST(u4));
-        return root;
-    }
-    private AST pair(AST x, AST y) {
-        x = new AST(x);
-        x.setCdr(new AST(y));
-        return x;
-    }
-    private AST tuple(AST x, AST y, AST z) {
-        x = new AST(x);
-        x.setCdr(new AST(y)).setCdr(new AST(z));
-        return x;
+    private Cons tuple(Cons x, Cons y, Cons z) {
+        return Cons.list(x, y, z);
     }
 
 }
