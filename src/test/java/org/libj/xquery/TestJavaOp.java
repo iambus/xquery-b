@@ -34,4 +34,9 @@ public class TestJavaOp {
                 "obj:toString(3+4)", "7");
         assertEval("java.lang.Integer:equals(3, 4)", false);
     }
+
+    @Test
+    public void testRandom() {
+        assertEval("java.util.Random:nextInt(java.util.Random:new(1), 10)", 5);
+    }
 }

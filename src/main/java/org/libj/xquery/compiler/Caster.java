@@ -133,6 +133,10 @@ public class Caster implements Opcodes {
         if (from == int.class && to == boolean.class) {
             return boolean.class;
         }
+        if (from == int.class && to == long.class) {
+            mv.visitInsn(I2L);
+            return long.class;
+        }
         throw new RuntimeException("Not Implemented! "+from+" to "+to);
     }
 

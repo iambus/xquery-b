@@ -156,8 +156,8 @@ public class Assembler implements Opcodes {
         AST declares = ast.nth(1);
         AST code = ast.nth(2);
         visitDeclares(declares);
-        return new OnePassEvalAssembler(mv, compiledClassName, namespace).visit(code);
-//        return new TwoPassEvalAssembler(mv, compiledClassName, namespace).visit(code);
+//        return new OnePassEvalAssembler(mv, compiledClassName, namespace).visit(code);
+        return new TwoPassEvalAssembler(mv, compiledClassName, namespace).visit(code);
     }
 
     private void visitDeclares(AST declares) {
