@@ -44,6 +44,9 @@ public class OverloadedFunction implements Function {
 
     private boolean isExactlyMatched(JavaFunction f, Class[] argumentTypes) {
         Class[] parameterTypes = f.getParameterTypes();
+        if (parameterTypes.length != argumentTypes.length - (f.isMethod() ? 1 : 0)) {
+            return false;
+        }
         for (int i = 0; i < parameterTypes.length; i++) {
             if (parameterTypes[i] != argumentTypes[i + (f.isMethod() ? 1 : 0)]) {
                 return false;
