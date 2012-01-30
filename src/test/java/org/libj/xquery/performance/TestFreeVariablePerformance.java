@@ -25,6 +25,6 @@ public class TestFreeVariablePerformance {
     }
     @Test
     public void testXML() {
-        assertRepeatedEvalPerSecond(" <x>{$i}</x> ", 1000*1000*100, env);
+        assertRepeatedEvalPerSecond(" <x>{$i}</x> ", 1000*1000*10, env);
     }
 }
