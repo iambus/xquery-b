@@ -15,4 +15,12 @@ public class StringNamespaceXMLFactory implements XMLFactory {
     public void registerNamespace(String prefix, String namespace) {
         namespaces.put(prefix, namespace);
     }
+
+    public static final XMLFactory SHARED_FACTORY = new StringNamespaceXMLFactory() {
+        @Override
+        public void registerNamespace(String prefix, String namespace) {
+            throw new UnsupportedOperationException("StringNamespaceXMLFactory.SHARED_FACTORY is readonly");
+        }
+    };
+
 }
