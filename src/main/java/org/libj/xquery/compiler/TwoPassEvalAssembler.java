@@ -244,6 +244,20 @@ public class TwoPassEvalAssembler  implements Opcodes {
             mv.visitLabel(doneLabel);
             return boolean.class;
         }
+        else if (t == double.class) {
+            Label trueLabel = new Label();
+            Label falseLabel = new Label();
+            Label doneLabel = new Label();
+            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "compare", "(DD)I");
+            mv.visitJumpInsn(expr.getNodeType() == EQ ? IFEQ : IFNE, trueLabel);
+            mv.visitLabel(falseLabel);
+            mv.visitInsn(ICONST_0);
+            mv.visitJumpInsn(GOTO, doneLabel);
+            mv.visitLabel(trueLabel);
+            mv.visitInsn(ICONST_1);
+            mv.visitLabel(doneLabel);
+            return boolean.class;
+        }
         else if (!t.isPrimitive()) {
             mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, expr.getNodeType() == EQ ? "eq" : "ne", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");            
             return Boolean.class;
