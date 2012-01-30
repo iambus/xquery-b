@@ -172,4 +172,24 @@ public class TestXPathPerformance {
                         "</x>";
         assertRepeatedEvalPerSecond(xquery, 1000 * 100);
     }
+    @Test
+    public void testEventFilter() {
+        String xquery =
+                "declare namespace i = \"http://xquery.libj.org/event/Mine\";\n" +
+                        "declare namespace u = \"http://xquery.libj.org/event/Yours\";\n" +
+                        "let $event := " + nsevent + "\n" +
+                        "where $event/ID != 2"+
+                        "return $event";
+        assertRepeatedEvalPerSecond(xquery, 1000 * 500);
+    }
+    @Test
+    public void testEventForFilter() {
+        String xquery =
+                "declare namespace i = \"http://xquery.libj.org/event/Mine\";\n" +
+                        "declare namespace u = \"http://xquery.libj.org/event/Yours\";\n" +
+                        "for $event in " + nsevent + "\n" +
+                        "where $event/ID != 2"+
+                        "return $event";
+        assertRepeatedEvalPerSecond(xquery, 1000 * 500);
+    }
 }
