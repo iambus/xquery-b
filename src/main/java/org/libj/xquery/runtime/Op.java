@@ -2,7 +2,6 @@ package org.libj.xquery.runtime;
 
 import org.libj.xquery.annotation.Function;
 import org.libj.xquery.annotation.Namespace;
-import org.libj.xquery.namespace.StandardStaticNamespace;
 import org.libj.xquery.xml.XML;
 
 import java.util.ArrayList;
