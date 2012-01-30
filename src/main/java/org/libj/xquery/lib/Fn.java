@@ -7,25 +7,13 @@ import org.libj.xquery.runtime.Op;
 import org.libj.xquery.xml.XML;
 
 @Namespace(name="fn")
-public class Fn extends StandardStaticNamespace {
-    public Fn() {
-        super(Fn.class.getName());
-        registerStaticFunction("string", 1);
-        registerStaticVarlistFunction("concat");
-        registerStaticOverloadedFunction("substring", 2, 3);
-        registerStaticFunction("string-join", "string_join", 2);
-        registerStaticFunction("upper-case", "upper_case", 1);
-        registerStaticFunction("lower-case", "lower_case", 1);
-        registerStaticFunction("contains", "contains", 2);
-        registerStaticFunction("starts-with", "starts_with", 2);
-    }
-
+public class Fn {
     //////////////////////////////////////////////////
     /// string
     //////////////////////////////////////////////////
 
     @Function
-    public static Object string(Object v) {
+    public static String string(Object v) {
         if (v instanceof XML) {
             return ((XML) v).text();
         }
@@ -35,17 +23,17 @@ public class Fn extends StandardStaticNamespace {
     }
 
     @Function
-    public static Object substring(Object s, Object start) {
-        return ((String)s).substring((Integer)start-1);
+    public static String substring(String s, int start) {
+        return s.substring(start - 1);
     }
 
     @Function
-    public static Object substring(Object s, Object start, Object length) {
-        return ((String)s).substring((Integer)start-1, (Integer)start-1+(Integer)length);
+    public static String substring(String s, int start, int length) {
+        return s.substring(start - 1, start - 1 + length);
     }
 
     @Function
-    public static Object concat(Object...args) {
+    public static String concat(Object...args) {
         StringBuilder buffer = new StringBuilder();
         for (Object x: args) {
             buffer.append(x);
@@ -54,11 +42,11 @@ public class Fn extends StandardStaticNamespace {
     }
 
     @Function(name="string-join")
-    public static Object string_join(Object x, Object y) {
+    public static String string_join(Object x, String y) {
         if (!Op.isList(x)) {
             return x.toString();
         }
-        String separator = (String) y;
+        String separator = y;
         StringBuilder buffer = new StringBuilder();
         boolean first = true;
         for (Object v: Op.asList(x))
@@ -75,26 +63,26 @@ public class Fn extends StandardStaticNamespace {
     }
 
     @Function(name="upper-cast")
-    public static Object upper_case(Object x) {
-        return ((String)x).toUpperCase();
+    public static String upper_case(String x) {
+        return x.toUpperCase();
     }
 
     @Function(name="upper-cast")
-    public static Object lower_case(Object x) {
-        return ((String)x).toLowerCase();
+    public static String lower_case(String x) {
+        return x.toLowerCase();
     }
 
     @Function
-    public static Object contains(Object s, Object sub) {
-        return ((String)s).contains((String) sub);
+    public static boolean contains(String s, String sub) {
+        return s.contains(sub);
     }
     @Function(name="starts-with")
-    public static Object starts_with(Object s, Object sub) {
-        return ((String)s).startsWith((String) sub);
+    public static boolean starts_with(String s, String sub) {
+        return s.startsWith(sub);
     }
     @Function(name="ends-with")
-    public static Object ends_with(Object s, Object sub) {
-        return ((String)s).endsWith((String) sub);
+    public static boolean ends_with(String s, String sub) {
+        return s.endsWith(sub);
     }
 
     // fn:matches($input as xs:string?, $pattern as xs:string) as xs:boolean

@@ -259,8 +259,8 @@ public class TwoPassEvalAssembler  implements Opcodes {
             return boolean.class;
         }
         else if (!t.isPrimitive()) {
-            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, expr.getNodeType() == EQ ? "eq" : "ne", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");            
-            return Boolean.class;
+            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, expr.getNodeType() == EQ ? "eq" : "ne", "(Ljava/lang/Object;Ljava/lang/Object;)Z");
+            return boolean.class;
         }
         else {
             throw new RuntimeException("Not Implemented!");
@@ -706,7 +706,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
         String xpath = expr.nth(2).getNodeText();
         pushConst(xpath);
         // TODO: use the XML_INTERFACE method invoke
-        mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "xpath", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+        mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "xpath", "(L"+XML_INTERFACE+";Ljava/lang/String;)L"+XML_INTERFACE+";");
         return expr.getEvalType();
     }
 

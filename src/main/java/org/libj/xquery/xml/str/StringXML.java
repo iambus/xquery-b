@@ -20,7 +20,7 @@ public class StringXML implements XML {
         this(xml, 0);
         end = xml.length();
     }
-    public Object eval(String path) {
+    public XML eval(String path) {
         String [] tags = path.substring(1).split("/");
         int i = start;
         for (String tag: tags) {

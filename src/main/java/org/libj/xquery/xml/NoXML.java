@@ -7,7 +7,7 @@ public class NoXML implements XML {
         this.xml = xml;
     }
 
-    public Object eval(String path) {
+    public XML eval(String path) {
         throw new UnsupportedOperationException("eval");
     }
 

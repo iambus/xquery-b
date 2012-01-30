@@ -37,7 +37,5 @@ Be patient...
 
 Coming soon
 -----------
-1. trace function parameter and return types in standard namespaces
-2. java interop: more method overload
 
 

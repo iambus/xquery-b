@@ -1,6 +1,7 @@
 package org.libj.xquery.xml.dom;
 
 import org.libj.xquery.runtime.Nil;
+import org.libj.xquery.xml.NilXML;
 import org.libj.xquery.xml.XML;
 import org.libj.xquery.xml.XMLUtils;
 import org.w3c.dom.Document;
@@ -33,7 +34,7 @@ public class CachedDomXML implements XML {
         this.documentBuilder = documentBuilder;
     }
 
-    public Object eval(String path) {
+    public XML eval(String path) {
         initNode();
         Node result = null;
         try {
@@ -44,7 +45,7 @@ public class CachedDomXML implements XML {
         if (result != null) {
             return new CachedDomXML(XMLUtils.xml(result), documentBuilder, xpath);
         } else {
-            return Nil.NIL;
+            return NilXML.NIL;
         }
     }
 

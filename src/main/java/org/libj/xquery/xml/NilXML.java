@@ -2,7 +2,7 @@ package org.libj.xquery.xml;
 
 public class NilXML implements XML {
     public static final NilXML NIL = new NilXML();
-    public Object eval(String path) {
+    public XML eval(String path) {
         return this;
     }
 

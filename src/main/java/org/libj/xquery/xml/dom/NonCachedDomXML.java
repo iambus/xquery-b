@@ -14,11 +14,11 @@ public class NonCachedDomXML implements XML {
     public String toString() {
         return xml;
     }
-    public Object eval(String path) {
+    public XML eval(String path) {
         if (doc == null) {
             doc = XMLUtils.doc(xml);
         }
-        return XMLUtils.evalXPath(path, doc);
+        return new NonCachedDomXML(XMLUtils.evalXPath(path, doc));
     }
 
     public String text() {

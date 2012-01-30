@@ -25,7 +25,7 @@ public class StringNamespaceXML extends StringXML {
     public StringNamespaceXML(String xml) {
         this(xml, null);
     }
-    public Object eval(String path) {
+    public XML eval(String path) {
         if (xmlNamespaces == null) {
             int i = start + 1;
             while (isTagChar(xml.charAt(i)) || xml.charAt(i) == ':') {

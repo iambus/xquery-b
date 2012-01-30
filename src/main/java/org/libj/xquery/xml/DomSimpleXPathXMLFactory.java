@@ -47,14 +47,14 @@ public class DomSimpleXPathXMLFactory implements XMLFactory {
             this.node = node;
         }
 
-        public Object eval(String path) {
+        public XML eval(String path) {
             initNode();
             Node node = XPathUtils.evalSimpleXPathOnDom(path, this.node);
             if (node != null) {
                 return new DomSimpleXPathXML(node);
             }
             else {
-                return Nil.NIL;
+                return NilXML.NIL;
             }
         }
 

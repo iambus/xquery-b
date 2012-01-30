@@ -8,25 +8,7 @@ import org.libj.xquery.xml.XML;
 import java.util.ArrayList;
 
 @Namespace(name="op")
-public class Op extends StandardStaticNamespace {
-    public Op() {
-        super(Op.class.getName());
-        registerStaticFunction("list", 1);
-        registerStaticFunction("add", 2);
-        registerStaticFunction("subtract", 2);
-        registerStaticFunction("multiply", 2);
-        registerStaticFunction("div", 2);
-        registerStaticFunction("negative", 1);
-        registerStaticFunction("mod", 2);
-        registerStaticFunction("eq", 2);
-        registerStaticFunction("ne", 2);
-        registerStaticFunction("and", 2);
-        registerStaticFunction("or", 2);
-        registerStaticFunction("to", 2);
-        registerStaticFunction("at", 2);
-        registerStaticFunction("xpath", 2);
-    }
-
+public class Op {
     //////////////////////////////////////////////////
     /// ugly names for non-export APIs, for Java code
     //////////////////////////////////////////////////
@@ -169,7 +151,7 @@ public class Op extends StandardStaticNamespace {
     }
 
     @Function
-    public static Object eq(Object x, Object y) {
+    public static boolean eq(Object x, Object y) {
         if (x instanceof XML && y instanceof XML) {
             return ((XML) x).text().equals(((XML) y).text());
         }
@@ -186,35 +168,35 @@ public class Op extends StandardStaticNamespace {
     }
 
     @Function
-    public static Object ne(Object x, Object y) {
-        return !(Boolean)eq(x, y);
+    public static boolean ne(Object x, Object y) {
+        return !eq(x, y);
     }
 
     @Function
-    public static Object and(Object x, Object y) {
+    public static boolean and(Object x, Object y) {
         return asBool(x) && asBool(y);
     }
 
     @Function
-    public static Object or(Object x, Object y) {
+    public static boolean or(Object x, Object y) {
         return asBool(x) || asBool(y);
     }
 
     @Function
-    public static Object to(Object x, Object y) {
-        int start = (Integer)x;
-        int end = (Integer)y;
+    public static Range to(int x, int y) {
+        int start = x;
+        int end = y;
         return new Range(start, end+1);
     }
 
     @Function
-    public static Object at(Object x, Object i) {
-        int index = (Integer) i;
+    public static Object at(Object x, int i) {
+        int index = i;
         return elementAt(x, index);
     }
 
     @Function
-    public static Object xpath(Object x, Object y) {
-        return ((XML)x).eval((String) y);
+    public static XML xpath(XML x, String y) {
+        return x.eval(y);
     }
 }
