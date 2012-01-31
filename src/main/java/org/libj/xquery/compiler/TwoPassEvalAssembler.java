@@ -71,7 +71,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
             case NUMBER:
                 return visitNumber(AST.getElement(expr));
             case CAST:
-                return visitCast((CastElement) AST.getElement(expr));
+                return visitCast(expr);
             case NODE:
                 return visitNode(expr);
             default:
@@ -385,19 +385,37 @@ public class TwoPassEvalAssembler  implements Opcodes {
             visitFlowerWhereBody(body, result, lookingForElementAt, breakLabel);
         }
         else {
-            switch (AST.getNodeType(((Cons) forlets.first()))) {
-                case FOR:
-                    visitForGeneral(forlets, body, result, lookingForElementAt, breakLabel);
+            switch (((Cons)forlets.first()).size()) {
+                case 3:
+                    visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel);
                     break;
-                case FORRANGE:
-                    visitForRange(forlets, body, result, lookingForElementAt, breakLabel);
-                    break;
-                case LET:
-                    visitLet(forlets, body, result, lookingForElementAt, breakLabel);
+                case 4:
+                    Cons where = (Cons) ((Cons) forlets.first()).nth(3);
+                    visitCondition(where);
+                    Label endif = new Label();
+                    mv.visitJumpInsn(IFEQ, endif);
+                    visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel);
+                    mv.visitLabel(endif);
                     break;
                 default:
                     throw new RuntimeException("Not Implemented!");
             }
+        }
+    }
+
+    private void visitForLetsNoWhere(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
+        switch (AST.getNodeType(((Cons) forlets.first()))) {
+            case FOR:
+                visitForGeneral(forlets, body, result, lookingForElementAt, breakLabel);
+                break;
+            case FORRANGE:
+                visitForRange(forlets, body, result, lookingForElementAt, breakLabel);
+                break;
+            case LET:
+                visitLet(forlets, body, result, lookingForElementAt, breakLabel);
+                break;
+            default:
+                throw new RuntimeException("Not Implemented!");
         }
     }
 
@@ -410,21 +428,20 @@ public class TwoPassEvalAssembler  implements Opcodes {
             Label endif = new Label();
             mv.visitJumpInsn(IFEQ, endif);
             // if body
-            if (lookingForElementAt <= 0) {
-                visitFlowerBody(body, result);
-            }
-            else {
-                visitFlowerBodyAt(body, result, lookingForElementAt, breakLabel);
-            }
+            visitFlowerBody(body, result, lookingForElementAt, breakLabel);
             // end if
             mv.visitLabel(endif);
         } else {
-            if (lookingForElementAt <= 0) {
-                visitFlowerBody(body, result);
-            }
-            else {
-                visitFlowerBodyAt(body, result, lookingForElementAt, breakLabel);
-            }
+            visitFlowerBody(body, result, lookingForElementAt, breakLabel);
+        }
+    }
+
+    private void visitFlowerBody(Cons expr, int result, int lookingForElementAt, Label breakLabel) {
+        if (lookingForElementAt <= 0) {
+            visitFlowerBody(expr, result);
+        }
+        else {
+            visitFlowerBodyAt(expr, result, lookingForElementAt, breakLabel);
         }
     }
 
@@ -506,15 +523,15 @@ public class TwoPassEvalAssembler  implements Opcodes {
 
     private void visitForRange(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
         Cons expr = (Cons) forlets.first();
-        VariableElement variable = (VariableElement) AST.getElement(AST.nthAST(expr, 1));
-        Cons range = Cons.rest(expr);
+        VariableElement variable = (VariableElement) expr.second();
+        Cons range = (Cons) expr.third();
 
         int i = variable.getRef();
         // TODO: if max is literal, use pushConst instead of variable
         int max = defineAnonymous();
-        visitExpr(AST.nthAST(range, 1));
+        visitExpr((Cons) range.first());
         mv.visitVarInsn(ISTORE, i);
-        visitExpr(AST.nthAST(range, 2));
+        visitExpr((Cons) range.second());
         mv.visitVarInsn(ISTORE, max);
 
         Label condition = new Label();
@@ -537,7 +554,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
 
     private void visitForGeneral(Cons forlets, Cons body, int result, int index, Label breakLabel) {
         Cons expr = (Cons) forlets.first();
-        VariableElement variable = (VariableElement) AST.getElement(AST.nthAST(expr, 1));
+        VariableElement variable = (VariableElement) expr.second();
         Cons varExpr = AST.nthAST(expr, 2);
 
         int iterator = defineAnonymous();
@@ -571,7 +588,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
 
     private void visitLet(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
         Cons expr = (Cons) forlets.first();
-        VariableElement variable = (VariableElement) AST.getElement(AST.nthAST(expr, 1));
+        VariableElement variable = (VariableElement) expr.second();
         Cons varExpr = AST.nthAST(expr, 2);
 
         Class varType = visitExpr(varExpr);
@@ -713,8 +730,9 @@ public class TwoPassEvalAssembler  implements Opcodes {
     }
 
 
-    private Class visitCast(CastElement element) {
-        visitExpr(element.expr);
+    private Class visitCast(Cons expr) {
+        CastElement element = (CastElement) expr.first();
+        visitExpr((Cons) expr.second());
         Class source = element.source;
         Class target = element.target;
         return Caster.cast(mv, source, target);

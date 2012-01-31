@@ -8,6 +8,7 @@ import org.libj.xquery.xml.XML;
 
 import static org.libj.xquery.lexer.TokenType.*;
 import static org.libj.xquery.compiler.Constants.*;
+import static org.libj.xquery.lisp.Cons.*;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -211,11 +212,13 @@ public class Walker {
     }
 
     private Cons walkFlower(Cons expr) {
-        Cons forlets = Cons.rest(AST.nthAST(expr, 1));
-        Cons body = (Cons) expr.next().next().first();
-        Cons where =  (Cons) expr.next().next().next().first();
+        Cons forlets = ((Cons) expr.nth(1)).rest();
+        Cons body = (Cons) expr.nth(2);
+        Cons where =  (Cons) expr.nth(3);
         expr = AST.createAST(new TypedElement(AST.getElement(expr), LIST_CLASS_TYPE));
-        return Cons.cons(expr.first(), walkForlet(forlets, body, where));
+        expr = Cons.cons(expr.first(), walkForlet(forlets, body, where));
+        expr = Optimizer.optimizeWhere(expr);
+        return expr;
     }
 
     private Cons walkForlet(Cons forlets, Cons body, Cons where) {
@@ -253,16 +256,14 @@ public class Walker {
         valueExpr = walkExpr(valueExpr);
         Class valueType = AST.getEvalType(valueExpr);
         int index = define(variableName, valueType);
-        variableExpr = AST.createAST(new VariableElement(AST.getElement(variableExpr), valueType, index));
+        VariableElement variable = new VariableElement(AST.getElement(variableExpr), valueType, index);
 
         expr = assocType(expr, valueType);
-        expr = assoc1(expr, variableExpr);
+        expr = assoc1(expr, variable);
         expr = assoc2(expr, valueExpr);
 
         Cons result = walkForlet(Cons.rest(forlets), body, where);
-        Cons thisLet = AST.createAnyAST(expr);
-        thisLet = Cons.cons(thisLet.first(), (Cons) result.first());
-        result = Cons.cons(thisLet, result.next());
+        result = cons(cons(expr, (Cons) result.first()), result.next());
 
         popScope();
         return result;
@@ -289,18 +290,12 @@ public class Walker {
         Cons end = castTo(walkExpr(AST.nthAST(rangeExpr, 2)), int.class);
         int element = define(variableName, int.class);
 
-        variableExpr = AST.createAST(new VariableElement(AST.getElement(variableExpr), int.class, element));
+        VariableElement variable = new VariableElement(AST.getElement(variableExpr), int.class, element);
 
-        expr = assocType(expr, LIST_CLASS_TYPE);
-        expr = assoc1(expr, variableExpr);
-        expr = assoc2(expr, start);
-        expr = Cons.append(expr, end);
-        AST.getToken(expr).type = FORRANGE;
+        expr = list(new TypedElement(new Token(FORRANGE, "for"), LIST_CLASS_TYPE), variable, list(start, end));
 
         Cons result = walkForlet(Cons.rest(forlets), body, where);
-        Cons thisFor = AST.createAnyAST(expr);
-        thisFor = Cons.cons(thisFor.first(), (Cons)result.first());
-        result = Cons.cons(thisFor, result.next());
+        result = cons(cons(expr, (Cons)result.first()), result.next());
 
         popScope();
         return result;
@@ -316,16 +311,14 @@ public class Walker {
 
         collectionExpr = castTo(walkExpr(collectionExpr), Object.class);
         int element = define(variableName, Object.class);
-        variableExpr = AST.createAST(new VariableElement(AST.getElement(variableExpr), Object.class, element));
+        VariableElement variable = new VariableElement(AST.getElement(variableExpr), Object.class, element);
 
         expr = assocType(expr, LIST_CLASS_TYPE);
-        expr = assoc1(expr, variableExpr);
+        expr = assoc1(expr, variable);
         expr = assoc2(expr, collectionExpr);
 
         Cons result = walkForlet(Cons.rest(forlets), body, where);
-        Cons thisFor = AST.createAnyAST(expr);
-        thisFor = Cons.cons(thisFor.first(), (Cons)result.first());
-        result = Cons.cons(thisFor, result.next());
+        result = cons(cons(expr, (Cons) result.first()), result.next());
 
         popScope();
         return result;
@@ -551,12 +544,12 @@ public class Walker {
                 return expr;
             }
             else {
-                return AST.createAST(new CastElement(expr, source, target));
+                return Cons.list(new CastElement(source, target), expr);
 //                throw new RuntimeException("Not Implemented! " + source + " to "+target);
             }
         }
         else {
-            return AST.createAST(new CastElement(expr, source, target));
+            return Cons.list(new CastElement(source, target), expr);
         }
     }
 

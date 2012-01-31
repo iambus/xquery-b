@@ -302,7 +302,7 @@ public class Parser extends LLkParser {
             return expr();
         }
         else {
-            return AST.createAST();
+            return Cons.NIL;
         }
     }
 

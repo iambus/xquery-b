@@ -7,6 +7,8 @@ import java.util.List;
 
 
 public class Cons<E> implements Iterable<E> {
+    public static final Cons NIL = null;
+
     private E car;
     private Cons<E> cdr;
 
@@ -90,6 +92,14 @@ public class Cons<E> implements Iterable<E> {
         return toList(this);
     }
 
+    public E second() {
+        return next().first();
+    }
+
+    public E third() {
+        return next().next().first();
+    }
+
     public E nth(int i) {
         if (i < 0) {
             throw new RuntimeException("Negative index");
@@ -130,30 +140,7 @@ public class Cons<E> implements Iterable<E> {
         if (rest != null) {
             return rest;
         }
-        return new Cons() {
-            @Override
-            public Iterator iterator() {
-                return new Iterator<Object>() {
-
-                    public boolean hasNext() {
-                        return false;
-                    }
-
-                    public Object next() {
-                        throw new UnsupportedOperationException("next");
-                    }
-
-                    public void remove() {
-                        throw new UnsupportedOperationException("remove");
-                    }
-                };
-            }
-
-            @Override
-            public int size() {
-                return 0;
-            }
-        };
+        return new NilCons();
     }
 
     public Cons<E> rest() {
@@ -161,7 +148,7 @@ public class Cons<E> implements Iterable<E> {
     }
 
     public static boolean isNil(Cons list) {
-        return list == null || list.first() == null;
+        return list == null || list instanceof NilCons || list.first() == null;
     }
 
     public String toString(Cons cons) {
@@ -181,5 +168,40 @@ public class Cons<E> implements Iterable<E> {
 
     public String toString() {
         return toString(this);
+    }
+
+    private static class NilCons extends Cons {
+        @Override
+        public Iterator iterator() {
+            return new Iterator<Object>() {
+
+                public boolean hasNext() {
+                    return false;
+                }
+
+                public Object next() {
+                    throw new UnsupportedOperationException("next");
+                }
+
+                public void remove() {
+                    throw new UnsupportedOperationException("remove");
+                }
+            };
+        }
+
+        @Override
+        public int size() {
+            return 0;
+        }
+
+        @Override
+        public Object first() {
+            throw new RuntimeException("Nil access");
+        }
+
+        @Override
+        public Cons next() {
+            throw new RuntimeException("Nil access");
+        }
     }
 }

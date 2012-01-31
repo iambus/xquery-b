@@ -125,6 +125,15 @@ public class TestExpressions {
         assertEvalString("(for $x in ('a', 'b', 'c') return $x)[4]", "");
     }
     @Test
+    public void testDoubleFor() {
+        assertEvalString("for $i in (1 to 1000*1000) " +
+                "for $j in (1 to 1000*1000) " +
+                "where $i = 1 and $j = 1" +
+                "return $i+$j", "2");
+        assertEvalString("for $i in (1,2) for $j in (3,4) where $i = <x>2</x> return ($i, $j)",
+                "2 3 2 4");
+    }
+    @Test
     public void testIfElse() {
         assertEvalString("if (2) then 3 else 5", "3");
         assertEvalString("if (0) then 3 else 5", "5");
