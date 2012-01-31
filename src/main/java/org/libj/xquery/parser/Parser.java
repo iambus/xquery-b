@@ -249,10 +249,7 @@ public class Parser extends LLkParser {
         }
         String variable = xpath.substring(0, separator);
         xpath = xpath.substring(separator);
-        Cons ast = AST.createAST(XPATH);
-        ast = Cons.append(ast, AST.createAST(new Token(VARIABLE, variable)));
-        ast = Cons.append(ast, AST.createAST(new Token(STRING, xpath)));
-        return ast;
+        return Cons.list(tokenElement(XPATH, "xpath"), tokenElement(VARIABLE, variable), tokenElement(STRING, xpath));
     }
 
     private Cons variable() throws IOException {
@@ -344,4 +341,7 @@ public class Parser extends LLkParser {
         return ast;
     }
 
+    private static Element tokenElement(int t, String text) {
+        return new Element(new Token(t, text));
+    }
 }

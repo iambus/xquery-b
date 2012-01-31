@@ -796,7 +796,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
 
     private Class visitXPath(Cons expr) {
         visitExpr(AST.nthAST(expr, 1));
-        String xpath = AST.getNodeText(AST.nthAST(expr, 2));
+        String xpath = ((Element) expr.third()).getToken().text;
         pushConst(xpath);
         // TODO: use the XML_INTERFACE method invoke
         mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "xpath", "(L"+XML_INTERFACE+";Ljava/lang/String;)L"+XML_INTERFACE+";");

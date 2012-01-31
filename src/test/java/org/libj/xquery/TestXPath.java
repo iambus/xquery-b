@@ -11,6 +11,7 @@ public class TestXPath {
     @Test
     public void testEq() {
         assertEvalString("let $x := <x><a>2</a></x> where $x/a = 2 return 7", "7");
+        assertEvalString("let $x := <x><a><b>2</b></a></x> where $x/a/b = 2 return 7", "7");
     }
     /*
 <books>

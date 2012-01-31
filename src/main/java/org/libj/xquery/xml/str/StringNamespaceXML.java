@@ -70,6 +70,7 @@ public class StringNamespaceXML extends StringXML {
                     return NilXML.NIL;
                 }
                 builder.setLength(0);
+                i++;
             }
             else {
                 result = result.selectNode(null, builder.toString());
@@ -78,7 +79,6 @@ public class StringNamespaceXML extends StringXML {
                 }
                 builder.setLength(0);
             }
-            i++;
         }
 
         if (result == null) {

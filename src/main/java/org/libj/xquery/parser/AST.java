@@ -19,14 +19,6 @@ public class AST {
         return new Cons(x);
     }
 
-    public static Cons createAnyAST(Object x) {
-        return new Cons(x);
-    }
-
-    public static Cons createAST() {
-        return new Cons();
-    }
-
     public static Token getToken(Cons units) {
         return ((Element) units.first()).getToken();
     }

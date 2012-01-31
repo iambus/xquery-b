@@ -36,7 +36,7 @@ public class Walker {
     }
 
     public Cons walk() {
-        return walkExpr(ast);
+        return Optimizer.cacheXPath(walkExpr(ast));
     }
 
     private Cons walkExpr(Cons expr) {
@@ -152,8 +152,9 @@ public class Walker {
 
     private Cons walkXPath(Cons expr) {
         expr = assocType(expr, XML_INTERFACE_TYPE);
-        expr = assoc1(expr, castTo(walkVariable(AST.nthAST(expr, 1)), XML_INTERFACE_TYPE));
-        return expr;
+        TypedElement t = new TypedElement((Element) expr.first(), XML_INTERFACE_TYPE);
+        Cons var = castTo(walkVariable(list(expr.second())), XML_INTERFACE_TYPE);
+        return list(t, var, expr.third());
     }
 
     private Cons walkIndex(Cons expr) {

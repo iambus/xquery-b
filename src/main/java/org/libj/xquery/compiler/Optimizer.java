@@ -8,9 +8,14 @@ import org.libj.xquery.parser.TypedElement;
 import org.libj.xquery.parser.VariableElement;
 import org.libj.xquery.parser.AST;
 
+import java.util.ArrayList;
+
 import static org.libj.xquery.lisp.Cons.*;
 
 public class Optimizer {
+    //////////////////////////////////////////////////
+    // optimize where clauses
+    //////////////////////////////////////////////////
     public static Cons optimizeWhere(Cons flower) {
 //        if (true) return flower; // turn off optimization
         Cons forlets = (Cons) flower.nth(1);
@@ -95,4 +100,34 @@ public class Optimizer {
         }
         return -1;
     }
+    //////////////////////////////////////////////////
+    // xpath cache
+    //////////////////////////////////////////////////
+
+
+
+
+    public static Cons cacheXPath(Cons expr) {
+//        ArrayList<Cons> xpaths = new ArrayList<Cons>();
+//        collectXPath(expr, xpaths);
+//        System.out.println(xpaths);
+        return expr;
+    }
+
+    private static void collectXPath(Cons expr, ArrayList<Cons> list) {
+        if (isNil(expr)) {
+            return;
+        }
+        Object x = expr.first();
+        if (x instanceof Element && AST.getNodeType(expr) == TokenType.XPATH) {
+            list.add(expr);
+            return;
+        }
+        if (x instanceof Cons) {
+            collectXPath((Cons) x, list);
+        }
+        collectXPath(expr.next(), list);
+    }
+
+
 }

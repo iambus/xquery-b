@@ -111,7 +111,6 @@ public class TokenType {
                 return '"'+t.text+'"';
             case VARIABLE:
             case NUMBER:
-            case XPATH:
             case FOR:
             case LET:
             case TO:
@@ -129,6 +128,8 @@ public class TokenType {
             case TAGCLOSE:
             case FORLETS:
                 return toTypeName(t.type);
+            case XPATH:
+                return "xpath";
             default:
                 return t.toString();
         }
