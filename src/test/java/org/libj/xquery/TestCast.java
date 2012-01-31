@@ -3,6 +3,7 @@ package org.libj.xquery;
 import org.junit.Test;
 
 import static org.libj.xquery.Asserts.*;
+import static org.libj.xquery.Compile.eval;
 
 public class TestCast {
     @Test
@@ -17,5 +18,9 @@ public class TestCast {
     }
     @Test
     public void testFunctionArgumentCast() {
+    }
+    @Test(expected=ClassCastException.class)
+    public void testCastFailed() {
+        eval("let $x := '1' return $x/a");
     }
 }

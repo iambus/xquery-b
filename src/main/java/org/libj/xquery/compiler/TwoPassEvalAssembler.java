@@ -431,7 +431,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
     private void visitFlowerBody(Cons body, int result) {
         mv.visitVarInsn(ALOAD, result);
         Class elementType = visitExpr(body);
-        Caster.castToObject(mv, elementType);
+        Caster.cast(mv, elementType, Object.class);
         pushToList();
     }
 
@@ -543,7 +543,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
         int iterator = defineAnonymous();
         int element = variable.getRef();
         Class collectionType = visitExpr(varExpr);
-        Caster.castToObject(mv, collectionType);
+        Caster.cast(mv, collectionType, Object.class);
         mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asList", "(Ljava/lang/Object;)Ljava/lang/Iterable;");
         mv.visitMethodInsn(INVOKEINTERFACE, "java/lang/Iterable", "iterator", "()Ljava/util/Iterator;");
         mv.visitVarInsn(ASTORE, iterator);

@@ -135,7 +135,7 @@ public class Assembler implements Opcodes {
         mv.visitCode();
         Class returnType = visitAST();
         if (returnType.isPrimitive()) {
-            Caster.castToObject(mv, returnType);
+            Caster.cast(mv, returnType, Object.class);
             mv.visitInsn(ARETURN);
         }
         else {

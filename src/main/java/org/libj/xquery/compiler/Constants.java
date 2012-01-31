@@ -3,6 +3,7 @@ package org.libj.xquery.compiler;
 import org.libj.xquery.Callback;
 import org.libj.xquery.Environment;
 import org.libj.xquery.XQuery;
+import org.libj.xquery.lib.Fn;
 import org.libj.xquery.runtime.Nil;
 import org.libj.xquery.runtime.Op;
 import org.libj.xquery.runtime.RecursiveList;
@@ -29,6 +30,8 @@ public class Constants {
 //    public static final String XML_FACTORY_IMPLEMENTATION = DomSimpleXPathXMLFactory.class.getName().replace('.', '/');
     public static final Class XML_INTERFACE_TYPE = XML.class;
     public static final String XML_INTERFACE = XML.class.getName().replace('.', '/');
+    public static final String LIB_FN = Fn.class.getName().replace('.', '/');
+
 
 //    public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION = StringXMLFactory.class;
     public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION = StringNamespaceXMLFactory.class;

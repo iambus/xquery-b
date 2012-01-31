@@ -1,42 +1,53 @@
 package org.libj.xquery.compiler;
 
 import org.libj.xquery.runtime.Nil;
+import org.libj.xquery.xml.XML;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class Caster implements Opcodes {
-
-    public static Class dynamicCast(MethodVisitor mv, Class<?> from, Class<?> to) {
-        Class result = cast(mv, from, to);
-        if (result == to) {
-            return to;
-        }
-        if (result.isPrimitive() || to.isPrimitive()) {
-            throw new RuntimeException("Not Implemented!");
-        }
-        mv.visitTypeInsn(CHECKCAST, to.getName().replace('.', '/'));
-        return to;
-    }
-
-    public static Class castObjectTo(MethodVisitor mv, Class to) {
-        // convert object to object or primitive value, based on target type
-        // Integer -> int
-        return cast(mv, Object.class, to);
-    }
-
-    public static Class castToObject(MethodVisitor mv, Class<?> from) {
-        // based on source type
-        // int -> Integer
-        return cast(mv, from, Object.class);
-    }
 
     public static Class cast(MethodVisitor mv, Class<?> from, Class<?> to) {
         // Object -> Object
         // Integer -> int
         // int -> Integer
         // int -> int
-        if (!from.isPrimitive() && !to.isPrimitive()) {
-            return from;
+        if (to == String.class) {
+            if (from == String.class) {
+                return String.class;
+            }
+            else if (from == XML.class) {
+                mv.visitMethodInsn(INVOKEINTERFACE, Constants.XML_INTERFACE, "text", "()Ljava/lang/String;");
+                return String.class;
+            }
+            else if (!from.isPrimitive()) {
+                mv.visitMethodInsn(INVOKESTATIC, Constants.LIB_FN, "string", "(Ljava/lang/Object;)Ljava/lang/String;");
+                return String.class;
+            }
+//            else if (!from.isPrimitive()) {
+//                mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;");
+//                return String.class;
+//            }
+            else if (from == int.class) {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "toString", "(I)Ljava/lang/String;");
+                return String.class;
+            }
+            else if (from == double.class) {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "toString", "(D)Ljava/lang/String;");
+                return String.class;
+            }
+            else {
+                throw new RuntimeException("Not Implemented!");
+            }
+        }
+        else if (!from.isPrimitive() && !to.isPrimitive()) {
+            if (to.isAssignableFrom(from)) {
+                return from;
+            }
+            else {
+                mv.visitTypeInsn(CHECKCAST, to.getName().replace('.', '/'));
+                return from;
+            }
         }
         else if (!from.isPrimitive() && to.isPrimitive()) {
             // object to primitive
