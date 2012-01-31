@@ -10,7 +10,7 @@ public class DictNamespace implements Namespace {
     private List<Namespace> imported = new LinkedList<Namespace>();
     public void register(String name, Symbol s) {
         if (table.containsKey(name)) {
-            throw new RuntimeException("Not Implemented!");
+            throw new RuntimeException("Duplicate declare namespace "+name+" "+s);
         }
         table.put(name, s);
     }

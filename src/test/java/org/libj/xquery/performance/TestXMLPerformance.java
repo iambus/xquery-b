@@ -1,6 +1,7 @@
 package org.libj.xquery.performance;
 
 import org.junit.Test;
+import org.libj.xquery.Compile;
 
 import static org.libj.xquery.Asserts.*;
 
@@ -16,6 +17,19 @@ public class TestXMLPerformance {
     }
     @Test
     public void testText() {
-        assertRepeatedEvalPerSecond("fn:string(<x>{2}</x>)", 1000*1000*5);
+        assertRepeatedEvalPerSecond("fn:string(<x>{2}</x>)", 1000 * 1000 * 5);
+    }
+    @Test
+    public void testBiggerXML() {
+        String xquery =
+                "<message>" +
+                        "<id>{'EX2006'}</id>" +
+                        "<time>{'2006-XX-XX'}</time>" +
+                        "<city>{'Nanjing'}</city>" +
+                        "<content>{'nothing'}</content>" +
+                        "</message>";
+        System.out.println(xquery);
+        System.out.println(Compile.eval(xquery));
+        assertRepeatedEvalPerSecond(xquery, 1000 * 1000 * 1);
     }
 }

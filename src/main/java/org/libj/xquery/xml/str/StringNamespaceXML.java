@@ -33,20 +33,54 @@ public class StringNamespaceXML extends StringXML {
             }
             xmlNamespaces = parseNamespace(i);
         }
-        String [] tags = path.substring(1).split("/");
         StringNamespaceXML result = this;
-        for (String tag: tags) {
-            String prefix = null;
-            int c = tag.indexOf(':');
-            if (c != -1) {
-                prefix = tag.substring(0, c);
-                tag = tag.substring(c+1);
+//        String [] tags = path.substring(1).split("/");
+//        for (String tag: tags) {
+//            String prefix = null;
+//            int c = tag.indexOf(':');
+//            if (c != -1) {
+//                prefix = tag.substring(0, c);
+//                tag = tag.substring(c+1);
+//            }
+//            result = result.selectNode(prefix, tag);
+//            if (result == null) {
+//                return NilXML.NIL;
+//            }
+//        }
+        StringBuilder builder = new StringBuilder();
+        int i = 1;
+        while (i < path.length()) {
+            char c = path.charAt(i);
+            while (c != ':' && c != '/') {
+                builder.append(c);
+                if (++i >= path.length()) {
+                    break;
+                }
+                c = path.charAt(i);
             }
-            result = result.selectNode(prefix, tag);
-            if (result == null) {
-                return NilXML.NIL;
+            i++;
+            if (c == ':') {
+                String prefix = builder.toString();
+                builder.setLength(0);
+                while (i < path.length() && path.charAt(i) != '/') {
+                    builder.append(path.charAt(i++));
+                }
+                result = result.selectNode(prefix, builder.toString());
+                if (result == null) {
+                    return NilXML.NIL;
+                }
+                builder.setLength(0);
             }
+            else {
+                result = result.selectNode(null, builder.toString());
+                if (result == null) {
+                    return NilXML.NIL;
+                }
+                builder.setLength(0);
+            }
+            i++;
         }
+
         if (result == null) {
             return NilXML.NIL;
         }
@@ -114,7 +148,7 @@ public class StringNamespaceXML extends StringXML {
                     // tag name length is different, safely skip this node.
                     i = skipNode(i+t);
                 }
-                else if (!xml.substring(i, i+t).equals(tag)) {
+                else if (!subEquals(tag, i, t)) {
                     // tag name is wrong, skip node
                     i = skipNode(i);
                 }
@@ -231,6 +265,22 @@ public class StringNamespaceXML extends StringXML {
         char x = xml.charAt(i++);
         String s = xml.substring(i, xml.indexOf(x, i));
         return s;
+//        StringBuilder builder = new StringBuilder();
+//        while (xml.charAt(i) != x) {
+//            builder.append(xml.charAt(i++));
+//        }
+//        return builder.toString();
+    }
+
+
+    private boolean subEquals(String tag, int start, int len) {
+        for (int i = 0; i < len; i++) {
+            if (xml.charAt(start+i) != tag.charAt(i)) {
+                return false;
+            }
+        }
+        return true;
+//        return xml.substring(start, start+len).equals(tag);
     }
 
 
@@ -245,8 +295,8 @@ public class StringNamespaceXML extends StringXML {
         xpathNamespaces.put("ns", "http://xquery.libj.org/examples/Event");
         StringNamespaceXML x = new StringNamespaceXML(xml, xpathNamespaces);
         System.out.println(x.eval("/ns:EventData/ID"));
-        System.out.println(((StringNamespaceXML)x.eval("/ns:EventData/ID")).text());
-        System.out.println(((StringNamespaceXML)x.eval("/ns:EventData")).eval("ID"));
-        System.out.println(((StringNamespaceXML)x.eval("/ns:EventData/ID")).text());
+//        System.out.println(((StringNamespaceXML)x.eval("/ns:EventData/ID")).text());
+//        System.out.println(((StringNamespaceXML)x.eval("/ns:EventData")).eval("ID"));
+//        System.out.println(((StringNamespaceXML)x.eval("/ns:EventData/ID")).text());
     }
 }

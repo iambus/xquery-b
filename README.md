@@ -37,5 +37,9 @@ Be patient...
 
 Coming soon
 -----------
+xpath cache
+optmize return value if for non-loop flower
+optimize logical comparison
+
 
 

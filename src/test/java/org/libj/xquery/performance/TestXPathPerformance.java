@@ -1,6 +1,7 @@
 package org.libj.xquery.performance;
 
 import org.junit.Test;
+import org.libj.xquery.Compile;
 import org.libj.xquery.Environment;
 import org.libj.xquery.compiler.*;
 import org.libj.xquery.compiler.Compiler;
@@ -191,5 +192,63 @@ public class TestXPathPerformance {
                         "where $event/ID != 2"+
                         "return $event";
         assertRepeatedEvalPerSecond(xquery, 1000 * 500);
+    }
+
+
+
+
+    private String deepevent = "<my:Event xmlns:my=\"http://xquery.libj.org/event/Mine\">\n" +
+            "\t<events>\n" +
+            "\t\t<event type='old'>\n" +
+            "\t\t\t<ID>EX2006</ID>\n" +
+            "\t\t\t<Time>2006-XX-XX</Time>\n" +
+            "\t\t\t<Peoples>\n" +
+            "\t\t\t\t<Name>You</Name>\n" +
+            "\t\t\t\t<Name>Me</Name>\n" +
+            "\t\t\t</Peoples>\n" +
+            "\t\t\t<Location>Nanjing</Location>\n" +
+            "\t\t\t<your:story xmlns:your=\"http://xquery.libj.org/event/Yours\">\n" +
+            "\t\t\t\t<content>nothing</content>\n" +
+            "\t\t\t\t<reference>memory</reference>\n" +
+            "\t\t\t</your:story>\n" +
+            "\t\t</event>\n" +
+            "\t</events>\n" +
+            "</my:Event>\n" +
+            ""; // 413 bytes
+
+    @Test
+    public void testDeepXML() {
+        String xquery =
+                "declare namespace i = \"http://xquery.libj.org/event/Mine\";\n" +
+                        "declare namespace u = \"http://xquery.libj.org/event/Yours\";\n" +
+                        "let $event := " + deepevent + "\n" +
+                        "where $event/events/event/ID != '2'\n"+
+                        "return <message>" +
+                        "<id>{$event/events/event/ID}</id>" +
+                        "<time>{$event/events/event/Time}</time>" +
+                        "<city>{$event/events/event/Location}</city>" +
+                        "<content>{$event/events/event/u:story/content}</content>" +
+                        "</message>";
+        System.out.println(xquery);
+        assertRepeatedEvalPerSecond(xquery, 1000 * 100);
+    }
+    @Test
+    public void testDeepXMLCachedXPath() {
+        String xquery =
+                "declare namespace i = \"http://xquery.libj.org/event/Mine\";\n" +
+                        "declare namespace u = \"http://xquery.libj.org/event/Yours\";\n" +
+                        "let $event := " + deepevent + "\n" +
+//                        "return $event/events/event/ID\n";
+                        "let $e := $event/events/event\n" +
+                        "where $e/ID != '2'\n"+
+                        "return <message>" +
+                        "<id>{$e/ID}</id>" +
+                        "<time>{$e/Time}</time>" +
+                        "<city>{$e/Location}</city>" +
+                        "<content>{$e/u:story/content}</content>" +
+                        "</message>";
+        System.out.println(xquery);
+        System.out.println(Compile.eval(xquery));
+        assertRepeatedEvalPerSecond(xquery, 1000 * 200);
     }
 }
