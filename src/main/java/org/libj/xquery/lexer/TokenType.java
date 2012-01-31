@@ -97,4 +97,37 @@ public class TokenType {
         }
         return types.get(v);
     }
+
+    public static String toString(Token t) {
+        if (t == null) {
+            return "<null token!>";
+        }
+        switch (t.type) {
+            case TEXT:
+                return '"'+t.text+'"';
+            case VARIABLE:
+            case NUMBER:
+            case XPATH:
+            case FOR:
+            case LET:
+            case TO:
+            case PLUS:
+            case MINUS:
+            case EQ:
+            case AND:
+            case OR:
+                return t.text;
+            case PROG:
+            case DECLARES:
+            case FLOWER:
+            case NODE:
+            case TAGOPEN:
+            case TAGCLOSE:
+            case FORLETS:
+                return toTypeName(t.type);
+            default:
+                return t.toString();
+        }
+    }
+
 }

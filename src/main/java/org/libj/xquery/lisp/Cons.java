@@ -156,9 +156,30 @@ public class Cons<E> implements Iterable<E> {
         };
     }
 
+    public Cons<E> rest() {
+        return rest(this);
+    }
+
     public static boolean isNil(Cons list) {
         return list == null || list.first() == null;
     }
 
+    public String toString(Cons cons) {
+        if (cons == null) {
+            return null;
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append('(');
+        builder.append(first());
+        for (Object x: rest()) {
+            builder.append(' ');
+            builder.append(x);
+        }
+        builder.append(')');
+        return builder.toString();
+    }
 
+    public String toString() {
+        return toString(this);
+    }
 }
