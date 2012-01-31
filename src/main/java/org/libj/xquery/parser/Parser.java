@@ -80,7 +80,7 @@ public class Parser extends LLkParser {
 
     private Cons compare() throws IOException {
         Cons ast = range();
-        if (LA(1) == EQ || LA(1) == NE) {
+        if (LA(1) == EQ || LA(1) == NE || LA(1) == LT || LA(1) == LE || LA(1) == GT || LA(1) == GE) {
             ast = binary(ast, consume(), range());
         }
         return ast;

@@ -127,6 +127,15 @@ public class Lexer extends LL1Reader {
                     return readXPath();
                 case '<':
                     return readTag();
+                case '>':
+                    consume();
+                    if (c == '=') {
+                        consume();
+                        return t(GE, ">=");
+                    }
+                    else {
+                        return t(GT, ">");
+                    }
                 default:
                     if (isWordStart()) {
                         return readWord();
@@ -278,6 +287,13 @@ public class Lexer extends LL1Reader {
         }
         tag.append('<');
         consume();
+        if (isWhitespace(c)) {
+            return t(LT, ",");
+        }
+        else if (c == '=') {
+            consume();
+            return t(LE, ",");
+        }
         while (isWhitespace(c)) {
             tag.append((char) c);
             consume();

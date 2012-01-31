@@ -1,5 +1,6 @@
 package org.libj.xquery;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.libj.xquery.Asserts.*;
@@ -48,7 +49,16 @@ public class TestExpressions {
         assertEval("10 mod 2 != 0", false);
         assertEval("10 mod 3 != 0", true);
         assertEval("10 mod 3 != 1", false);
+        assertEval("1 < 2", true);
+        assertEval("2.2 >= 3", false);
     }
+
+    @Ignore("XML = int is not supported yet")
+    @Test
+    public void testXMLComparison() {
+        assertEval("<x>1.0</x> = 1", true);
+    }
+
     @Test
     public void testLogical() {
         assertEval("1 = 1 and 2 = 2", true);
@@ -134,8 +144,8 @@ public class TestExpressions {
                 "2 3 2 4");
         assertEvalString("for $i in (1 to 3) for $j in (1 to 3) where $i != 2 and $j != 3 and $i = $j return ($i, $j)",
                 "1 1");
-//        assertEvalString("for $i in (1 to 3) for $j in (1 to 3) where $i != 2 and $j != 3 and $i < $j return ($i, $j)",
-//                "1 2");
+        assertEvalString("for $i in (1 to 3) for $j in (1 to 3) where $i != 2 and $j != 3 and $i < $j return ($i, $j)",
+                "1 2");
     }
     @Test
     public void testIfElse() {

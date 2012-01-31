@@ -56,7 +56,9 @@ public class Walker {
             case STRING:
                 return walkString(AST.getToken(expr));
             case PLUS: case MINUS: case MULTIPLY: case DIV: case NEGATIVE: case MOD:
-            case EQ: case NE: case AND: case OR:
+            case EQ: case NE:
+            case LT: case LE: case GT: case GE:
+            case AND: case OR:
             case TO: case INDEX: case XPATH:
                 return walkOp(expr);
             case CALL:
@@ -101,6 +103,7 @@ public class Walker {
             case NEGATIVE:
                 return walkNegative(expr);
             case EQ: case NE:
+            case LT: case LE: case GT: case GE:
                 return walkComparison(expr);
             case AND: case OR:
                 return walkLogic(expr);

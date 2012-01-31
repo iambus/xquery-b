@@ -155,9 +155,12 @@ public class Op {
             return ((XML) x).text().equals(((XML) y).text());
         }
         if (x instanceof XML) {
+            // XXX: this might be incorrect when comparing xml with int
+            // e.g. <x>1.0</x> = 1 should return true
             return ((XML) x).text().equals(y.toString());
         }
         if (y instanceof XML) {
+            // XXX: this might be incorrect when comparing xml with int
             return x.toString().equals(((XML) y).text());
         }
         if (x instanceof List || y instanceof List) {
@@ -169,6 +172,26 @@ public class Op {
     @Function
     public static boolean ne(Object x, Object y) {
         return !eq(x, y);
+    }
+
+    @Function
+    public static boolean lt(Object x, Object y) {
+        throw new RuntimeException("Not Implemented!");
+    }
+
+    @Function
+    public static boolean le(Object x, Object y) {
+        return !lt(y, x);
+    }
+
+    @Function
+    public static boolean gt(Object x, Object y) {
+        return lt(y, x);
+    }
+
+    @Function
+    public static boolean ge(Object x, Object y) {
+        return !lt(x, y);
     }
 
     @Function

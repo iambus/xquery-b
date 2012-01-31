@@ -60,7 +60,9 @@ public class TwoPassEvalAssembler  implements Opcodes {
             case CALL:
                 return visitCall(expr);
             case PLUS: case MINUS: case MULTIPLY: case DIV: case NEGATIVE: case MOD:
-            case EQ: case NE: case AND: case OR:
+            case EQ: case NE:
+            case LT: case LE: case GT: case GE:
+            case AND: case OR:
             case TO: case INDEX: case XPATH:
                 return visitOp(expr);
             case VARIABLE:
@@ -122,6 +124,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
             case NEGATIVE:
                 return visitNegative(expr);
             case EQ: case NE:
+            case LT: case LE: case GT: case GE:
                 return visitCompare(expr);
             case AND:
                 return visitAnd(expr);
@@ -236,8 +239,30 @@ public class TwoPassEvalAssembler  implements Opcodes {
             Label trueLabel = new Label();
             Label falseLabel = new Label();
             Label doneLabel = new Label();
-            // is this better than DCMPL?
-            mv.visitJumpInsn(AST.getNodeType(expr) == EQ ? IF_ICMPEQ : IF_ICMPNE, trueLabel);
+            int instruction;
+            switch (AST.getNodeType(expr)) {
+                case EQ:
+                    instruction = IF_ICMPEQ;
+                    break;
+                case NE:
+                    instruction = IF_ICMPNE;
+                    break;
+                case LT:
+                    instruction = IF_ICMPLT;
+                    break;
+                case LE:
+                    instruction = IF_ICMPLE;
+                    break;
+                case GT:
+                    instruction = IF_ICMPGT;
+                    break;
+                case GE:
+                    instruction = IF_ICMPGE;
+                    break;
+                default:
+                    throw new RuntimeException("Not Implemented!");
+            }
+            mv.visitJumpInsn(instruction, trueLabel);
             mv.visitLabel(falseLabel);
             mv.visitInsn(ICONST_0);
             mv.visitJumpInsn(GOTO, doneLabel);
@@ -250,8 +275,34 @@ public class TwoPassEvalAssembler  implements Opcodes {
             Label trueLabel = new Label();
             Label falseLabel = new Label();
             Label doneLabel = new Label();
-            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "compare", "(DD)I");
-            mv.visitJumpInsn(AST.getNodeType(expr) == EQ ? IFEQ : IFNE, trueLabel);
+            int instruction;
+            switch (AST.getNodeType(expr)) {
+                case EQ:
+                    instruction = IFEQ;
+                    break;
+                case NE:
+                    instruction = IFNE;
+                    break;
+                case LT:
+                    instruction = IFLT;
+                    break;
+                case LE:
+                    instruction = IFLE;
+                    break;
+                case GT:
+                    instruction = IFGT;
+                    break;
+                case GE:
+                    instruction = IFGE;
+                    break;
+                default:
+                    throw new RuntimeException("Not Implemented!");
+            }
+            mv.visitInsn(DCMPL);
+            mv.visitJumpInsn(instruction, trueLabel);
+            // is this better than DCMPL?
+//            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "compare", "(DD)I");
+//            mv.visitJumpInsn(instruction, trueLabel);
             mv.visitLabel(falseLabel);
             mv.visitInsn(ICONST_0);
             mv.visitJumpInsn(GOTO, doneLabel);
@@ -261,7 +312,30 @@ public class TwoPassEvalAssembler  implements Opcodes {
             return boolean.class;
         }
         else if (!t.isPrimitive()) {
-            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, AST.getNodeType(expr) == EQ ? "eq" : "ne", "(Ljava/lang/Object;Ljava/lang/Object;)Z");
+            String op;
+            switch (AST.getNodeType(expr)) {
+                case EQ:
+                    op = "eq";
+                    break;
+                case NE:
+                    op = "ne";
+                    break;
+                case LT:
+                    op = "lt";
+                    break;
+                case LE:
+                    op = "le";
+                    break;
+                case GT:
+                    op = "gt";
+                    break;
+                case GE:
+                    op = "ge";
+                    break;
+                default:
+                    throw new RuntimeException("Not Implemented!");
+            }
+            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, op, "(Ljava/lang/Object;Ljava/lang/Object;)Z");
             return boolean.class;
         }
         else {
