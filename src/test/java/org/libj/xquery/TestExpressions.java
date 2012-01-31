@@ -132,6 +132,10 @@ public class TestExpressions {
                 "return $i+$j", "2");
         assertEvalString("for $i in (1,2) for $j in (3,4) where $i = <x>2</x> return ($i, $j)",
                 "2 3 2 4");
+        assertEvalString("for $i in (1 to 3) for $j in (1 to 3) where $i != 2 and $j != 3 and $i = $j return ($i, $j)",
+                "1 1");
+//        assertEvalString("for $i in (1 to 3) for $j in (1 to 3) where $i != 2 and $j != 3 and $i < $j return ($i, $j)",
+//                "1 2");
     }
     @Test
     public void testIfElse() {

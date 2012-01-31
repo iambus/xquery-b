@@ -1,8 +1,12 @@
 package org.libj.xquery.compiler;
 
+import org.libj.xquery.lexer.Token;
+import org.libj.xquery.lexer.TokenType;
 import org.libj.xquery.lisp.Cons;
 import org.libj.xquery.parser.Element;
+import org.libj.xquery.parser.TypedElement;
 import org.libj.xquery.parser.VariableElement;
+import org.libj.xquery.parser.AST;
 
 import static org.libj.xquery.lisp.Cons.*;
 
@@ -14,15 +18,55 @@ public class Optimizer {
         if (isNil(where)) {
             return flower;
         }
-        int level = referenceLevel(forlets, where, -1);
-        level++;
-        if (level == forlets.size()) {
-            return flower;
+        Cons conditions = breakAnd(where);
+        where = null;
+        for (Object x: conditions) {
+            Cons condition = (Cons) x;
+            int level = referenceLevel(forlets, condition, -1);
+            level++;
+            if (level == forlets.size()) {
+                where = joinAnd(where, condition);
+            }
+            else {
+                Cons forlet = (Cons) forlets.nth(level);
+                if (forlet.size() == 3) {
+                    forlet = append(forlet, condition);
+                }
+                else {
+                    forlet = forlet.assoc(3, joinAnd((Cons) forlet.nth(3), condition));
+                }
+                forlets = forlets.assoc(level, forlet);
+            }
         }
-        forlets = forlets.assoc(level, Cons.append((Cons)forlets.nth(level), where));
-        return list(flower.first(), forlets, flower.third(), null);
+        return list(flower.first(), forlets, flower.third(), where);
     }
-    public static int referenceLevel(Cons forlets, Cons condition, int currentLevel) {
+
+
+    private static Cons breakAnd(Cons condition) {
+        if (isAnd(condition)) {
+            return concat(breakAnd((Cons) condition.second()), breakAnd((Cons) condition.third()));
+        }
+        else {
+            return list(condition);
+        }
+    }
+
+    private static Cons joinAnd(Cons left, Cons right) {
+        if (isNil(left)) {
+            return right;
+        }
+        else if (isNil(right)) {
+            return left;
+        }
+        else {
+            return list(new TypedElement(new Token(TokenType.AND, "+"), boolean.class), left, right);
+        }
+    }
+    private static boolean isAnd(Cons condition) {
+        return AST.getNodeType(condition) == TokenType.AND;
+    }
+
+    private static int referenceLevel(Cons forlets, Cons condition, int currentLevel) {
         if (isNil(condition)) {
             return currentLevel;
         }
@@ -40,7 +84,8 @@ public class Optimizer {
         }
         throw new RuntimeException("Not Implemented!");
     }
-    public static int referenceLevel(Cons forlets, VariableElement variable) {
+
+    private static int referenceLevel(Cons forlets, VariableElement variable) {
         for (int i = forlets.size() - 1; i >= 0; i--) {
             Cons forlet = (Cons) forlets.nth(i);
             VariableElement v = (VariableElement) forlet.second();

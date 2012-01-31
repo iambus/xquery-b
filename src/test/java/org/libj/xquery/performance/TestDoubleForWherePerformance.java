@@ -33,6 +33,6 @@ public class TestDoubleForWherePerformance {
                 "for $j in (1 to 1000*1000) " +
                 "where $i = <x>1</x> and $j = <x>2</x>" +
                 "return $i+$j";
-        assertEvalMillis(xquery, 1);
+        assertEvalMillis(xquery, 1000);
     }
 }

@@ -30,12 +30,29 @@ public class Cons<E> implements Iterable<E> {
         return cdr;
     }
 
-    public Cons<E> conj(E x) {
-        return new Cons<E>(x, this);
+    public E second() {
+        return next().first();
+    }
+
+    public E third() {
+        return next().next().first();
     }
 
     public static <E> Cons<E> cons(E x, Cons<E> list) {
         return new Cons<E>(x, list);
+    }
+
+    public Cons<E> assoc(int n, E x) {
+        if (n == 0) {
+            return cons(x, next());
+        }
+        else {
+            return cons(first(), next().assoc(--n, x));
+        }
+    }
+
+    public Cons<E> conj(E x) {
+        return new Cons<E>(x, this);
     }
 
     public static <E> Cons<E> list(E...elements) {
@@ -53,6 +70,53 @@ public class Cons<E> implements Iterable<E> {
         else {
             return new Cons<E>(list.car, append(list.cdr, x));
         }
+    }
+
+    public static <E> Cons<E> concat(Cons<E> x1, Cons<E> x2) {
+        if (x1 == null) {
+            return x2;
+        }
+        else {
+            return cons(x1.first(), concat(x1.next(), x2));
+        }
+    }
+
+    public static <E> Cons<E> reverse(Cons<E> x) {
+        Cons<E> result = null;
+        while (x != null) {
+            result = cons(x.first(), result);
+            x = x.next();
+        }
+        return result;
+    }
+
+    public Cons<E> reverse() {
+        return reverse(this);
+    }
+
+    public E nth(int i) {
+        if (i < 0) {
+            throw new RuntimeException("Negative index");
+        }
+        else if (i == 0) {
+            return first();
+        }
+        else {
+            return next().nth(--i);
+        }
+    }
+
+    public static int size(Cons list) {
+        int n = 0;
+        while (list != null) {
+            n++;
+            list = list.next();
+        }
+        return n;
+    }
+
+    public int size() {
+        return size(this);
     }
 
     public static <E> Iterator<E> iterator(final Cons<E> i) {
@@ -92,49 +156,6 @@ public class Cons<E> implements Iterable<E> {
         return toList(this);
     }
 
-    public E second() {
-        return next().first();
-    }
-
-    public E third() {
-        return next().next().first();
-    }
-
-    public E nth(int i) {
-        if (i < 0) {
-            throw new RuntimeException("Negative index");
-        }
-        else if (i == 0) {
-            return first();
-        }
-        else {
-            return next().nth(--i);
-        }
-    }
-    public static int size(Cons list) {
-        int n = 0;
-        while (list != null) {
-            n++;
-            list = list.next();
-        }
-        return n;
-    }
-
-    public int size() {
-        return size(this);
-    }
-
-
-    public Cons<E> assoc(int n, E x) {
-        if (n == 0) {
-            return cons(x, next());
-        }
-        else {
-            return cons(first(), next().assoc(--n, x));
-        }
-    }
-
-
     public static Cons rest(Cons list) {
         Cons rest = list.next();
         if (rest != null) {
@@ -145,29 +166,6 @@ public class Cons<E> implements Iterable<E> {
 
     public Cons<E> rest() {
         return rest(this);
-    }
-
-    public static boolean isNil(Cons list) {
-        return list == null || list instanceof NilCons || list.first() == null;
-    }
-
-    public String toString(Cons cons) {
-        if (cons == null) {
-            return null;
-        }
-        StringBuilder builder = new StringBuilder();
-        builder.append('(');
-        builder.append(first());
-        for (Object x: rest()) {
-            builder.append(' ');
-            builder.append(x);
-        }
-        builder.append(')');
-        return builder.toString();
-    }
-
-    public String toString() {
-        return toString(this);
     }
 
     private static class NilCons extends Cons {
@@ -204,4 +202,41 @@ public class Cons<E> implements Iterable<E> {
             throw new RuntimeException("Nil access");
         }
     }
+
+    public static boolean isNil(Cons list) {
+        return list == null || list instanceof NilCons || list.first() == null;
+    }
+
+    public static interface Fn {
+        Object call(Object x);
+    }
+
+    public static Cons map(Fn fn, Cons list) {
+        if (list == null) {
+            return null;
+        }
+        else {
+            return cons(fn.call(list.first()), map(fn, list.next()));
+        }
+    }
+
+    public String toString(Cons cons) {
+        if (cons == null) {
+            return null;
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append('(');
+        builder.append(first());
+        for (Object x: rest()) {
+            builder.append(' ');
+            builder.append(x);
+        }
+        builder.append(')');
+        return builder.toString();
+    }
+
+    public String toString() {
+        return toString(this);
+    }
+
 }
