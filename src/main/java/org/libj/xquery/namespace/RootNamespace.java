@@ -18,21 +18,21 @@ public class RootNamespace extends DictNamespace {
         String[] ns = name.split(":");
         Symbol s = super.lookup(ns[0]);
         if (s == null) {
-            throw new RuntimeException("Unresolved symbol "+ns[0]);
+            throw new NameException("Unresolved symbol "+ns[0]);
         }
         for (int i = 1; i < ns.length; i++) {
             if (s instanceof Namespace) {
                 s = ((Namespace) s).lookup(ns[i]);
             }
             else if (s != null) {
-                throw new RuntimeException(name + " is not a namespace: "+s);
+                throw new NameException(name + " is not a namespace: "+s);
             }
             else {
-                throw new RuntimeException("Could not find namespace "+ns[i]+" of " +name);
+                throw new NameException("Could not find namespace "+ns[i]+" of " +name);
             }
         }
         if (s == null) {
-            throw new RuntimeException("Unresolved symbol "+name);
+            throw new NameException("Unresolved symbol "+name);
         }
         return s;
     }

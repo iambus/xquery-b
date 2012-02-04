@@ -3,16 +3,14 @@ package org.libj.xquery.compiler;
 import org.libj.xquery.XQuery;
 import org.libj.xquery.lexer.Lexer;
 import org.libj.xquery.lisp.Cons;
-import org.libj.xquery.namespace.DefaultRootNamespace;
-import org.libj.xquery.namespace.LibNamespace;
-import org.libj.xquery.namespace.Namespace;
+import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.Parser;
 
 import java.io.*;
 
 public class Compiler {
 
-    private Namespace namespace = new DefaultRootNamespace();
+    private RootNamespace namespace = new DefaultRootNamespace();
     private DefaultClassLoader loader = new DefaultClassLoader();
 
     private String defaultPackage = "org.libj.xquery.dynamic";
@@ -66,7 +64,7 @@ public class Compiler {
     // generate bytecode
 
     public byte[] compileToByteArray(Cons ast, String className) {
-        Assembler assembler = new Assembler(className, ast, namespace, xmlFactory);
+        Assembler assembler = new Assembler(className, ast, new LocalNamespace(namespace), xmlFactory);
         return assembler.toByteArray();
     }
 
