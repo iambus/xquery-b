@@ -3,7 +3,7 @@ package org.libj.xquery.runtime;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-public class RecursiveList implements List {
+public class RecursiveList implements MutableList {
     private ArrayList list = new ArrayList();
 
     public Iterator iterator() {
@@ -45,4 +45,9 @@ public class RecursiveList implements List {
         return ListUtils.toString(this);
     }
 
+    public static void main(String[] args) {
+        RecursiveList a = new RecursiveList();
+        a.add(0);
+        System.out.println(a.nth(0));
+    }
 }

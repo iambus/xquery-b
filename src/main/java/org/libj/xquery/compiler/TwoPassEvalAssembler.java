@@ -33,7 +33,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
         locals = walker.getLocals();
         freeVariables = walker.getFreeVariables();
         visitFreeVariables();
-        return visitExpr(ast);
+        return visitResult(ast);
     }
 
     private void visitFreeVariables() {
@@ -44,6 +44,32 @@ public class TwoPassEvalAssembler  implements Opcodes {
             mv.visitLdcInsn(varName);
             mv.visitMethodInsn(INVOKEVIRTUAL, ENVIRONMENT_CLASS, "getVariable", "(Ljava/lang/String;)Ljava/lang/Object;");
             mv.visitVarInsn(ASTORE, varIndex);
+        }
+    }
+
+    private Class visitResult(Cons expr) {
+        switch (AST.getNodeType(expr)) {
+            case FLOWER:
+                mv.visitVarInsn(ALOAD, 0);
+                mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
+                mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "callbackToList", "(L"+QUERY_CALLBACK+";)L"+LIST_CLASS+";");
+                mv.visitVarInsn(ASTORE, LOCAL_CALLBACK_INDEX);
+                return visitFlower(expr, LOCAL_CALLBACK_INDEX, -1);
+            default:
+                Class t = visitExpr(expr);
+                Label callback = new Label();
+                Caster.cast(mv, t, Object.class);
+                Label end = new Label();
+                mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
+                mv.visitJumpInsn(IFNONNULL, callback);
+                mv.visitJumpInsn(GOTO, end);
+                mv.visitLabel(callback);
+                mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
+                mv.visitInsn(SWAP);
+                mv.visitMethodInsn(INVOKEINTERFACE, QUERY_CALLBACK, "call", "(Ljava/lang/Object;)V");
+                mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
+                mv.visitLabel(end);
+                return Object.class;
         }
     }
 
@@ -422,25 +448,27 @@ public class TwoPassEvalAssembler  implements Opcodes {
 
 
     private Class visitFlower(Cons expr) {
-        return visitFlower(expr, -1);
+        return visitFlower(expr, -1, -1);
     }
 
     private Class visitFlowerAt(Cons expr) {
         visitExpr(AST.nthAST(expr, 2));
         int index = defineAnonymous();
         mv.visitVarInsn(ISTORE, index);
-        return visitFlower(AST.nthAST(expr, 1), index);
+        return visitFlower(AST.nthAST(expr, 1), -1, index);
     }
 
 
-    private Class visitFlower(Cons expr, int lookingForElementAt) {
+    private Class visitFlower(Cons expr, int result, int lookingForElementAt) {
         Label breakLabel = null;
         if (lookingForElementAt > 0) {
             breakLabel = new Label();
         }
-        Class t = newList();
-        int result = defineAnonymous();
-        mv.visitVarInsn(ASTORE, result);
+        if (result < 0) {
+            newList();
+            result = defineAnonymous();
+            mv.visitVarInsn(ASTORE, result);
+        }
 
         Cons forlets = AST.nthAST(expr, 1);
         Cons body = expr.next().next();
@@ -451,7 +479,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
             mv.visitLabel(breakLabel);
         }
         mv.visitVarInsn(ALOAD, result);
-        return t;
+        return LIST_CLASS_TYPE;
     }
 
     private void visitForLets(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
@@ -893,13 +921,11 @@ public class TwoPassEvalAssembler  implements Opcodes {
 
     private Class newList() {
         newObject(QUERY_LIST);
-        return org.libj.xquery.runtime.List.class;
+        return LIST_CLASS_TYPE;
     }
 
     private void pushToList() {
-//        mv.visitMethodInsn(INVOKEVIRTUAL, QUERY_LIST, "add", "(Ljava/lang/Object;)Z");
-//        mv.visitInsn(POP);
-        mv.visitMethodInsn(INVOKEVIRTUAL, QUERY_LIST, "add", "(Ljava/lang/Object;)V");
+        mv.visitMethodInsn(INVOKEINTERFACE, MUTABLE_LIST_CLASS, "add", "(Ljava/lang/Object;)V");
     }
 
     private int defineAnonymous() {

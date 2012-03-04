@@ -38,9 +38,11 @@ public class Assembler implements Opcodes {
         visitInit();
         visitFactory();
 //        visitNamespaces();
+        visitEvalWithEnvironmentCallback();
         visitEvalWithEnvironment();
         visitEval();
         visitEvalCallback();
+        visitCallbackToList();
         cw.visitEnd();
     }
 
@@ -130,8 +132,8 @@ public class Assembler implements Opcodes {
     /// eval(Environment)
     //////////////////////////////////////////////////
 
-    private void visitEvalWithEnvironment() {
-        mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ENVIRONMENT_CLASS+";)Ljava/lang/Object;", null, null);
+    private void visitEvalWithEnvironmentCallback() {
+        mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ENVIRONMENT_CLASS+";L"+QUERY_CALLBACK+";)Ljava/lang/Object;", null, null);
         mv.visitCode();
         Class returnType = visitAST();
         if (returnType.isPrimitive()) {
@@ -187,19 +189,77 @@ public class Assembler implements Opcodes {
 
 
     //////////////////////////////////////////////////
+    /// eval(Environment)
+    //////////////////////////////////////////////////
+    private void visitEvalWithEnvironment() {
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ENVIRONMENT_CLASS+";)Ljava/lang/Object;", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitInsn(ACONST_NULL);
+        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L" + ENVIRONMENT_CLASS + ";L" + QUERY_CALLBACK + ";)Ljava/lang/Object;");
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+
+
+    //////////////////////////////////////////////////
     /// eval(Callback)
     //////////////////////////////////////////////////
     private void visitEvalCallback() {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+QUERY_CALLBACK+";)V", null, null);
         mv.visitCode();
-        mv.visitTypeInsn(NEW, "java/lang/RuntimeException");
-        mv.visitInsn(DUP);
-        mv.visitLdcInsn("Not implemented");
-        mv.visitMethodInsn(INVOKESPECIAL, "java/lang/RuntimeException", "<init>", "(Ljava/lang/String;)V");
-        mv.visitInsn(ATHROW);
-        mv.visitMaxs(3, 2);
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitInsn(ACONST_NULL);
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L" + ENVIRONMENT_CLASS + ";L" + QUERY_CALLBACK + ";)Ljava/lang/Object;");
+//        mv.visitInsn(POP);
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(0, 0);
         mv.visitEnd();
     }
+
+    //////////////////////////////////////////////////
+    /// List callbackToList(Callback)
+    //////////////////////////////////////////////////
+    private void visitCallbackToList() {
+        MethodVisitor mv = cw.visitMethod(ACC_PRIVATE, "callbackToList", "(L"+QUERY_CALLBACK+";)L"+LIST_CLASS+";", null, null);
+        mv.visitCode();
+        /*
+        if (callback == null) {
+            return new List();
+        }
+        if (callback instanceof List) {
+            return callback;
+        }
+        return new CallbackList(callback);
+         */
+        Label notNull = new Label();
+        Label notList = new Label();
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitJumpInsn(IFNONNULL, notNull);
+        mv.visitTypeInsn(NEW, QUERY_LIST);
+        mv.visitInsn(DUP);
+        mv.visitMethodInsn(INVOKESPECIAL, QUERY_LIST, "<init>", "()V");
+        mv.visitInsn(ARETURN);
+        mv.visitLabel(notNull);
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitTypeInsn(INSTANCEOF, LIST_CLASS);
+        mv.visitJumpInsn(IFEQ, notList);
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitInsn(ARETURN);
+        mv.visitLabel(notList);
+        mv.visitTypeInsn(NEW, CALLBACK_LIST);
+        mv.visitInsn(DUP);
+        mv.visitVarInsn(ALOAD, 1);
+        mv.visitMethodInsn(INVOKESPECIAL, CALLBACK_LIST, "<init>", "(L"+QUERY_CALLBACK+";)V");
+        mv.visitInsn(ACONST_NULL);
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+
     //////////////////////////////////////////////////
     /// helper
     //////////////////////////////////////////////////
