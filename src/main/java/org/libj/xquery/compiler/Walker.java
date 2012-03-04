@@ -151,9 +151,9 @@ public class Walker {
     }
 
     private Cons walkXPath(Cons expr) {
-        expr = assocType(expr, XML_INTERFACE_TYPE);
-        TypedElement t = new TypedElement((Element) expr.first(), XML_INTERFACE_TYPE);
-        Cons var = castTo(walkVariable(list(expr.second())), XML_INTERFACE_TYPE);
+        expr = assocType(expr, XML_INTERFACE_Class);
+        TypedElement t = new TypedElement((Element) expr.first(), XML_INTERFACE_Class);
+        Cons var = castTo(walkVariable(list(expr.second())), XML_INTERFACE_Class);
         return list(t, var, expr.third());
     }
 
@@ -183,13 +183,13 @@ public class Walker {
         Cons right = castTo(walkExpr(AST.nthAST(expr, 2)), int.class);
         expr = assoc1(expr, left);
         expr = assoc2(expr, right);
-        expr = assocType(expr, LIST_CLASS_TYPE);
+        expr = assocType(expr, LIST_INTERFACE_CLASS);
         return expr;
     }
 
     private Cons walkList(Cons expr) {
         Cons ast = AST.createAST(AST.getElement(expr));
-        ast = assocType(ast, LIST_CLASS_TYPE);
+        ast = assocType(ast, LIST_INTERFACE_CLASS);
         for (Object e: Cons.rest(expr)) {
             ast = Cons.append(ast, castTo(walkExpr((Cons) e), Object.class));
         }
@@ -219,7 +219,7 @@ public class Walker {
         Cons forlets = ((Cons) expr.nth(1)).rest();
         Cons body = (Cons) expr.nth(2);
         Cons where =  (Cons) expr.nth(3);
-        expr = AST.createAST(new TypedElement(AST.getElement(expr), LIST_CLASS_TYPE));
+        expr = AST.createAST(new TypedElement(AST.getElement(expr), LIST_INTERFACE_CLASS));
         expr = Cons.cons(expr.first(), walkForlet(forlets, body, where));
         expr = Optimizer.optimizeWhere(expr);
         return expr;
@@ -296,7 +296,7 @@ public class Walker {
 
         VariableElement variable = new VariableElement(AST.getElement(variableExpr), int.class, element);
 
-        expr = list(new TypedElement(new Token(FORRANGE, "for"), LIST_CLASS_TYPE), variable, list(start, end));
+        expr = list(new TypedElement(new Token(FORRANGE, "for"), LIST_INTERFACE_CLASS), variable, list(start, end));
 
         Cons result = walkForlet(Cons.rest(forlets), body, where);
         result = cons(cons(expr, (Cons)result.first()), result.next());
@@ -317,7 +317,7 @@ public class Walker {
         int element = define(variableName, Object.class);
         VariableElement variable = new VariableElement(AST.getElement(variableExpr), Object.class, element);
 
-        expr = assocType(expr, LIST_CLASS_TYPE);
+        expr = assocType(expr, LIST_INTERFACE_CLASS);
         expr = assoc1(expr, variable);
         expr = assoc2(expr, collectionExpr);
 
@@ -519,7 +519,7 @@ public class Walker {
             expr = assoc1(expr, castTo(leftTree, Object.class));
             return expr;
         }
-        else if (leftType == XML_INTERFACE_TYPE || rightType == XML_INTERFACE_TYPE) {
+        else if (leftType == XML_INTERFACE_Class || rightType == XML_INTERFACE_Class) {
             expr = assocType(expr, String.class);
             expr = assoc1(expr, castTo(leftTree, String.class));
             expr = assoc2(expr, castTo(rightTree, String.class));

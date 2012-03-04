@@ -21,7 +21,7 @@ public class Caster implements Opcodes {
                 return String.class;
             }
             else if (!from.isPrimitive()) {
-                mv.visitMethodInsn(INVOKESTATIC, Constants.LIB_FN, "string", "(Ljava/lang/Object;)Ljava/lang/String;");
+                mv.visitMethodInsn(INVOKESTATIC, Constants.FN, "string", "(Ljava/lang/Object;)Ljava/lang/String;");
                 return String.class;
             }
 //            else if (!from.isPrimitive()) {

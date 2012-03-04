@@ -14,7 +14,7 @@ public class Compiler {
     private DefaultClassLoader loader = new DefaultClassLoader();
 
     private String defaultPackage = "org.libj.xquery.dynamic";
-    private Class xmlFactory = Constants.DEFAUL_XML_FACTORY_IMPLEMENTATION;
+    private Class xmlFactory = Constants.DEFAUL_XML_FACTORY_IMPLEMENTATION_CLASS;
 
     public void registerLib(String prefix, Class c) {
         namespace.register(prefix, new LibNamespace(c));

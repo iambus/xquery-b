@@ -42,7 +42,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
             int varIndex = sym.getIndex();
             mv.visitVarInsn(ALOAD, LOCAL_ENV_INDEX);
             mv.visitLdcInsn(varName);
-            mv.visitMethodInsn(INVOKEVIRTUAL, ENVIRONMENT_CLASS, "getVariable", "(Ljava/lang/String;)Ljava/lang/Object;");
+            mv.visitMethodInsn(INVOKEVIRTUAL, ENVIRONMENT, "getVariable", "(Ljava/lang/String;)Ljava/lang/Object;");
             mv.visitVarInsn(ASTORE, varIndex);
         }
     }
@@ -52,7 +52,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
             case FLOWER:
                 mv.visitVarInsn(ALOAD, 0);
                 mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
-                mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "callbackToList", "(L"+QUERY_CALLBACK+";)L"+LIST_CLASS+";");
+                mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "callbackToList", "(L" + CALLBACK + ";)L" + LIST_INTERFACE + ";");
                 mv.visitVarInsn(ASTORE, LOCAL_CALLBACK_INDEX);
                 return visitFlower(expr, LOCAL_CALLBACK_INDEX, -1);
             default:
@@ -66,7 +66,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
                 mv.visitLabel(callback);
                 mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
                 mv.visitInsn(SWAP);
-                mv.visitMethodInsn(INVOKEINTERFACE, QUERY_CALLBACK, "call", "(Ljava/lang/Object;)V");
+                mv.visitMethodInsn(INVOKEINTERFACE, CALLBACK, "call", "(Ljava/lang/Object;)V");
                 mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
                 mv.visitLabel(end);
                 return Object.class;
@@ -235,7 +235,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
                 default:
                     throw new RuntimeException("Not Implemented!");
             }
-            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, op, "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+            mv.visitMethodInsn(INVOKESTATIC, OP, op, "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
             return Object.class;
         }
         else {
@@ -361,7 +361,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
                 default:
                     throw new RuntimeException("Not Implemented!");
             }
-            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, op, "(Ljava/lang/Object;Ljava/lang/Object;)Z");
+            mv.visitMethodInsn(INVOKESTATIC, OP, op, "(Ljava/lang/Object;Ljava/lang/Object;)Z");
             return boolean.class;
         }
         else {
@@ -414,7 +414,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
         Cons at = AST.nthAST(expr, 2);
         visitExpr(list);
         visitExpr(at);
-        mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "elementAt", "(Ljava/lang/Object;I)Ljava/lang/Object;");
+        mv.visitMethodInsn(INVOKESTATIC, OP, "elementAt", "(Ljava/lang/Object;I)Ljava/lang/Object;");
         return Object.class;
     }
 
@@ -479,7 +479,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
             mv.visitLabel(breakLabel);
         }
         mv.visitVarInsn(ALOAD, result);
-        return LIST_CLASS_TYPE;
+        return LIST_INTERFACE_CLASS;
     }
 
     private void visitForLets(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
@@ -574,14 +574,14 @@ public class TwoPassEvalAssembler  implements Opcodes {
         else {
             Label continueLabel = new Label();
             mv.visitInsn(DUP);
-            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "sizeOf", "(Ljava/lang/Object;)I");
+            mv.visitMethodInsn(INVOKESTATIC, OP, "sizeOf", "(Ljava/lang/Object;)I");
             mv.visitInsn(DUP);
             mv.visitVarInsn(ILOAD, lookingForElementAt);
             mv.visitJumpInsn(IF_ICMPLT, continueLabel);
             // we are done
             mv.visitInsn(POP);
             mv.visitVarInsn(ILOAD, lookingForElementAt);
-            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "elementAt", "(Ljava/lang/Object;I)Ljava/lang/Object;");
+            mv.visitMethodInsn(INVOKESTATIC, OP, "elementAt", "(Ljava/lang/Object;I)Ljava/lang/Object;");
             mv.visitVarInsn(ASTORE, result);
             mv.visitJumpInsn(GOTO, breakLabel);
             // try again
@@ -619,7 +619,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
             }
         }
         else {
-            mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asBool", "(Ljava/lang/Object;)Z");
+            mv.visitMethodInsn(INVOKESTATIC, OP, "asBool", "(Ljava/lang/Object;)Z");
         }
     }
 
@@ -663,7 +663,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
         int element = variable.getRef();
         Class collectionType = visitExpr(varExpr);
         Caster.cast(mv, collectionType, Object.class);
-        mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "asList", "(Ljava/lang/Object;)Ljava/lang/Iterable;");
+        mv.visitMethodInsn(INVOKESTATIC, OP, "asList", "(Ljava/lang/Object;)Ljava/lang/Iterable;");
         mv.visitMethodInsn(INVOKEINTERFACE, "java/lang/Iterable", "iterator", "()Ljava/util/Iterator;");
         mv.visitVarInsn(ASTORE, iterator);
 
@@ -827,7 +827,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
         String xpath = ((Element) expr.third()).getToken().text;
         pushConst(xpath);
         // TODO: use the XML_INTERFACE method invoke
-        mv.visitMethodInsn(INVOKESTATIC, RUNTIME_OP, "xpath", "(L"+XML_INTERFACE+";Ljava/lang/String;)L"+XML_INTERFACE+";");
+        mv.visitMethodInsn(INVOKESTATIC, OP, "xpath", "(L"+XML_INTERFACE+";Ljava/lang/String;)L"+XML_INTERFACE+";");
         return AST.getEvalType(expr);
     }
 
@@ -920,12 +920,12 @@ public class TwoPassEvalAssembler  implements Opcodes {
     }
 
     private Class newList() {
-        newObject(QUERY_LIST);
-        return LIST_CLASS_TYPE;
+        newObject(LIST_IMPLEMENTATION);
+        return LIST_INTERFACE_CLASS;
     }
 
     private void pushToList() {
-        mv.visitMethodInsn(INVOKEINTERFACE, MUTABLE_LIST_CLASS, "add", "(Ljava/lang/Object;)V");
+        mv.visitMethodInsn(INVOKEINTERFACE, MUTABLE_LIST, "add", "(Ljava/lang/Object;)V");
     }
 
     private int defineAnonymous() {

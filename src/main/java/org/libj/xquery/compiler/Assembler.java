@@ -28,13 +28,13 @@ public class Assembler implements Opcodes {
     }
 
     public Assembler(String className, Cons ast) {
-        this(className, ast, new DefaultRootNamespace(), DEFAUL_XML_FACTORY_IMPLEMENTATION);
+        this(className, ast, new DefaultRootNamespace(), DEFAUL_XML_FACTORY_IMPLEMENTATION_CLASS);
     }
 
     private void visitClass() {
         cw.visit(V1_5, ACC_PUBLIC + ACC_SUPER, compiledClassName, null,
                 SUPER_CLASS,
-                new String[]{QUERY_BASE});
+                new String[]{QUERY_BASE_CLASS});
         visitInit();
         visitFactory();
 //        visitNamespaces();
@@ -47,38 +47,38 @@ public class Assembler implements Opcodes {
     }
 
     private void visitFactory() {
-        FieldVisitor fv = cw.visitField(ACC_PRIVATE, "xmlFactory", "L"+XML_FACTORY_INTERFACE+";", null, null);
+        FieldVisitor fv = cw.visitField(ACC_PRIVATE, "xmlFactory", "L"+ XML_FACTORY +";", null, null);
         fv.visitEnd();
 
         mv = cw.visitMethod(ACC_PRIVATE, "toXML", "(Ljava/lang/String;)L"+ XML_INTERFACE +";", null, null);
         mv.visitCode();
         // if xmlFactory == null
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, compiledClassName, "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
+        mv.visitFieldInsn(GETFIELD, compiledClassName, "xmlFactory", "L"+ XML_FACTORY +";");
         Label endIf = new Label();
         mv.visitJumpInsn(IFNONNULL, endIf);
         // init xmlFactory
         mv.visitVarInsn(ALOAD, 0);
         newObject(XML_FACTORY_IMPLEMENTATION);
-        mv.visitFieldInsn(PUTFIELD, compiledClassName, "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
+        mv.visitFieldInsn(PUTFIELD, compiledClassName, "xmlFactory", "L"+ XML_FACTORY +";");
         // register namespaces
         for (Object declare: Cons.rest(AST.nthAST(ast, 1))) {
             if (AST.getNodeType(AST.nthAST(((Cons) declare), 1)) == NAMESPACE) {
                 String alias = AST.getNodeText(AST.nthAST(((Cons) declare), 2));
                 String uri = AST.getNodeText(AST.nthAST(((Cons) declare), 3));
                 mv.visitVarInsn(ALOAD, 0);
-                mv.visitFieldInsn(GETFIELD, compiledClassName, "xmlFactory", "L"+XML_FACTORY_INTERFACE+";");
+                mv.visitFieldInsn(GETFIELD, compiledClassName, "xmlFactory", "L"+ XML_FACTORY +";");
                 pushConst(alias);
                 pushConst(uri);
-                mv.visitMethodInsn(INVOKEINTERFACE, XML_FACTORY_INTERFACE, "registerNamespace", "(Ljava/lang/String;Ljava/lang/String;)V");
+                mv.visitMethodInsn(INVOKEINTERFACE, XML_FACTORY, "registerNamespace", "(Ljava/lang/String;Ljava/lang/String;)V");
             }
         }
         mv.visitLabel(endIf);
         // enf if
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitFieldInsn(GETFIELD, compiledClassName, "xmlFactory", "L" + XML_FACTORY_INTERFACE + ";");
+        mv.visitFieldInsn(GETFIELD, compiledClassName, "xmlFactory", "L" + XML_FACTORY + ";");
         mv.visitVarInsn(ALOAD, 1);
-        mv.visitMethodInsn(INVOKEINTERFACE, XML_FACTORY_INTERFACE, "toXML", "(Ljava/lang/String;)L" + XML_INTERFACE + ";");
+        mv.visitMethodInsn(INVOKEINTERFACE, XML_FACTORY, "toXML", "(Ljava/lang/String;)L" + XML_INTERFACE + ";");
         mv.visitInsn(ARETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
@@ -123,7 +123,7 @@ public class Assembler implements Opcodes {
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
         mv.visitInsn(ACONST_NULL);
-        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L" + ENVIRONMENT_CLASS + ";)Ljava/lang/Object;");
+        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L" + ENVIRONMENT + ";)Ljava/lang/Object;");
         mv.visitInsn(ARETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
@@ -133,7 +133,7 @@ public class Assembler implements Opcodes {
     //////////////////////////////////////////////////
 
     private void visitEvalWithEnvironmentCallback() {
-        mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ENVIRONMENT_CLASS+";L"+QUERY_CALLBACK+";)Ljava/lang/Object;", null, null);
+        mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ ENVIRONMENT +";L"+ CALLBACK +";)Ljava/lang/Object;", null, null);
         mv.visitCode();
         Class returnType = visitAST();
         if (returnType.isPrimitive()) {
@@ -192,12 +192,12 @@ public class Assembler implements Opcodes {
     /// eval(Environment)
     //////////////////////////////////////////////////
     private void visitEvalWithEnvironment() {
-        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ENVIRONMENT_CLASS+";)Ljava/lang/Object;", null, null);
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ ENVIRONMENT +";)Ljava/lang/Object;", null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
         mv.visitVarInsn(ALOAD, 1);
         mv.visitInsn(ACONST_NULL);
-        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L" + ENVIRONMENT_CLASS + ";L" + QUERY_CALLBACK + ";)Ljava/lang/Object;");
+        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L" + ENVIRONMENT + ";L" + CALLBACK + ";)Ljava/lang/Object;");
         mv.visitInsn(ARETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
@@ -208,12 +208,12 @@ public class Assembler implements Opcodes {
     /// eval(Callback)
     //////////////////////////////////////////////////
     private void visitEvalCallback() {
-        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+QUERY_CALLBACK+";)V", null, null);
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ CALLBACK +";)V", null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
         mv.visitInsn(ACONST_NULL);
         mv.visitVarInsn(ALOAD, 1);
-        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L" + ENVIRONMENT_CLASS + ";L" + QUERY_CALLBACK + ";)Ljava/lang/Object;");
+        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L" + ENVIRONMENT + ";L" + CALLBACK + ";)Ljava/lang/Object;");
 //        mv.visitInsn(POP);
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);
@@ -224,7 +224,7 @@ public class Assembler implements Opcodes {
     /// List callbackToList(Callback)
     //////////////////////////////////////////////////
     private void visitCallbackToList() {
-        MethodVisitor mv = cw.visitMethod(ACC_PRIVATE, "callbackToList", "(L"+QUERY_CALLBACK+";)L"+LIST_CLASS+";", null, null);
+        MethodVisitor mv = cw.visitMethod(ACC_PRIVATE, "callbackToList", "(L"+ CALLBACK +";)L"+ LIST_INTERFACE +";", null, null);
         mv.visitCode();
         /*
         if (callback == null) {
@@ -239,13 +239,13 @@ public class Assembler implements Opcodes {
         Label notList = new Label();
         mv.visitVarInsn(ALOAD, 1);
         mv.visitJumpInsn(IFNONNULL, notNull);
-        mv.visitTypeInsn(NEW, QUERY_LIST);
+        mv.visitTypeInsn(NEW, LIST_IMPLEMENTATION);
         mv.visitInsn(DUP);
-        mv.visitMethodInsn(INVOKESPECIAL, QUERY_LIST, "<init>", "()V");
+        mv.visitMethodInsn(INVOKESPECIAL, LIST_IMPLEMENTATION, "<init>", "()V");
         mv.visitInsn(ARETURN);
         mv.visitLabel(notNull);
         mv.visitVarInsn(ALOAD, 1);
-        mv.visitTypeInsn(INSTANCEOF, LIST_CLASS);
+        mv.visitTypeInsn(INSTANCEOF, LIST_INTERFACE);
         mv.visitJumpInsn(IFEQ, notList);
         mv.visitVarInsn(ALOAD, 1);
         mv.visitInsn(ARETURN);
@@ -253,7 +253,7 @@ public class Assembler implements Opcodes {
         mv.visitTypeInsn(NEW, CALLBACK_LIST);
         mv.visitInsn(DUP);
         mv.visitVarInsn(ALOAD, 1);
-        mv.visitMethodInsn(INVOKESPECIAL, CALLBACK_LIST, "<init>", "(L"+QUERY_CALLBACK+";)V");
+        mv.visitMethodInsn(INVOKESPECIAL, CALLBACK_LIST, "<init>", "(L"+ CALLBACK +";)V");
         mv.visitInsn(ACONST_NULL);
         mv.visitInsn(ARETURN);
         mv.visitMaxs(0, 0);
