@@ -24,7 +24,7 @@ public class LL1Reader {
             consume();
         }
         else {
-            throw new LexerException("Expecting " + x + "; found " + c);
+            throw new LexerException(String.format("Expecting '%s'; found '%s' (%s)", x, (char)c, c));
         }
     }
 }

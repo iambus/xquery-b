@@ -51,16 +51,16 @@ public class XPathLexer {
             switch (reader.c) {
                 case '\'':
                     readSingleString();
-                    break;
+                    continue;
                 case '\"':
                     readDoubleString();
-                    break;
+                    continue;
                 case '[':
                     readBracket();
-                    break;
+                    continue;
                 case '(':
                     readParen();
-                    break;
+                    continue;
                 case ']':
                 case ')':
                     return;
