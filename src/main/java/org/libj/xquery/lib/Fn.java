@@ -93,6 +93,29 @@ public class Fn {
 
 
     //////////////////////////////////////////////////
+    /// number
+    //////////////////////////////////////////////////
+
+    @Function
+    public static double number(Object v) {
+        if (v instanceof XML) {
+            return Double.parseDouble(((XML) v).text());
+        }
+        else if (v instanceof String) {
+            return Double.parseDouble((String) v);
+        }
+        else if (v instanceof Double) {
+            return (Double)v;
+        }
+        else if (v instanceof Integer) {
+            return (Integer)v;
+        }
+        else {
+            throw new RuntimeException("Can't cast "+v+" to number");
+        }
+    }
+
+    //////////////////////////////////////////////////
     /// ...
     //////////////////////////////////////////////////
 }
