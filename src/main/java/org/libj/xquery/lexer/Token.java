@@ -20,4 +20,11 @@ public class Token {
         return t(type, null);
     }
 
+    public boolean equals(Object other) {
+        if (other == null || !(other instanceof Token)) {
+            return false;
+        }
+        Token t = (Token) other;
+        return type == t.type && text.equals(t.text);
+    }
 }
