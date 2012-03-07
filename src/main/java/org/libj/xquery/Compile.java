@@ -22,28 +22,28 @@ public class Compile {
         return new Compiler().compileToAST(path);
     }
 
-    public static byte[] compileToByteArray(Cons ast, String className) {
-        return new Compiler().compileToByteArray(ast, className);
+    public static byte[] compileToByteArray(Cons ast, String className, String...vars) {
+        return new Compiler().compileToByteArray(ast, className, vars);
     }
 
-    public static void compileToFile(Cons ast, String className, File path) {
-        new Compiler().compileToFile(ast, className, path);
+    public static void compileToFile(Cons ast, String className, File path, String...vars) {
+        new Compiler().compileToFile(ast, className, path, vars);
     }
 
-    public static Class compileToClass(Cons ast, String className) {
-        return new Compiler().compileToClass(ast, className);
+    public static Class compileToClass(Cons ast, String className, String...vars) {
+        return new Compiler().compileToClass(ast, className, vars);
     }
 
-    public static XQuery compileToXQuery(Cons ast, String className) {
-        return new Compiler().compileToXQuery(ast, className);
+    public static XQuery compileToXQuery(Cons ast, String className, String...vars) {
+        return new Compiler().compileToXQuery(ast, className, vars);
     }
 
     public static XQuery compileToXQuery(Cons ast) {
         return new Compiler().compileToXQuery(ast);
     }
 
-    public static XQuery compile(String xquery) {
-        return new Compiler().compile(xquery);
+    public static XQuery compile(String xquery, String...vars) {
+        return new Compiler().compile(xquery, vars);
     }
 
     public static Object eval(String xquery) {

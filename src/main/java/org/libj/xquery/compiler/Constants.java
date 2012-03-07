@@ -3,6 +3,7 @@ package org.libj.xquery.compiler;
 import org.libj.xquery.Callback;
 import org.libj.xquery.Environment;
 import org.libj.xquery.XQuery;
+import org.libj.xquery.XQueryBase;
 import org.libj.xquery.lib.Fn;
 import org.libj.xquery.runtime.*;
 import org.libj.xquery.xml.XML;
@@ -14,10 +15,12 @@ public class Constants {
         return c.getName().replace('.', '/');
     }
 
-    public static final String QUERY_BASE_CLASS = classToSignature(XQuery.class);
-//    public static final String QUERY_BASE_CLASS = classToSignature(XQueryBase.class);
-    public static final String SUPER_CLASS = classToSignature(Object.class);
-//    public static final String SUPER_CLASS = classToSignature(XQueryBase.class);
+//    public static final String QUERY_BASE_CLASS = classToSignature(XQuery.class);
+    public static final String QUERY_BASE_CLASS = classToSignature(XQueryBase.class);
+//    public static final String[] QUERY_INTERFACE_CLASS = new String[]{QUERY_BASE_CLASS};
+    public static final String[] QUERY_INTERFACE_CLASS = new String[]{};
+//    public static final String SUPER_CLASS = classToSignature(Object.class);
+    public static final String SUPER_CLASS = classToSignature(XQueryBase.class);
 
     public static final Class LIST_INTERFACE_CLASS = List.class;
     public static final String LIST_INTERFACE = classToSignature(LIST_INTERFACE_CLASS);
@@ -41,8 +44,7 @@ public class Constants {
 //    public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION_CLASS = StringXMLFactory.class;
     public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION_CLASS = StringNamespaceXMLFactory.class;
 
-    public static final int LOCAL_ENV_INDEX = 1;
-    public static final int LOCAL_CALLBACK_INDEX = 2;
-    public static final int LOCAL_TEMP_INDEX = 3;
-    public static final int LOCAL_VAR_START = 5;
+    public static final int LOCAL_CALLBACK_INDEX = 1;
+    public static final int LOCAL_ENV_INDEX = 2;
+    public static final int LOCAL_VAR_START = 3;
 }

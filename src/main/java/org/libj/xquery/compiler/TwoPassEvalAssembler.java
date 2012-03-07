@@ -20,15 +20,17 @@ public class TwoPassEvalAssembler  implements Opcodes {
     private MethodVisitor mv;
     private int locals;
     private Map<String, Symbol> freeVariables;
+    private String[] vars;
 
-    public TwoPassEvalAssembler(MethodVisitor mv, String compiledClassName, Namespace namespace) {
+    public TwoPassEvalAssembler(MethodVisitor mv, String compiledClassName, String[] vars, Namespace namespace) {
         this.compiledClassName = compiledClassName;
+        this.vars = vars;
         this.namespace = namespace;
         this.mv = mv;
     }
 
     public Class visit(Cons ast) {
-        Walker walker = new Walker(ast, namespace);
+        Walker walker = new Walker(ast, vars, namespace);
         ast = walker.walk();
         locals = walker.getLocals();
         freeVariables = walker.getFreeVariables();
@@ -52,7 +54,8 @@ public class TwoPassEvalAssembler  implements Opcodes {
             case FLOWER:
                 mv.visitVarInsn(ALOAD, 0);
                 mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
-                mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "callbackToList", "(L" + CALLBACK + ";)L" + LIST_INTERFACE + ";");
+//                mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "callbackToList", "(L" + CALLBACK + ";)L" + LIST_INTERFACE + ";");
+                mv.visitMethodInsn(INVOKESTATIC, QUERY_BASE_CLASS, "callbackToList", "(L" + CALLBACK + ";)L" + LIST_INTERFACE + ";");
                 mv.visitVarInsn(ASTORE, LOCAL_CALLBACK_INDEX);
                 return visitFlower(expr, LOCAL_CALLBACK_INDEX, -1);
             default:

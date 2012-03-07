@@ -130,21 +130,21 @@ public class Asserts {
         System.out.println("----------------------------------------");
         System.out.println("It takes "+ms+" ms to execute this script: " + breakLine(script));
     }
-    private static void logTime(String script, long ms, long loop) {
+    public static void logTime(String script, long ms, long loop) {
         System.out.println("----------------------------------------");
         System.out.println(String.format("It takes %s ms to execute this script (loop %s): %s", ms, number(loop), breakLine(script)));
     }
-    private static void logSpeed(long n, long ms) {
+    public static void logSpeed(long n, long ms) {
         long perCall = ms/n;
         long perSecond = 1000*n/ms;
         System.out.println("Average execution time: "+perCall+ " ms");
         System.out.println("Speed: "+number(perSecond)+ " /s");
     }
-    private static String number(long n) {
+    public static String number(long n) {
         NumberFormat format = NumberFormat.getIntegerInstance(Locale.US);
         return format.format(n);
     }
-    private static String breakLine(String script) {
+    public static String breakLine(String script) {
         boolean multiline = script.indexOf('\n') == -1;
         return (multiline ? "" : "\n") + script;
     }

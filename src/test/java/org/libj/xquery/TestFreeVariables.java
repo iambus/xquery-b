@@ -2,6 +2,7 @@ package org.libj.xquery;
 
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.libj.xquery.Asserts.*;
 
 public class TestFreeVariables {
@@ -12,7 +13,7 @@ public class TestFreeVariables {
         env.putVariable("s", "abc");
     }
     @Test
-    public void testSimple() {
+    public void testDynamicFreeVariables() {
         assertEval("$i", 1, env);
         assertEval("$j", 7, env);
         assertEval("$i + 3", 4, env);
@@ -20,6 +21,15 @@ public class TestFreeVariables {
         assertEval("$s", "abc", env);
         assertEvalString("<x>{$s}</x>", "<x>abc</x>", env);
         assertEvalString("<x>{$i}{$j}</x>", "<x>17</x>", env);
+    }
+    @Test
+    public void testStaticVariables() {
+        XQuery q = Compile.compile("$x + $y", "x", "y");
+        assertEquals(q.eval(1, 3), 4);
+        Environment env = new Environment();
+        env.putVariable("x", 1);
+        env.putVariable("y", 3);
+        assertEquals(q.eval(env), 4);
     }
     @Test
     public void testOverride() {

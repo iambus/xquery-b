@@ -15,16 +15,19 @@ import java.util.Map;
 
 public class Walker {
     private Cons ast;
-    private ArrayList<Symbol> symbols = new ArrayList<Symbol>();
     private Scope scope = new Scope();
     private Scope freeScope = new Scope();
     private Namespace namespace;
 
     private int locals = LOCAL_VAR_START; // index 2 is used as temporary double variable
 
-    public Walker(Cons tree, Namespace namespace) {
+    public Walker(Cons tree, String[] vars, Namespace namespace) {
         ast = tree;
         this.namespace = namespace;
+        for (String var: vars) {
+            Symbol sym = new Symbol("$"+var, locals++, Object.class);
+            scope.define(sym);
+        }
     }
 
     public int getLocals() {
@@ -578,7 +581,6 @@ public class Walker {
         }
         Symbol sym = new Symbol(name, index, type);
         scope.define(sym);
-        symbols.add(sym);
         return index;
     }
 
@@ -587,7 +589,6 @@ public class Walker {
         locals += 2;
         Symbol sym = new Symbol(name, index);
         freeScope.define(sym);
-        symbols.add(sym);
         return index;
     }
 

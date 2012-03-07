@@ -63,14 +63,17 @@ public class Compiler {
 
     // generate bytecode
 
-    public byte[] compileToByteArray(Cons ast, String className) {
-        Assembler assembler = new Assembler(className, ast, new LocalNamespace(namespace), xmlFactory);
+    public byte[] compileToByteArray(Cons ast, String className, String...vars) {
+        if (className == null || className.isEmpty()) {
+            className = randomClassName();
+        }
+        Assembler assembler = new Assembler(className, ast, vars, new LocalNamespace(namespace), xmlFactory);
         return assembler.toByteArray();
     }
 
-    public void compileToFile(Cons ast, String className, File path) {
+    public void compileToFile(Cons ast, String className, File path, String...vars) {
         try {
-            byte[] bytes = compileToByteArray(ast, className);
+            byte[] bytes = compileToByteArray(ast, className, vars);
             FileOutputStream output = new FileOutputStream(path);
             try {
                 output.write(bytes);
@@ -82,12 +85,15 @@ public class Compiler {
         }
     }
 
-    public Class compileToClass(Cons ast, String className) {
-        return loader.define(className, compileToByteArray(ast, className));
+    public Class compileToClass(Cons ast, String className, String...vars) {
+        if (className == null || className.isEmpty()) {
+            className = randomClassName();
+        }
+        return loader.define(className, compileToByteArray(ast, className, vars));
     }
 
-    public XQuery compileToXQuery(Cons ast, String className) {
-        Class c = compileToClass(ast, className);
+    public XQuery compileToXQuery(Cons ast, String className, String...vars) {
+        Class c = compileToClass(ast, className, vars);
         try {
             return (XQuery)c.newInstance();
         } catch (InstantiationException e) {
@@ -103,8 +109,8 @@ public class Compiler {
 
     // one step
 
-    public XQuery compile(String xquery) {
-        return compileToXQuery(compileToAST(xquery));
+    public XQuery compile(String xquery, String...vars) {
+        return compileToXQuery(compileToAST(xquery), null, vars);
     }
 
     public Object eval(String xquery) {

@@ -13,36 +13,54 @@ public class Assembler implements Opcodes {
     private Cons ast;
     private ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
     private String compiledClassName;
+    private String[] vars;
+    private final String evalMainMethodName = "eval_";
+    private final String evalMainMethodSignature;
+    private final String evalMethodSignature;
+    private final String evalCallbackMethodSignature;
 
     private Namespace namespace;
     private final String XML_FACTORY_IMPLEMENTATION;
 
     private MethodVisitor mv;
 
-    public Assembler(String className, Cons ast, Namespace root, Class xmlFactory) {
+    public Assembler(String className, Cons ast, String[] vars, Namespace root, Class xmlFactory) {
         this.compiledClassName = className.replace('.', '/');
         this.ast = ast;
+        this.vars = vars != null ? vars : new String[0];
         this.namespace = root;
         XML_FACTORY_IMPLEMENTATION = xmlFactory.getName().replace('.', '/');
+        String varSignature = "";
+        for (int i = 0; i < vars.length; i++) {
+            varSignature += "Ljava/lang/Object;";
+        }
+        evalMainMethodSignature = "(L"+CALLBACK+";L"+ENVIRONMENT+";"+varSignature+")Ljava/lang/Object;";
+        evalMethodSignature = "("+varSignature+")Ljava/lang/Object;";
+        evalCallbackMethodSignature = "(L"+CALLBACK+";"+varSignature+")V";
         visitClass();
     }
 
+    public Assembler(String className, Cons ast, String[] vars) {
+        this(className, ast, vars, new DefaultRootNamespace(), DEFAUL_XML_FACTORY_IMPLEMENTATION_CLASS);
+    }
+
     public Assembler(String className, Cons ast) {
-        this(className, ast, new DefaultRootNamespace(), DEFAUL_XML_FACTORY_IMPLEMENTATION_CLASS);
+        this(className, ast, null);
     }
 
     private void visitClass() {
         cw.visit(V1_5, ACC_PUBLIC + ACC_SUPER, compiledClassName, null,
                 SUPER_CLASS,
-                new String[]{QUERY_BASE_CLASS});
+                QUERY_INTERFACE_CLASS);
         visitInit();
         visitFactory();
 //        visitNamespaces();
-        visitEvalWithEnvironmentCallback();
+        visitEvalMain();
         visitEvalWithEnvironment();
         visitEval();
         visitEvalCallback();
-        visitCallbackToList();
+        visitEvalCallbackEnvironment();
+//        visitCallbackToList();
         cw.visitEnd();
     }
 
@@ -115,25 +133,12 @@ public class Assembler implements Opcodes {
     }
 
     //////////////////////////////////////////////////
-    /// eval
+    /// eval(Callback, Environment, ...)
     //////////////////////////////////////////////////
 
-    private void visitEval() {
-        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", "()Ljava/lang/Object;", null, null);
-        mv.visitCode();
-        mv.visitVarInsn(ALOAD, 0);
-        mv.visitInsn(ACONST_NULL);
-        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L" + ENVIRONMENT + ";)Ljava/lang/Object;");
-        mv.visitInsn(ARETURN);
-        mv.visitMaxs(0, 0);
-        mv.visitEnd();
-    }
-    //////////////////////////////////////////////////
-    /// eval(Environment)
-    //////////////////////////////////////////////////
-
-    private void visitEvalWithEnvironmentCallback() {
-        mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ ENVIRONMENT +";L"+ CALLBACK +";)Ljava/lang/Object;", null, null);
+    private void visitEvalMain() {
+//        mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ ENVIRONMENT +";L"+ CALLBACK +";)Ljava/lang/Object;", null, null);
+        mv = cw.visitMethod(ACC_PRIVATE, evalMainMethodName, evalMainMethodSignature, null, null);
         mv.visitCode();
         Class returnType = visitAST();
         if (returnType.isPrimitive()) {
@@ -158,7 +163,7 @@ public class Assembler implements Opcodes {
         Cons code = AST.nthAST(ast, 2);
         visitDeclares(declares);
 //        return new OnePassEvalAssembler(mv, compiledClassName, namespace).visit(code);
-        return new TwoPassEvalAssembler(mv, compiledClassName, namespace).visit(code);
+        return new TwoPassEvalAssembler(mv, compiledClassName, vars, namespace).visit(code);
     }
 
     private void visitDeclares(Cons declares) {
@@ -195,10 +200,54 @@ public class Assembler implements Opcodes {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ ENVIRONMENT +";)Ljava/lang/Object;", null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitVarInsn(ALOAD, 1);
-        mv.visitInsn(ACONST_NULL);
-        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L" + ENVIRONMENT + ";L" + CALLBACK + ";)Ljava/lang/Object;");
+        mv.visitInsn(ACONST_NULL); // callback
+        mv.visitVarInsn(ALOAD, 1); // environment
+        for (int i = 0; i < vars.length; i++) {
+            mv.visitVarInsn(ALOAD, 1);
+            mv.visitLdcInsn("$"+vars[i]);
+            mv.visitMethodInsn(INVOKEVIRTUAL, ENVIRONMENT, "getVariable", "(Ljava/lang/String;)Ljava/lang/Object;");
+        }
+        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, evalMainMethodName, evalMainMethodSignature);
         mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+
+
+    //////////////////////////////////////////////////
+    /// eval
+    //////////////////////////////////////////////////
+
+    private void visitEval() {
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", evalMethodSignature, null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitInsn(ACONST_NULL);
+        mv.visitInsn(ACONST_NULL);
+        for (int i = 0; i < vars.length; i++) {
+            mv.visitVarInsn(ALOAD, i+1);
+        }
+        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, evalMainMethodName, evalMainMethodSignature);
+        mv.visitInsn(ARETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+
+    //////////////////////////////////////////////////
+    /// eval(Callback)
+    //////////////////////////////////////////////////
+    private void visitEvalCallback() {
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", evalCallbackMethodSignature, null, null);
+        mv.visitCode();
+        mv.visitVarInsn(ALOAD, 0);
+        mv.visitVarInsn(ALOAD, 1); // callback
+        mv.visitInsn(ACONST_NULL); // env
+        for (int i = 0; i < vars.length; i++) {
+            mv.visitVarInsn(ALOAD, i+2);
+        }
+        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, evalMainMethodName, evalMainMethodSignature);
+//        mv.visitInsn(POP);
+        mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);
         mv.visitEnd();
     }
@@ -207,13 +256,18 @@ public class Assembler implements Opcodes {
     //////////////////////////////////////////////////
     /// eval(Callback)
     //////////////////////////////////////////////////
-    private void visitEvalCallback() {
-        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ CALLBACK +";)V", null, null);
+    private void visitEvalCallbackEnvironment() {
+        MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ CALLBACK +";L"+ ENVIRONMENT +";)V", null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitInsn(ACONST_NULL);
-        mv.visitVarInsn(ALOAD, 1);
-        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "eval", "(L" + ENVIRONMENT + ";L" + CALLBACK + ";)Ljava/lang/Object;");
+        mv.visitVarInsn(ALOAD, 1); // callback
+        mv.visitVarInsn(ALOAD, 2); // environment
+        for (int i = 0; i < vars.length; i++) {
+            mv.visitVarInsn(ALOAD, 2);
+            mv.visitLdcInsn("$"+vars[i]);
+            mv.visitMethodInsn(INVOKEVIRTUAL, ENVIRONMENT, "getVariable", "(Ljava/lang/String;)Ljava/lang/Object;");
+        }
+        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, evalMainMethodName, evalMainMethodSignature);
 //        mv.visitInsn(POP);
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);
