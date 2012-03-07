@@ -9,7 +9,10 @@ public class TestBasicPerformance {
     public void testLiteral() {
         assertRepeatedEvalPerSecond(" 1 ", 1000*1000*1000);
         assertRepeatedEvalPerSecond(" 's' ", 1000*1000*1000);
-        assertRepeatedEvalPerSecond(" <x/> ", 1000*1000*100);
+    }
+    @Test
+    public void testLiteralXML() {
+        assertRepeatedEvalPerSecond(" <x/> ", 1000*1000*1000);
     }
     @Test
     public void testArithmeticExpression() {
