@@ -95,6 +95,9 @@ public class TestExpressions {
         assertEvalString("(1, 2, 3)", "1 2 3");
         assertEvalString("(1,2, 3, (4,5,6), <x/>, <x>2</x>)", "1 2 3 4 5 6<x/><x>2</x>");
         assertEvalString("(10*100-2 to 10*100)", "998 999 1000");
+        assertEvalString("(1+1,1+2)", "2 3");
+        assertEvalString("((1)[1],(2)[1])", "1 2");
+        assertEvalString("let $list := (1 to 3) return ($list[1],$list[3])", "1 3");
     }
     @Test
     public void testFor() {

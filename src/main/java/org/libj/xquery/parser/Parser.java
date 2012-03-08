@@ -189,11 +189,11 @@ public class Parser extends LLkParser {
         ast = Cons.append(ast, expr());
         while (LA(1) == COMMA) {
             match(COMMA);
-            ast = Cons.append(ast, primary());
+            ast = Cons.append(ast, expr());
         }
         match(RPAREN);
         if (ast.size() == 2) {
-            return (Cons) AST.nthAST(ast, 1);
+            return AST.nthAST(ast, 1);
         }
         else {
             return ast;
