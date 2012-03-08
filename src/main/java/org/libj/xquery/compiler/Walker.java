@@ -156,8 +156,16 @@ public class Walker {
     private Cons walkXPath(Cons expr) {
         expr = assocType(expr, XML_INTERFACE_Class);
         TypedElement t = new TypedElement((Element) expr.first(), XML_INTERFACE_Class);
-        Cons var = castTo(walkVariable(list(expr.second())), XML_INTERFACE_Class);
-        return list(t, var, expr.third());
+        Cons xml = castTo(walkExpr((Cons) expr.second()), XML_INTERFACE_Class);
+        String path = ((Element)expr.third()).getToken().text;
+        String ns = null;
+        int i = path.indexOf(':');
+        if (i != -1) {
+            String prefix = path.substring(0, i);
+            ns = ((URI)namespace.lookup(prefix)).getUri();
+            path = path.substring(i+1);
+        }
+        return list(t, xml, path, ns);
     }
 
     private Cons walkIndex(Cons expr) {

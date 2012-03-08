@@ -101,7 +101,7 @@ public class Lexer extends LL1Reader {
                     return t(MULTIPLY, "*");
                 case '/':
                     consume();
-                    return t(DIV, "/");
+                    return t(XPATH, "/");
                 case '=':
                     consume();
                     return t(EQ, "=");
@@ -124,7 +124,7 @@ public class Lexer extends LL1Reader {
                 case '"':
                     return readDoubleString();
                 case '$':
-                    return readXPath();
+                    return readVariable();
                 case '<':
                     return readTag();
                 case '>':
@@ -179,6 +179,7 @@ public class Lexer extends LL1Reader {
         }
         return t(TEXT, buffer.toString());
     }
+
     private Token readWord() throws IOException {
         StringBuilder builder = new StringBuilder();
         do {
@@ -269,14 +270,20 @@ public class Lexer extends LL1Reader {
         return t(STRING, builder.toString());
     }
 
-    private Token readXPath() throws IOException {
-        String xpath = new XPathLexer(this).getXPath();
-        if (xpath.indexOf('/') == -1) {
-            return t(VARIABLE, xpath);
+    private Token readVariable() throws IOException {
+        StringBuilder builder = new StringBuilder();
+        builder.append((char)c);
+        consume();
+        if (!isWordStart()) {
+            throw new LexerException("Invalid variable name start: "+(char)c);
         }
-        else {
-            return t(XPATH, xpath);
+        builder.append((char)c);
+        consume();
+        while (isWordPart()) {
+            builder.append((char)c);
+            consume();
         }
+        return t(VARIABLE, builder.toString());
     }
 
     private Token readTag() throws IOException {

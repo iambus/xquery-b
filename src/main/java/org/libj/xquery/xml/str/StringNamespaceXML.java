@@ -93,6 +93,25 @@ public class StringNamespaceXML extends StringXML {
             namespace = xpathNamespaces.get(prefix);
         }
 
+        return getElementByTagNameNS(namespace, tag);
+    }
+
+    public Object getElementsByTagNameNS(String namespaceURI, String localName) {
+        if (xmlNamespaces == null) {
+            int i = start + 1;
+            while (isTagChar(xml.charAt(i)) || xml.charAt(i) == ':') {
+                i++;
+            }
+            xmlNamespaces = parseNamespace(i);
+        }
+        XML result = getElementByTagNameNS(namespaceURI, localName);
+        if (result == null) {
+            result = NilXML.NIL;
+        }
+        return result;
+    }
+
+    private StringNamespaceXML getElementByTagNameNS(String namespace, String tag) {
         int i = start;
         int max = xml.length();
         int tagmax = tag.length();

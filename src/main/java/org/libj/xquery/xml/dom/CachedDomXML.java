@@ -49,6 +49,10 @@ public class CachedDomXML implements XML {
         }
     }
 
+    public Object getElementsByTagNameNS(String namespaceURI, String localName) {
+        throw new UnsupportedOperationException("getElementsByTagNameNS");
+    }
+
     private void initNode() {
         if (doc == null) {
             try {

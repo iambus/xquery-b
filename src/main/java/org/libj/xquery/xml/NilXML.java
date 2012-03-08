@@ -6,6 +6,10 @@ public class NilXML implements XML {
         return this;
     }
 
+    public Object getElementsByTagNameNS(String namespaceURI, String localName) {
+        return this;
+    }
+
     public String text() {
         return "";
     }

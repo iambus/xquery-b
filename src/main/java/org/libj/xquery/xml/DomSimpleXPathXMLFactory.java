@@ -58,6 +58,10 @@ public class DomSimpleXPathXMLFactory implements XMLFactory {
             }
         }
 
+        public Object getElementsByTagNameNS(String namespaceURI, String localName) {
+            throw new UnsupportedOperationException("getElementsByTagNameNS");
+        }
+
         private void initNode() {
             if (node == null) {
 //                        doc = XMLUtils.doc(xml);

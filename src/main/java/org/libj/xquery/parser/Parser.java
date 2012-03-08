@@ -29,8 +29,6 @@ public class Parser extends LLkParser {
                 return string();
             case VARIABLE:
                 return variable();
-            case XPATH:
-                return xpath();
             case LPAREN:
                 return list();
             case LBRACK:
@@ -123,7 +121,7 @@ public class Parser extends LLkParser {
     }
 
     private Cons value() throws IOException {
-        Cons ast = primary();
+        Cons ast = xpath();
         while (LA(1) == LBRACKET) {
             match(LBRACKET);
             Cons index = add();
@@ -242,14 +240,13 @@ public class Parser extends LLkParser {
     }
 
     private Cons xpath() throws IOException {
-        String xpath = consume(XPATH).text;
-        int separator = xpath.indexOf('/');
-        if (separator <= 0) {
-            throw new RuntimeException("Invalid xpath: "+xpath);
+        Cons ast = primary();
+        while (LA(1) == XPATH) {
+            consume();
+            Element path = tokenElement(WORD, consume(WORD).text);
+            ast = Cons.list(tokenElement(XPATH, "xpath"), ast, path);
         }
-        String variable = xpath.substring(0, separator);
-        xpath = xpath.substring(separator);
-        return Cons.list(tokenElement(XPATH, "xpath"), tokenElement(VARIABLE, variable), tokenElement(STRING, xpath));
+        return ast;
     }
 
     private Cons variable() throws IOException {

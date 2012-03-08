@@ -87,7 +87,10 @@ public class Optimizer {
         else if (x instanceof Element) {
             return referenceLevel(forlets, condition.next(), currentLevel);
         }
-        throw new RuntimeException("Not Implemented!");
+        else if (x instanceof String) { // for xpath
+            return currentLevel;
+        }
+        throw new RuntimeException("Not Implemented! "+x.getClass());
     }
 
     private static int referenceLevel(Cons forlets, VariableElement variable) {

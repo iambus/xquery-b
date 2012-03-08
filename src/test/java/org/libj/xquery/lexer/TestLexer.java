@@ -11,4 +11,10 @@ public class TestLexer {
         Lexer lexer = new Lexer("$my-name");
         assertEquals(new Token(TokenType.VARIABLE, "$my-name"), lexer.nextToken());
     }
+    @Test
+    public void testXPath() throws IOException {
+        Lexer lexer = new Lexer("$x/v");
+        assertEquals(new Token(TokenType.VARIABLE, "$x"), lexer.nextToken());
+        assertEquals(new Token(TokenType.XPATH, "/"), lexer.nextToken());
+    }
 }

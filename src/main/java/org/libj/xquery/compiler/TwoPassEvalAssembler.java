@@ -827,10 +827,16 @@ public class TwoPassEvalAssembler  implements Opcodes {
 
     private Class visitXPath(Cons expr) {
         visitExpr(AST.nthAST(expr, 1));
-        String xpath = ((Element) expr.third()).getToken().text;
-        pushConst(xpath);
-        // TODO: use the XML_INTERFACE method invoke
-        mv.visitMethodInsn(INVOKESTATIC, OP, "xpath", "(L"+XML_INTERFACE+";Ljava/lang/String;)L"+XML_INTERFACE+";");
+        String path = (String) expr.third();
+        String ns = (String) expr.nth(3);
+        if (ns == null || ns.isEmpty()) {
+            mv.visitInsn(ACONST_NULL);
+        }
+        else {
+            pushConst(ns);
+        }
+        pushConst(path);
+        mv.visitMethodInsn(INVOKEINTERFACE, XML_INTERFACE, "getElementsByTagNameNS", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;");
         return AST.getEvalType(expr);
     }
 

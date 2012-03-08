@@ -21,6 +21,10 @@ public class NonCachedDomXML implements XML {
         return new NonCachedDomXML(XMLUtils.evalXPath(path, doc));
     }
 
+    public Object getElementsByTagNameNS(String namespaceURI, String localName) {
+        throw new UnsupportedOperationException("getElementsByTagNameNS");
+    }
+
     public String text() {
         return XMLUtils.text(xml);
     }

@@ -11,6 +11,10 @@ public class NoXML implements XML {
         throw new UnsupportedOperationException("eval");
     }
 
+    public Object getElementsByTagNameNS(String namespaceURI, String localName) {
+        throw new UnsupportedOperationException("getElementsByTagNameNS");
+    }
+
     public String text() {
         return XMLUtils.text(xml);
     }

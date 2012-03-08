@@ -35,6 +35,10 @@ public class StringXML implements XML {
         return new StringXML(xml, i);
     }
 
+    public Object getElementsByTagNameNS(String namespaceURI, String localName) {
+        return eval("/"+localName);
+    }
+
     public String text() {
         if (text == null) {
             text = XMLUtils.text(toString());
