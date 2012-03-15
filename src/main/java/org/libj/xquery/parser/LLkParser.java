@@ -24,10 +24,10 @@ public class LLkParser {
     public Token LT(int i) { // note: the index starts from 0
         return lookahead[(p+i-1)%k];
     }
-    public int LA(int i) {
+    public TokenType LA(int i) {
         return LT(i).type;
     }
-    public void match(int x) throws IOException {
+    public void match(TokenType x) throws IOException {
         if (LA(1) == x) {
             consume();
         }
@@ -42,7 +42,7 @@ public class LLkParser {
         p = (p+1) % k;
         return t;
     }
-    public Token consume(int x) throws IOException {
+    public Token consume(TokenType x) throws IOException {
         Token t = lookahead[p];
         match(x);
         return t;

@@ -1,6 +1,7 @@
 package org.libj.xquery.compiler;
 
 import org.libj.xquery.lexer.Token;
+import org.libj.xquery.lexer.TokenType;
 import org.libj.xquery.lisp.Cons;
 import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.*;
@@ -99,7 +100,7 @@ public class Walker {
     }
 
     private Cons walkOp(Cons expr) {
-        int type = AST.getNodeType(expr);
+        TokenType type = AST.getNodeType(expr);
         switch (type) {
             case PLUS: case MINUS: case MULTIPLY: case DIV: case MOD:
                 return walkBinaryArithmetic(expr);

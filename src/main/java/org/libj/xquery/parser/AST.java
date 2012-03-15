@@ -1,6 +1,7 @@
 package org.libj.xquery.parser;
 
 import org.libj.xquery.lexer.Token;
+import org.libj.xquery.lexer.TokenType;
 import org.libj.xquery.lisp.Cons;
 
 import static org.libj.xquery.lexer.TokenType.*;
@@ -11,7 +12,7 @@ public class AST {
         return createAST(new Element(t));
     }
 
-    public static Cons createAST(int tokenType) {
+    public static Cons createAST(TokenType tokenType) {
         return createAST(new Token(tokenType, null));
     }
 
@@ -23,7 +24,7 @@ public class AST {
         return ((Element) units.first()).getToken();
     }
 
-    public static int getNodeType(Cons units) {
+    public static TokenType getNodeType(Cons units) {
         return getToken(units).type;
     }
 

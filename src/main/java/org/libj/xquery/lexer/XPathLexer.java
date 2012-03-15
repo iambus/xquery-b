@@ -14,7 +14,7 @@ public class XPathLexer {
     }
 
     public void readXPath() throws IOException {
-        while (reader.c != EOF) {
+        while (reader.c != -1) {
             switch (reader.c) {
                 case '\'':
                     readSingleString();
@@ -47,7 +47,7 @@ public class XPathLexer {
     }
 
     public void readPart() throws IOException {
-        while (reader.c != EOF) {
+        while (reader.c != -1) {
             switch (reader.c) {
                 case '\'':
                     readSingleString();
@@ -73,7 +73,7 @@ public class XPathLexer {
 
     private void readSingleString() throws IOException {
         match('\'');
-        while (reader.c != EOF && reader.c != '\'') {
+        while (reader.c != -1 && reader.c != '\'') {
             // TODO: escape
             consume();
         }
@@ -82,7 +82,7 @@ public class XPathLexer {
 
     private void readDoubleString() throws IOException {
         match('"');
-        while (reader.c != EOF && reader.c != '"') {
+        while (reader.c != -1 && reader.c != '"') {
             // TODO: escape
             consume();
         }

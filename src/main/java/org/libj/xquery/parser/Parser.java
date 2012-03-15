@@ -2,6 +2,7 @@ package org.libj.xquery.parser;
 
 import org.libj.xquery.lexer.Lexer;
 import org.libj.xquery.lexer.Token;
+import org.libj.xquery.lexer.TokenType;
 import org.libj.xquery.lisp.Cons;
 
 import java.io.IOException;
@@ -338,7 +339,7 @@ public class Parser extends LLkParser {
         return ast;
     }
 
-    private static Element tokenElement(int t, String text) {
+    private static Element tokenElement(TokenType t, String text) {
         return new Element(new Token(t, text));
     }
 }

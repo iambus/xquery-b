@@ -152,7 +152,7 @@ public class Lexer extends LL1Reader {
     }
 
     public Token nextNodeToken() throws IOException {
-        if (c == EOF) {
+        if (c == -1) {
             throw new RuntimeException("Not Implemented!");
         }
         if (c == '{') {
@@ -187,7 +187,7 @@ public class Lexer extends LL1Reader {
             consume();
         } while (isWordPart());
         String text = builder.toString();
-        int type = WORD;
+        TokenType type = WORD;
         if (text.equals("declare")) {
             type = DECLARE;
         }
@@ -251,7 +251,7 @@ public class Lexer extends LL1Reader {
     private Token readSingleString() throws IOException {
         consume();
         StringBuilder builder = new StringBuilder();
-        while (c != EOF && c != '\'') {
+        while (c != -1 && c != '\'') {
             builder.append((char)c); // TODO: FIXME: escaping!
             consume();
         }
@@ -262,7 +262,7 @@ public class Lexer extends LL1Reader {
     private Token readDoubleString() throws IOException {
         consume();
         StringBuilder builder = new StringBuilder();
-        while (c != EOF && c != '\"') {
+        while (c != -1 && c != '\"') {
             builder.append((char)c); // TODO: FIXME: escaping!
             consume();
         }
@@ -319,7 +319,7 @@ public class Lexer extends LL1Reader {
             tag.append((char) c);
             consume();
         }
-        while (c != EOF) {
+        while (c != -1) {
             if (c == '{') {
                 if (!isOpenTag) {
                     throw new RuntimeException("Invalid closing xml tag");
@@ -356,7 +356,7 @@ public class Lexer extends LL1Reader {
     }
 
     private void endComment() throws IOException {
-        while (c != EOF) {
+        while (c != -1) {
             if (c == ':') {
                 do {
                     consume();
