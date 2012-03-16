@@ -161,7 +161,7 @@ public class Cons<E> implements Iterable<E> {
         if (rest != null) {
             return rest;
         }
-        return new NilCons();
+        return nilList();
     }
 
     public Cons<E> rest() {
@@ -201,6 +201,10 @@ public class Cons<E> implements Iterable<E> {
         public Cons next() {
             throw new RuntimeException("Nil access");
         }
+    }
+
+    public static Cons nilList() {
+        return new NilCons();
     }
 
     public static boolean isNil(Cons list) {

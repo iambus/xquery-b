@@ -1,6 +1,5 @@
 package org.libj.xquery.compiler;
 
-import org.libj.xquery.lexer.Token;
 import org.libj.xquery.lexer.TokenType;
 import org.libj.xquery.lisp.Cons;
 import org.libj.xquery.namespace.*;
@@ -56,9 +55,9 @@ public class Walker {
             case VARIABLE:
                 return walkVariable(expr);
             case NUMBER:
-                return walkNumber(AST.getToken(expr));
+                return walkNumber(expr);
             case STRING:
-                return walkString(AST.getToken(expr));
+                return walkString(expr);
             case PLUS: case MINUS: case MULTIPLY: case DIV: case NEGATIVE: case MOD:
             case EQ: case NE:
             case LT: case LE: case GT: case GE:
@@ -72,30 +71,33 @@ public class Walker {
         }
     }
 
-    private Cons walkNumber(Token token) {
-        String text = token.text;
+    private Cons walkNumber(Cons expr) {
+        TokenType t = (TokenType) expr.first();
+        String text = (String) expr.second();
         if (text.indexOf('.') == -1) {
             int n = Integer.parseInt(text);
-            return AST.createAST(new ConstantElement(token, n, int.class));
+            return list(new ConstantElement(t, n, int.class), n);
         }
         else {
             double d = Double.parseDouble(text);
-            return AST.createAST(new ConstantElement(token, d, double.class));
+            return list(new ConstantElement(t, d, double.class), d);
         }
     }
 
-    private Cons walkString(Token token) {
-        return AST.createAST(new ConstantElement(token, token.text, String.class));
+    private Cons walkString(Cons expr) {
+        TokenType t = (TokenType) expr.first();
+        String text = (String) expr.second();
+        return list(new ConstantElement(t, text, String.class), text);
     }
 
     private Cons walkVariable(Cons expr) {
-        String variable = AST.getNodeText(expr);
+        String variable = (String) expr.second();
         if (!isFree(variable)) {
-            return AST.createAST(new VariableElement(AST.getElement(expr), resolveType(variable), resolve(variable)));
+            return list(new VariableElement(resolveType(variable), resolve(variable)));
         }
         else {
             int index = resolveFree(variable);
-            return AST.createAST(new VariableElement(AST.getElement(expr), Object.class, index));
+            return list(new VariableElement(Object.class, index));
         }
     }
 
@@ -127,23 +129,23 @@ public class Walker {
     }
 
     private Cons walkNegative(Cons expr) {
-        Cons v = walkExpr(AST.nthAST(expr, 1));
+        Cons v = walkExpr((Cons) expr.second());
         expr = assoc1(expr, v);
         expr = assocType(expr, AST.getEvalType(v));
         return expr;
     }
 
     private Cons walkSub2(Cons expr) {
-        Cons left = walkExpr(AST.nthAST(expr, 1));
-        Cons right = walkExpr(AST.nthAST(expr, 2));
+        Cons left = walkExpr((Cons) expr.second());
+        Cons right = walkExpr((Cons) expr.third());
         expr = assoc1(expr, left);
         expr = assoc2(expr, right);
         return expr;
     }
 
     private Cons walkLogic(Cons expr) {
-        Cons left = castTo(walkExpr(AST.nthAST(expr, 1)), boolean.class);
-        Cons right = castTo(walkExpr(AST.nthAST(expr, 2)), boolean.class);
+        Cons left = castTo(walkExpr((Cons) expr.second()), boolean.class);
+        Cons right = castTo(walkExpr((Cons) expr.third()), boolean.class);
         expr = assoc1(expr, left);
         expr = assoc2(expr, right);
         expr = assocType(expr, boolean.class);
@@ -155,10 +157,9 @@ public class Walker {
     }
 
     private Cons walkXPath(Cons expr) {
-        expr = assocType(expr, XML_INTERFACE_Class);
-        TypedElement t = new TypedElement((Element) expr.first(), XML_INTERFACE_Class);
-        Cons xml = castTo(walkExpr((Cons) expr.second()), XML_INTERFACE_Class);
-        String path = ((Element)expr.third()).getToken().text;
+        Cons object = (Cons) expr.second();
+        Cons xml = castTo(walkExpr(object), XML_INTERFACE_Class);
+        String path = (String) expr.third();
         String ns = null;
         int i = path.indexOf(':');
         if (i != -1) {
@@ -166,16 +167,16 @@ public class Walker {
             ns = ((URI)namespace.lookup(prefix)).getUri();
             path = path.substring(i+1);
         }
-        return list(t, xml, path, ns);
+        return list(new TypedElement(TokenType.XPATH, XML_INTERFACE_Class), xml, path, ns);
     }
 
     private Cons walkIndex(Cons expr) {
-        Cons list = AST.nthAST(expr, 1);
-        Cons at = AST.nthAST(expr, 2);
+        Cons list = (Cons) expr.second();
+        Cons at = (Cons) expr.third();
         if (AST.getNodeType(list) == FLOWER) {
             Cons flower = walkFlower(list);
             Cons flowerAt = castTo(walkExpr(at), int.class);
-            expr = AST.createAST(FLOWERAT);
+            expr = list(FLOWERAT);
             expr = Cons.append(expr, flower);
             expr = Cons.append(expr, flowerAt);
             return expr;
@@ -191,8 +192,8 @@ public class Walker {
     }
 
     private Cons walkTo(Cons expr) {
-        Cons left = castTo(walkExpr(AST.nthAST(expr, 1)), int.class);
-        Cons right = castTo(walkExpr(AST.nthAST(expr, 2)), int.class);
+        Cons left = castTo(walkExpr((Cons) expr.nth(1)), int.class);
+        Cons right = castTo(walkExpr((Cons) expr.nth(2)), int.class);
         expr = assoc1(expr, left);
         expr = assoc2(expr, right);
         expr = assocType(expr, LIST_INTERFACE_CLASS);
@@ -200,8 +201,7 @@ public class Walker {
     }
 
     private Cons walkList(Cons expr) {
-        Cons ast = AST.createAST(AST.getElement(expr));
-        ast = assocType(ast, LIST_INTERFACE_CLASS);
+        Cons ast = list(new TypedElement(AST.getTokenType(expr), LIST_INTERFACE_CLASS));
         for (Object e: Cons.rest(expr)) {
             ast = Cons.append(ast, castTo(walkExpr((Cons) e), Object.class));
         }
@@ -209,9 +209,9 @@ public class Walker {
     }
 
     private Cons walkIf(Cons expr) {
-        Cons condition = walkExpr(AST.nthAST(expr, 1));
-        Cons thenValue = walkExpr(AST.nthAST(expr, 2));
-        Cons elseValue = walkExpr(AST.nthAST(expr, 3));
+        Cons condition = walkExpr((Cons) expr.nth(1));
+        Cons thenValue = walkExpr((Cons) expr.nth(2));
+        Cons elseValue = walkExpr((Cons) expr.nth(3));
         expr = assoc1(expr, castTo(condition, boolean.class));
         if (AST.getEvalType(elseValue) == AST.getEvalType(thenValue)) {
             expr = assoc2(expr, thenValue);
@@ -231,7 +231,7 @@ public class Walker {
         Cons forlets = ((Cons) expr.nth(1)).rest();
         Cons body = (Cons) expr.nth(2);
         Cons where =  (Cons) expr.nth(3);
-        expr = AST.createAST(new TypedElement(AST.getElement(expr), LIST_INTERFACE_CLASS));
+        expr = list(new TypedElement(AST.getTokenType(expr), LIST_INTERFACE_CLASS));
         expr = Cons.cons(expr.first(), walkForlet(forlets, body, where));
         expr = Optimizer.optimizeWhere(expr);
         return expr;
@@ -265,14 +265,14 @@ public class Walker {
         pushScope();
 
         Cons expr = (Cons) forlets.first();
-        Cons variableExpr = AST.nthAST(expr, 1);
-        String variableName = AST.getNodeText(variableExpr);
-        Cons valueExpr = AST.nthAST(expr, 2);
+        Cons variableExpr = (Cons) expr.nth(1);
+        String variableName = (String) variableExpr.second();
+        Cons valueExpr = (Cons) expr.nth(2);
 
         valueExpr = walkExpr(valueExpr);
         Class valueType = AST.getEvalType(valueExpr);
         int index = define(variableName, valueType);
-        VariableElement variable = new VariableElement(AST.getElement(variableExpr), valueType, index);
+        VariableElement variable = new VariableElement(valueType, index);
 
         expr = assocType(expr, valueType);
         expr = assoc1(expr, variable);
@@ -286,7 +286,7 @@ public class Walker {
     }
 
     private Cons walkFor(Cons forlets, Cons body, Cons where) {
-        if (AST.getNodeType(AST.nthAST(((Cons) forlets.first()), 2)) == TO) {
+        if (AST.getNodeType((Cons) ((Cons) forlets.first()).nth(2)) == TO) {
             return walkForRange(forlets, body, where);
         }
         else {
@@ -298,17 +298,17 @@ public class Walker {
         pushScope();
 
         Cons expr = (Cons) forlets.first();
-        Cons variableExpr = AST.nthAST(expr, 1);
-        String variableName = AST.getNodeText(variableExpr);
-        Cons rangeExpr = AST.nthAST(expr, 2);
+        Cons variableExpr = (Cons) expr.nth(1);
+        String variableName = (String) variableExpr.second();
+        Cons rangeExpr = (Cons) expr.nth(2);
 
         Cons start = castTo(walkExpr(AST.nthAST(rangeExpr, 1)), int.class);
         Cons end = castTo(walkExpr(AST.nthAST(rangeExpr, 2)), int.class);
         int element = define(variableName, int.class);
 
-        VariableElement variable = new VariableElement(AST.getElement(variableExpr), int.class, element);
+        VariableElement variable = new VariableElement(int.class, element);
 
-        expr = list(new TypedElement(new Token(FORRANGE, "for"), LIST_INTERFACE_CLASS), variable, list(start, end));
+        expr = list(new TypedElement(FORRANGE, LIST_INTERFACE_CLASS), variable, list(start, end));
 
         Cons result = walkForlet(Cons.rest(forlets), body, where);
         result = cons(cons(expr, (Cons)result.first()), result.next());
@@ -322,12 +322,12 @@ public class Walker {
 
         Cons expr = (Cons) forlets.first();
         Cons variableExpr = AST.nthAST(expr, 1);
-        String variableName = AST.getNodeText(variableExpr);
+        String variableName = (String) variableExpr.second();
         Cons collectionExpr = AST.nthAST(expr, 2);
 
         collectionExpr = castTo(walkExpr(collectionExpr), Object.class);
         int element = define(variableName, Object.class);
-        VariableElement variable = new VariableElement(AST.getElement(variableExpr), Object.class, element);
+        VariableElement variable = new VariableElement(Object.class, element);
 
         expr = assocType(expr, LIST_INTERFACE_CLASS);
         expr = assoc1(expr, variable);
@@ -345,7 +345,7 @@ public class Walker {
         ArrayList<Cons> list = new ArrayList<Cons>();
         flattenNode(expr, list);
         list = mergeStringNode(list);
-        expr = AST.createAST(AST.getElement(expr));
+        expr = list(new TypedElement(AST.getTokenType(expr), XML.class));
         for (Cons<Unit> ast: list) {
             if (isNodeLiteral(ast)) {
                 expr = Cons.append(expr, ast);
@@ -354,7 +354,6 @@ public class Walker {
                 expr = Cons.append(expr, walkExpr(ast));
             }
         }
-        expr = assocType(expr, XML.class);
         return expr;
     }
 
@@ -386,29 +385,29 @@ public class Walker {
             Cons node = source.get(i);
             if (isNodeLiteral(node)) {
                 if (buffer.length() == 0 && i + 1 < source.size() && !isNodeLiteral(source.get(i+1))) {
-                    AST.getToken(node).type = TEXT;
+                    node = node.assoc(0, TEXT);
                     target.add(node);
                 }
                 else {
-                    buffer.append(AST.getNodeText(node));
+                    buffer.append((String) node.second());
                 }
             }
             else {
                 if (buffer.length() != 0) {
-                    target.add(AST.createAST(new Token(TEXT, buffer.toString())));
+                    target.add(list(TEXT, buffer.toString()));
                     buffer.setLength(0);
                 }
                 target.add(node);
             }
         }
         if (buffer.length() != 0) {
-            target.add(AST.createAST(new Token(TEXT, buffer.toString())));
+            target.add(list(TEXT, buffer.toString()));
         }
         return target;
     }
 
     private Cons walkCall(Cons expr) {
-        String functionName = AST.getNodeText(AST.nthAST(expr, 1));
+        String functionName = (String) expr.second();
         Function fn = (Function) namespace.lookup(functionName);
 //        return invokeFunction(functionName, ((Cons) expr.next()).rest());
         if (fn instanceof JavaFunction) {
@@ -423,9 +422,12 @@ public class Walker {
     }
 
     private Cons walkFunctionArguments(JavaFunction fn, Cons expr, Cons arguments) {
-        expr = new Cons(new FunctionElement(AST.getElement(expr), fn.getReturnType(), fn));
+        expr = new Cons(new FunctionElement(fn.getReturnType(), fn));
 
         if (fn.isMethod()) {
+            if (Cons.size(expr) < 1) {
+                throw new RuntimeException("Not Implemented!");
+            }
             expr = Cons.append(expr, castTo((Cons) arguments.first(), Object.class)); // should I cast it to the Method class?
             arguments = Cons.rest(arguments);
         }
@@ -469,11 +471,14 @@ public class Walker {
     }
     private Cons walkFunction(JavaFunction fn, Cons expr) {
         Cons arguments = Cons.rest(Cons.rest(expr));
-        Cons newExpr = AST.createAST(AST.getElement(expr));
+        Cons newExpr = null;
         for (Object arg: arguments) {
             newExpr = Cons.append(newExpr, walkExpr((Cons) arg));
         }
-        return walkFunctionArguments(fn, expr, Cons.rest(newExpr));
+        if (newExpr == null) {
+            newExpr = Cons.nilList();
+        }
+        return walkFunctionArguments(fn, expr, newExpr);
     }
 
 
@@ -481,15 +486,18 @@ public class Walker {
         Cons arguments = Cons.rest(Cons.rest(expr));
         int n = arguments.size();
 
-        Cons newExpr = AST.createAST(AST.getElement(expr));
+        Cons newExpr = null;
         Class[] argumentTypes = new Class[n];
         for (int i = 0; i < n; i++) {
             Cons arg = walkExpr(AST.nthAST(arguments, i));
             newExpr = Cons.append(newExpr, arg);
             argumentTypes[i] = AST.getEvalType(arg);
         }
+        if (newExpr == null) {
+            newExpr = Cons.nilList();
+        }
         JavaFunction fn = dispatcher.resolveFunction(argumentTypes);
-        return walkFunctionArguments(fn, newExpr, Cons.rest(newExpr));
+        return walkFunctionArguments(fn, newExpr, newExpr);
     }
 
     //////////////////////////////////////////////////
@@ -645,8 +653,15 @@ public class Walker {
         return tree.assoc(3, x);
     }
     private Cons assocType(Cons tree, Class type) {
-        Element e = AST.getElement(tree);
-        return assoc0(tree, new TypedElement(e, type));
+        Object x = tree.first();
+        TokenType t;
+        if (x instanceof Element) {
+            t = ((Element) x).getTokenType();
+        }
+        else {
+            t = (TokenType) x;
+        }
+        return assoc0(tree, new TypedElement(t, type));
     }
     private Cons tuple(Cons x, Cons y, Cons z) {
         return Cons.list(x, y, z);

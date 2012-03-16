@@ -1,5 +1,6 @@
 package org.libj.xquery.compiler;
 
+import org.libj.xquery.lexer.TokenType;
 import org.libj.xquery.lisp.Cons;
 import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.*;
@@ -97,10 +98,10 @@ public class TwoPassEvalAssembler  implements Opcodes {
             case VARIABLE:
                 return visitVariable(expr);
             case STRING:
-                mv.visitLdcInsn(AST.getNodeText(expr));
+                mv.visitLdcInsn(expr.second());
                 return String.class;
             case NUMBER:
-                return visitNumber(AST.getElement(expr));
+                return visitNumber(expr);
             case CAST:
                 return visitCast(expr);
             case NODE:
@@ -110,8 +111,8 @@ public class TwoPassEvalAssembler  implements Opcodes {
         }
     }
 
-    private Class visitNumber(Element e) {
-        Object v = ((ConstantElement)e).getValue();
+    private Class visitNumber(Cons expr) {
+        Object v = expr.second();
         if (v instanceof Integer) {
             pushConst(((Integer) v).intValue());
             return int.class;
@@ -126,7 +127,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
     }
 
     private Class visitVariable(Cons expr) {
-        VariableElement var = (VariableElement) AST.getElement(expr);
+        VariableElement var = (VariableElement) expr.first();
         Class t = var.getType();
         if (t.isPrimitive()) {
             if (t == int.class) {
@@ -721,7 +722,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
 
 
     private Class visitCall(Cons expr) {
-        Function fn = ((FunctionElement) AST.getElement(expr)).getFunction();
+        Function fn = ((FunctionElement) expr.first()).getFunction();
         Cons arguments = Cons.rest(expr);
         if (fn instanceof JavaFunction) {
             visitJavaFunction((JavaFunction) fn, arguments);
@@ -784,10 +785,10 @@ public class TwoPassEvalAssembler  implements Opcodes {
         mv.visitVarInsn(ALOAD, 0);
         Cons subs = Cons.rest(expr);
         if (subs.size() == 1) {
-            Element singleton = AST.getElement(((Cons) subs.first()));
-            switch (singleton.getToken().type) {
+            Cons singleton = (Cons) subs.first();
+            switch ((TokenType)singleton.first()) {
                 case TEXT:
-                    pushConst(singleton.getToken().text);
+                    pushConst(singleton.second());
                     break;
                 default:
                     throw new RuntimeException("Not supposed to happen...");
@@ -798,7 +799,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
             for (Object n: subs) {
                 Cons element = (Cons) n;
                 if (AST.getNodeType(element) == TEXT) {
-                    pushConst(AST.getNodeText(element));
+                    pushConst((String) element.second());
                     mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
                 }
                 else {

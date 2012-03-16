@@ -1,21 +1,19 @@
 package org.libj.xquery.parser;
 
-import org.libj.xquery.lexer.Token;
 import org.libj.xquery.lexer.TokenType;
 
 public class Element implements Unit {
-    private Token token;
+    private TokenType tokenType;
 
-    public Element(Token t) {
-        this.token = t;
+    public Element(TokenType t) {
+        this.tokenType = t;
     }
 
-    public Token getToken() {
-        return token;
+    public TokenType getTokenType() {
+        return tokenType;
     }
 
     public String toString() {
-        return TokenType.toString(token);
-//        return "[["+token.toString()+"]]";
+        return tokenType.toString();
     }
 }

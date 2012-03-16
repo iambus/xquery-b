@@ -16,6 +16,6 @@ public class TestBasicPerformance {
     }
     @Test
     public void testArithmeticExpression() {
-        assertRepeatedEvalPerSecond(" 1 + 3 / 10 - 100 mod 4 ", 1000*1000*1000);
+        assertRepeatedEvalPerSecond(" 1 + 3 div 10 - 100 mod 4 ", 1000*1000*1000);
     }
 }

@@ -82,8 +82,8 @@ public class Assembler implements Opcodes {
         // register namespaces
         for (Object declare: Cons.rest(AST.nthAST(ast, 1))) {
             if (AST.getNodeType(AST.nthAST(((Cons) declare), 1)) == NAMESPACE) {
-                String alias = AST.getNodeText(AST.nthAST(((Cons) declare), 2));
-                String uri = AST.getNodeText(AST.nthAST(((Cons) declare), 3));
+                String alias = (String) AST.nthAST(((Cons) declare), 2).second();
+                String uri = (String) AST.nthAST(((Cons) declare), 3).second();
                 mv.visitVarInsn(ALOAD, 0);
                 mv.visitFieldInsn(GETFIELD, compiledClassName, "xmlFactory", "L"+ XML_FACTORY +";");
                 pushConst(alias);
@@ -108,8 +108,8 @@ public class Assembler implements Opcodes {
 
         for (Object declare: Cons.rest(AST.nthAST(ast, 1))) {
             if (AST.getNodeType(AST.nthAST(((Cons) declare), 1)) == NAMESPACE) {
-                String alias = AST.getNodeText(AST.nthAST(((Cons) declare), 2));
-                String uri = AST.getNodeText(AST.nthAST(((Cons) declare), 3));
+                String alias = (String) AST.nthAST(((Cons) declare), 2).second();
+                String uri = (String) AST.nthAST(((Cons) declare), 3).second();
                 mv.visitVarInsn(ALOAD, 0);
                 pushConst(alias);
                 pushConst(uri);
@@ -162,7 +162,6 @@ public class Assembler implements Opcodes {
         Cons declares = AST.nthAST(ast, 1);
         Cons code = AST.nthAST(ast, 2);
         visitDeclares(declares);
-//        return new OnePassEvalAssembler(mv, compiledClassName, namespace).visit(code);
         return new TwoPassEvalAssembler(mv, compiledClassName, vars, namespace).visit(code);
     }
 
@@ -179,8 +178,8 @@ public class Assembler implements Opcodes {
     }
 
     private void visitDeclareNamespace(Cons declare) {
-        String alias = AST.getNodeText(AST.nthAST(declare, 2));
-        String uri = AST.getNodeText(AST.nthAST(declare, 3));
+        String alias = (String) AST.nthAST(declare, 2).second();
+        String uri = (String) AST.nthAST(declare, 3).second();
         if (uri.startsWith("class:")) {
             namespace.register(alias, namespace.lookup(uri));
         }

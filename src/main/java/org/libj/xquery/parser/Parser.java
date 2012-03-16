@@ -8,6 +8,7 @@ import org.libj.xquery.lisp.Cons;
 import java.io.IOException;
 
 import static org.libj.xquery.lexer.TokenType.*;
+import static org.libj.xquery.lisp.Cons.list;
 
 public class Parser extends LLkParser {
     public Parser(Lexer lexer) throws IOException {
@@ -15,9 +16,7 @@ public class Parser extends LLkParser {
     }
 
     public Cons xquery() throws IOException {
-        Cons ast = AST.createAST(PROG);
-        ast = Cons.append(ast, declares());
-        ast = Cons.append(ast, expr());
+        Cons ast = list(PROG, declares(), expr());
         match(EOF);
         return ast;
     }
@@ -31,7 +30,7 @@ public class Parser extends LLkParser {
             case VARIABLE:
                 return variable();
             case LPAREN:
-                return list();
+                return listExpr();
             case LBRACK:
                 match(LBRACK);
                 Cons ast = expr();
@@ -64,7 +63,7 @@ public class Parser extends LLkParser {
     private Cons or() throws IOException {
         Cons ast = and();
         while (LA(1) == OR) {
-            ast = binary(ast, consume(), and());
+            ast = binary(ast, consume(OR).type, and());
         }
         return ast;
     }
@@ -72,7 +71,7 @@ public class Parser extends LLkParser {
     private Cons and() throws IOException {
         Cons ast = compare();
         while (LA(1) == AND) {
-            ast = binary(ast, consume(), compare());
+            ast = binary(ast, consume(AND).type, compare());
         }
         return ast;
     }
@@ -80,7 +79,7 @@ public class Parser extends LLkParser {
     private Cons compare() throws IOException {
         Cons ast = range();
         if (LA(1) == EQ || LA(1) == NE || LA(1) == LT || LA(1) == LE || LA(1) == GT || LA(1) == GE) {
-            ast = binary(ast, consume(), range());
+            ast = binary(ast, consume().type, range());
         }
         return ast;
     }
@@ -88,7 +87,7 @@ public class Parser extends LLkParser {
     private Cons range() throws IOException {
         Cons ast = add();
         if (LA(1) == TO) {
-            ast = binary(ast, consume(), add());
+            ast = binary(ast, consume().type, add());
         }
         return ast;
     }
@@ -96,7 +95,7 @@ public class Parser extends LLkParser {
     private Cons add() throws IOException {
         Cons ast = multiply();
         while (LA(1) == PLUS || LA(1) == MINUS) {
-            ast = binary(ast, consume(), multiply());
+            ast = binary(ast, consume().type, multiply());
         }
         return ast;
     }
@@ -104,17 +103,15 @@ public class Parser extends LLkParser {
     private Cons multiply() throws IOException {
         Cons ast = unary();
         while (LA(1) == MULTIPLY || LA(1) == DIV || LA(1) == MOD) {
-            ast = binary(ast, consume(), unary());
+            ast = binary(ast, consume().type, unary());
         }
         return ast;
     }
 
     private Cons unary() throws IOException {
         if (LA(1) == MINUS) {
-            Cons ast = AST.createAST(NEGATIVE);
             consume();
-            ast = Cons.append(ast, value());
-            return ast;
+            return list(NEGATIVE, value());
         }
         else {
             return value();
@@ -127,20 +124,18 @@ public class Parser extends LLkParser {
             match(LBRACKET);
             Cons index = add();
             match(RBRACKET);
-            ast = binary(ast, Token.t(INDEX), index);
+            ast = binary(ast, INDEX, index);
         }
         return ast;
     }
 
-    private Cons binary(Cons left, Token op, Cons right) throws IOException {
-        Cons root = AST.createAST(op);
-        root = Cons.append(root, left);
-        root = Cons.append(root, right);
-        return root;
+    private Cons binary(Cons left, TokenType op, Cons right) throws IOException {
+        return list(op, left, right);
     }
 
     private Cons ifExpr() throws IOException {
-        Cons ast = AST.createAST(consume(IF));
+        Cons ast = list(IF);
+        match(IF);
         match(LPAREN);
         ast = Cons.append(ast, expr());
         match(RPAREN);
@@ -164,8 +159,7 @@ public class Parser extends LLkParser {
     }
 
     private Cons call() throws IOException {
-        Cons ast = AST.createAST(CALL);
-        ast = Cons.append(ast, AST.createAST(consume(WORD)));
+        Cons ast = list(CALL, consume(WORD).text);
         match(LPAREN);
         if (LA(1) == RPAREN) {
             match(RPAREN);
@@ -180,8 +174,8 @@ public class Parser extends LLkParser {
         return ast;
     }
 
-    private Cons list() throws IOException {
-        Cons ast = AST.createAST(LIST);
+    private Cons listExpr() throws IOException {
+        Cons ast = list(LIST);
         match(LPAREN);
         if (LA(1) == RPAREN) {
             match(RPAREN);
@@ -194,7 +188,7 @@ public class Parser extends LLkParser {
         }
         match(RPAREN);
         if (ast.size() == 2) {
-            return AST.nthAST(ast, 1);
+            return (Cons) ast.second();
         }
         else {
             return ast;
@@ -202,17 +196,20 @@ public class Parser extends LLkParser {
     }
 
     private Cons node() throws IOException {
-        Cons ast = AST.createAST(new Token(NODE, null));
+        Cons ast = list(NODE);
         if (LA(1) == TAGUNIT) {
-            ast = Cons.append(ast, AST.createAST(consume(TAGUNIT)));
+            Token t = consume(TAGUNIT);
+            ast = Cons.append(ast, list(t.type, t.text));
             return ast;
         }
-        ast = Cons.append(ast, AST.createAST(consume(TAGOPEN)));
+        Token t = consume(TAGOPEN);
+        ast = Cons.append(ast, list(t.type, t.text));
         while (LA(1) != TAGCLOSE) {
             ast = Cons.append(ast, nodeExpr());
         }
         // TODO: check if start and end tag matches
-        ast = Cons.append(ast, AST.createAST(consume(TAGCLOSE)));
+        t = consume(TAGCLOSE);
+        ast = Cons.append(ast, list(t.type, t.text));
         return ast;
     }
 
@@ -221,7 +218,7 @@ public class Parser extends LLkParser {
             case TAGOPEN: case TAGUNIT:
                 return node();
             case TEXT:
-                return AST.createAST(consume());
+                return AST.asAst(consume());
             case LBRACK:
                 match(LBRACK);
                 Cons ast = expr();
@@ -233,30 +230,30 @@ public class Parser extends LLkParser {
     }
 
     private Cons string() throws IOException {
-        return AST.createAST(consume(STRING));
+        return AST.asAst(consume(STRING));
     }
 
     private Cons number() throws IOException {
-        return AST.createAST(consume(NUMBER));
+        return AST.asAst(consume(NUMBER));
     }
 
     private Cons xpath() throws IOException {
         Cons ast = primary();
         while (LA(1) == XPATH) {
             consume();
-            Element path = tokenElement(WORD, consume(WORD).text);
-            ast = Cons.list(tokenElement(XPATH, "xpath"), ast, path);
+            String path = consume(WORD).text;
+            ast = Cons.list(XPATH, ast, path);
         }
         return ast;
     }
 
     private Cons variable() throws IOException {
-        return AST.createAST(consume(VARIABLE));
+        return AST.asAst(consume(VARIABLE));
     }
 
     private Cons flower() throws IOException {
-        Cons ast = AST.createAST(FLOWER);
-        Cons forlets = AST.createAST(FORLETS);
+        Cons ast = list(FLOWER);
+        Cons forlets = list(FORLETS); // TODO: remove the FORLETS from head
         while (LA(1) == FOR || LA(1) == LET) {
             if (LA(1) == FOR) {
                 forlets = Cons.append(forlets, forIn());
@@ -276,16 +273,18 @@ public class Parser extends LLkParser {
     }
 
     private Cons let() throws IOException {
-        Cons ast = AST.createAST(consume(LET));
-        ast = Cons.append(ast, AST.createAST(consume(VARIABLE)));
+        Cons ast = list(LET);
+        consume(LET);
+        ast = Cons.append(ast, AST.asAst(consume(VARIABLE)));
         consume(ASSIGN);
         ast = Cons.append(ast, expr());
         return ast;
     }
 
     private Cons forIn() throws IOException {
-        Cons ast = AST.createAST(consume(FOR));
-        ast = Cons.append(ast, AST.createAST(consume(VARIABLE)));
+        Cons ast = list(FOR);
+        consume(FOR);
+        ast = Cons.append(ast, AST.asAst(consume(VARIABLE)));
         match(IN);
         ast = Cons.append(ast, expr());
         return ast;
@@ -302,7 +301,7 @@ public class Parser extends LLkParser {
     }
 
     public Cons declares() throws IOException {
-        Cons ast = AST.createAST(DECLARES);
+        Cons ast = list(DECLARES);
         while (LA(1) == DECLARE) {
             ast = Cons.append(ast, declare());
         }
@@ -319,27 +318,25 @@ public class Parser extends LLkParser {
     }
 
     public Cons declareNamespace() throws IOException {
-        Cons ast = AST.createAST(consume(DECLARE));
-        ast = Cons.append(ast, AST.createAST(consume(NAMESPACE)));
-        ast = Cons.append(ast, AST.createAST(consume(WORD)));
+        Cons ast = list(DECLARE);
+        consume(DECLARE);
+        ast = Cons.append(ast, AST.asAst(consume(NAMESPACE)));
+        ast = Cons.append(ast, AST.asAst(consume(WORD)));
         match(EQ);
-        ast = Cons.append(ast, AST.createAST(consume(STRING)));
-        ast = Cons.append(ast, AST.createAST(consume(SEMI)));
+        ast = Cons.append(ast, AST.asAst(consume(STRING)));
+        ast = Cons.append(ast, AST.asAst(consume(SEMI)));
         return ast;
     }
 
     public Cons declareAnyOther() throws IOException {
-        Cons ast = AST.createAST(consume(DECLARE));
-        ast = Cons.append(ast, AST.createAST(consume(WORD)));
+        Cons ast = list(DECLARE);
+        ast = Cons.append(ast, consume(WORD).text);
         while (LA(1) != SEMI && LA(1) != EOF) {
-            ast = Cons.append(ast, AST.createAST(LT(1)));
+            ast = Cons.append(ast, AST.asAst(LT(1)));
             consume();
         }
         match(SEMI);
         return ast;
     }
 
-    private static Element tokenElement(TokenType t, String text) {
-        return new Element(new Token(t, text));
-    }
 }

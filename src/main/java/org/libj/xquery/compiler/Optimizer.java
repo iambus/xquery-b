@@ -64,7 +64,7 @@ public class Optimizer {
             return left;
         }
         else {
-            return list(new TypedElement(new Token(TokenType.AND, "+"), boolean.class), left, right);
+            return list(new TypedElement(TokenType.AND, boolean.class), left, right);
         }
     }
     private static boolean isAnd(Cons condition) {
@@ -87,7 +87,7 @@ public class Optimizer {
         else if (x instanceof Element) {
             return referenceLevel(forlets, condition.next(), currentLevel);
         }
-        else if (x instanceof String) { // for xpath
+        else if (x instanceof String || x instanceof Integer || x instanceof Double || x instanceof TokenType) {
             return currentLevel;
         }
         throw new RuntimeException("Not Implemented! "+x.getClass());

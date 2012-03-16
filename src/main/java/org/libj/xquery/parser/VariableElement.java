@@ -1,17 +1,12 @@
 package org.libj.xquery.parser;
 
-import org.libj.xquery.lexer.Token;
+import org.libj.xquery.lexer.TokenType;
 
 public class VariableElement extends TypedElement {
     private int ref;
 
-    public VariableElement(Token t, Class type, int ref) {
-        super(t, type);
-        this.ref = ref;
-    }
-
-    public VariableElement(Element e, Class type, int ref) {
-        super(e, type);
+    public VariableElement(Class type, int ref) {
+        super(TokenType.VARIABLE, type);
         this.ref = ref;
     }
 
