@@ -15,7 +15,7 @@ import java.util.Map;
 import static org.libj.xquery.lexer.TokenType.*;
 import static org.libj.xquery.compiler.Constants.*;
 
-public class TwoPassEvalAssembler  implements Opcodes {
+public class EvalAssembler implements Opcodes {
     private String compiledClassName;
     private Namespace namespace;
     private MethodVisitor mv;
@@ -23,7 +23,7 @@ public class TwoPassEvalAssembler  implements Opcodes {
     private Map<String, Symbol> freeVariables;
     private String[] vars;
 
-    public TwoPassEvalAssembler(MethodVisitor mv, String compiledClassName, String[] vars, Namespace namespace) {
+    public EvalAssembler(MethodVisitor mv, String compiledClassName, String[] vars, Namespace namespace) {
         this.compiledClassName = compiledClassName;
         this.vars = vars;
         this.namespace = namespace;

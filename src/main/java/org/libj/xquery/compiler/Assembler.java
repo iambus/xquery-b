@@ -162,7 +162,7 @@ public class Assembler implements Opcodes {
         Cons declares = AST.nthAST(ast, 1);
         Cons code = AST.nthAST(ast, 2);
         visitDeclares(declares);
-        return new TwoPassEvalAssembler(mv, compiledClassName, vars, namespace).visit(code);
+        return new EvalAssembler(mv, compiledClassName, vars, namespace).visit(code);
     }
 
     private void visitDeclares(Cons declares) {
