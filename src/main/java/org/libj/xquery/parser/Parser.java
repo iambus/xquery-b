@@ -330,9 +330,10 @@ public class Parser extends LLkParser {
 
     public Cons declareAnyOther() throws IOException {
         Cons ast = list(DECLARE);
+        consume(DECLARE);
         ast = Cons.append(ast, consume(WORD).text);
         while (LA(1) != SEMI && LA(1) != EOF) {
-            ast = Cons.append(ast, AST.asAst(LT(1)));
+            ast = Cons.append(ast, LT(1));
             consume();
         }
         match(SEMI);
