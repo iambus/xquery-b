@@ -22,9 +22,10 @@ public class Op {
             return (Iterable<Object>) x;
         }
         else {
-            java.util.List<Object> list = new ArrayList<Object>(1);
-            list.add(x);
-            return list;
+            return new SingletonList(x);
+//            java.util.List<Object> list = new ArrayList<Object>(1);
+//            list.add(x);
+//            return list;
         }
     }
 

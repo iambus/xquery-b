@@ -18,4 +18,9 @@ public class TestBasicPerformance {
     public void testArithmeticExpression() {
         assertRepeatedEvalPerSecond(" 1 + 3 div 10 - 100 mod 4 ", 1000*1000*1000);
     }
+    @Test
+    public void testBindings() {
+        assertRepeatedEvalPerSecond(" let $x := 1 return $x ", 1000*1000*10);
+        assertRepeatedEvalPerSecond(" for $x in 1 return $x ", 1000*1000*10);
+    }
 }
