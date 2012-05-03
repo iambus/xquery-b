@@ -81,7 +81,8 @@ public class Assembler implements Opcodes {
         mv.visitFieldInsn(PUTFIELD, compiledClassName, "xmlFactory", "L"+ XML_FACTORY +";");
         // register namespaces
         for (Object declare: Cons.rest(AST.nthAST(ast, 1))) {
-            if (AST.getNodeType(AST.nthAST(((Cons) declare), 1)) == NAMESPACE) {
+            Object declareType = ((Cons) declare).second();
+            if (declareType instanceof Cons && AST.getNodeType((Cons) declareType) == NAMESPACE) {
                 String alias = (String) AST.nthAST(((Cons) declare), 2).second();
                 String uri = (String) AST.nthAST(((Cons) declare), 3).second();
                 mv.visitVarInsn(ALOAD, 0);
@@ -172,7 +173,8 @@ public class Assembler implements Opcodes {
     }
 
     private void visitDeclare(Cons declare) {
-        if (AST.getNodeType(AST.nthAST(declare, 1)) == NAMESPACE) {
+        Object declareType = ((Cons) declare).second();
+        if (declareType instanceof Cons && AST.getNodeType((Cons) declareType) == NAMESPACE) {
             visitDeclareNamespace(declare);
         }
     }
