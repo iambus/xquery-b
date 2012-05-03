@@ -4,7 +4,7 @@ import org.libj.xquery.Callback;
 
 import java.util.Iterator;
 
-public class CallbackList implements List {
+public class CallbackList implements MutableList {
     private Callback callback;
 
     public CallbackList(Callback callback) {

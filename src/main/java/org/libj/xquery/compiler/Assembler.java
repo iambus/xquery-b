@@ -173,7 +173,7 @@ public class Assembler implements Opcodes {
     }
 
     private void visitDeclare(Cons declare) {
-        Object declareType = ((Cons) declare).second();
+        Object declareType = declare.second();
         if (declareType instanceof Cons && AST.getNodeType((Cons) declareType) == NAMESPACE) {
             visitDeclareNamespace(declare);
         }

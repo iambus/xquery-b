@@ -24,4 +24,16 @@ public class TestCallback {
         assertCallback("for $i in (1 to 3) return $i + 3", "4 5 6");
         assertCallback("let $i := 3 where $i != 3 return $i", "");
     }
+
+    @Test
+    public void assertRawCallback() {
+        Callback callback = new Callback() {
+            public void call(Object result) {
+                //
+            }
+        };
+        compile("1").eval(callback);
+        compile("for $i in 1 to 1 return $i").eval(callback);
+    }
+
 }
