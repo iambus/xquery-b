@@ -5,8 +5,8 @@ import org.libj.xquery.xml.XML;
 import org.libj.xquery.xml.XMLUtils;
 
 public class StringXML implements XML {
-    protected String xml;
-    protected int start;
+    final protected String xml;
+    final protected int start;
     private int end = -1;
     private String nodeXML;
     private String text;
@@ -41,7 +41,8 @@ public class StringXML implements XML {
 
     public String text() {
         if (text == null) {
-            text = XMLUtils.text(toString());
+//            text = XMLUtils.text(toString());
+            text = nextTextNode();
         }
         return text;
     }
@@ -106,6 +107,64 @@ public class StringXML implements XML {
         }
     }
 
+    public String nextTextNode() {
+//        int x = xml.indexOf('>') + 1;
+        // jump to the end of open tag
+        int i = start;
+        while (xml.charAt(++i) != '>') {
+        }
+        StringBuilder builder = new StringBuilder();
+        while (xml.charAt(++i) != '<') {
+            char c = xml.charAt(i);
+            if (c == '&') {
+                switch (xml.charAt(++i)) {
+                    case 'a':
+                        switch (xml.charAt(++i)) {
+                            case 'm':
+                                if (xml.charAt(++i) != 'p' || xml.charAt(++i) != ';') {
+                                    throw new RuntimeException("Incorrect XML escaping!");
+                                }
+                                builder.append('&');
+                                break;
+                            case 'p':
+                                if (xml.charAt(++i) != 'o' || xml.charAt(++i) != 's' || xml.charAt(++i) != ';') {
+                                    throw new RuntimeException("Incorrect XML escaping!");
+                                }
+                                builder.append('\'');
+                                break;
+                            default:
+                                throw new RuntimeException("Incorrect XML escaping!");
+                        }
+                        break;
+                    case 'l':
+                        if (xml.charAt(++i) != 't' || xml.charAt(++i) != ';') {
+                            throw new RuntimeException("Incorrect XML escaping!");
+                        }
+                        builder.append('<');
+                        break;
+                    case 'g':
+                        if (xml.charAt(++i) != 't' || xml.charAt(++i) != ';') {
+                            throw new RuntimeException("Incorrect XML escaping!");
+                        }
+                        builder.append('>');
+                        break;
+                    case 'q':
+                        if (xml.charAt(++i) != 'u' || xml.charAt(++i) != 'o' || xml.charAt(++i) != 't' || xml.charAt(++i) != ';') {
+                            throw new RuntimeException("Incorrect XML escaping!");
+                        }
+                        builder.append('"');
+                        break;
+                    default:
+                        throw new RuntimeException("Incorrect XML escaping!");
+                }
+            }
+            else {
+                builder.append(c);
+            }
+        }
+        return builder.toString();
+    }
+
     public String toString() {
         if (nodeXML == null) {
             if (end < 0) {
@@ -118,9 +177,10 @@ public class StringXML implements XML {
     public static void main(String[] args) {
         XML x = new StringXML("<x><a>2</a></x>");
 //        System.out.println(x.eval("/a"));
-        System.out.println(x.eval("/x/a"));
+//        System.out.println(x.eval("/x/a"));
 //        System.out.println(x.eval("/a/b"));
 //        XML x = new StringXML("<x><w/><a>2</a></x>");
 //        System.out.println(x.eval("/a"));
+        System.out.println(((XML)x.getElementsByTagNameNS(null, "a")).text());
     }
 }

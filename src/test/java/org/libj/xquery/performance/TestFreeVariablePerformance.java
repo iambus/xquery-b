@@ -4,7 +4,7 @@ package org.libj.xquery.performance;
 import org.junit.Test;
 import org.libj.xquery.Environment;
 import org.libj.xquery.XQuery;
-import org.libj.xquery.compiler.*;
+import org.libj.xquery.xml.str.StringXML;
 
 import static org.junit.Assert.assertTrue;
 import static org.libj.xquery.Asserts.*;
@@ -40,6 +40,12 @@ public class TestFreeVariablePerformance {
     @Test
     public void testStaticVars() {
         assertRepeatedEvalMillisVar2(" $i + $j ", 1000*1000*200, 1000, 1, 3);
+    }
+
+    @Test
+    public void testStaticXPath() {
+        StringXML x = new StringXML("<x><a>2</a></x>");
+        assertRepeatedEvalMillisVar2(" $i/a ", 1000*1000*10, 1000, x, 1);
     }
 
     public static void assertRepeatedEvalMillisVar2(String script, int n, int targetMillis, Object var1, Object var2) {
