@@ -211,10 +211,6 @@ public class Cons<E> implements Iterable<E> {
         return list == null || list instanceof NilCons || list.first() == null;
     }
 
-    public static interface Fn {
-        Object call(Object x);
-    }
-
     public static Cons map(Fn fn, Cons list) {
         if (list == null) {
             return null;
