@@ -13,7 +13,7 @@ import static org.libj.xquery.lisp.Cons.*;
 import java.util.ArrayList;
 import java.util.Map;
 
-public class Walker {
+public class Analysis {
     private Cons ast;
     private Scope scope = new Scope();
     private Scope freeScope = new Scope();
@@ -21,7 +21,7 @@ public class Walker {
 
     private int locals = LOCAL_VAR_START; // index 2 is used as temporary double variable
 
-    public Walker(Cons tree, String[] vars, Namespace namespace) {
+    public Analysis(Cons tree, String[] vars, Namespace namespace) {
         ast = tree;
         this.namespace = namespace;
         for (String var: vars) {

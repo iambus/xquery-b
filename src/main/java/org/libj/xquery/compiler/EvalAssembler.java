@@ -31,7 +31,7 @@ public class EvalAssembler implements Opcodes {
     }
 
     public Class visit(Cons ast) {
-        Walker walker = new Walker(ast, vars, namespace);
+        Analysis walker = new Analysis(ast, vars, namespace);
         ast = walker.walk();
         locals = walker.getLocals();
         freeVariables = walker.getFreeVariables();
