@@ -439,8 +439,10 @@ public class Analysis {
         if (!fn.isVarArgs()) {
             if (parameterSize != argumentSize) {
                 throw new RuntimeException(
-                        String.format("Too %s arguments. Expected: %d, actual: %s",
+                        String.format("Too %s arguments (%s:%s). Expected: %d, actual: %s",
                                 argumentSize < parameterSize ? "few" : "many",
+                                fn.getClassName().replace('/', '.'),
+                                fn.getFunctionName(),
                                 parameterSize,
                                 argumentSize));
             }
