@@ -201,6 +201,13 @@ public class Cons<E> implements Iterable<E> {
         public Cons next() {
             throw new RuntimeException("Nil access");
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            return true;
+        }
     }
 
     public static Cons nilList() {
@@ -239,4 +246,23 @@ public class Cons<E> implements Iterable<E> {
         return toString(this);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Cons cons = (Cons) o;
+
+        if (car != null ? !car.equals(cons.car) : cons.car != null) return false;
+        if (cdr != null ? !cdr.equals(cons.cdr) : cons.cdr != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = car != null ? car.hashCode() : 0;
+        result = 31 * result + (cdr != null ? cdr.hashCode() : 0);
+        return result;
+    }
 }
