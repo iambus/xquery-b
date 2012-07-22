@@ -262,12 +262,14 @@ public class Parser extends LLkParser {
                 forlets = Cons.append(forlets, let());
             }
         }
+        Cons groupby = groupby();
         Cons where = where();
         Cons body = body();
 
         ast = Cons.append(ast, forlets);
         ast = Cons.append(ast, body);
         ast = Cons.append(ast, where);
+        ast = Cons.append(ast, groupby);
 
         return ast;
     }
@@ -293,6 +295,17 @@ public class Parser extends LLkParser {
     private Cons where() throws IOException {
         if (LA(1) == WHERE) {
             match(WHERE);
+            return expr();
+        }
+        else {
+            return Cons.NIL;
+        }
+    }
+
+    private Cons groupby() throws IOException {
+        if (LA(1) == GROUP) {
+            match(GROUP);
+            match(BY);
             return expr();
         }
         else {

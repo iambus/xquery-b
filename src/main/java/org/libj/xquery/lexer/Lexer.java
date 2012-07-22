@@ -212,6 +212,15 @@ public class Lexer extends LL1Reader {
         else if (text.equals("else")) {
             type = ELSE;
         }
+        else if (text.equals("group")) {
+            type = GROUP;
+        }
+        else if (text.equals("order")) {
+            type = ORDER;
+        }
+        else if (text.equals("by")) {
+            type = BY;
+        }
         else if (text.equals("where")) {
             type = WHERE;
         }

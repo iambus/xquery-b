@@ -48,6 +48,9 @@ public enum TokenType {
     THEN,
     ELSE,
     WHERE,
+    GROUP,
+    ORDER,
+    BY,
     RETURN,
 
     NAMESPACE,
