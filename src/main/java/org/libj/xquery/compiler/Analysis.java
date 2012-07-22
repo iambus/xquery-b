@@ -525,6 +525,16 @@ public class Analysis {
                 expr = assoc2(expr, castTo(rightTree, double.class));
                 return expr;
             }
+            else if (leftType == int.class && rightType == long.class) {
+                expr = assocType(expr, long.class);
+                expr = assoc1(expr, castTo(leftTree, long.class));
+                return expr;
+            }
+            else if (leftType == long.class && rightType == int.class) {
+                expr = assocType(expr, long.class);
+                expr = assoc2(expr, castTo(rightTree, long.class));
+                return expr;
+            }
             else {
                 throw new RuntimeException("Not Implemented! "+leftType+" + "+rightType);
             }

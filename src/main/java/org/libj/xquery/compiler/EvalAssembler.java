@@ -136,6 +136,9 @@ public class EvalAssembler implements Opcodes {
             else if (t == double.class) {
                 mv.visitVarInsn(DLOAD, var.getRef());
             }
+            else if (t == long.class) {
+                mv.visitVarInsn(LLOAD, var.getRef());
+            }
             else {
                 throw new RuntimeException("Not Implemented!");
             }
@@ -212,6 +215,28 @@ public class EvalAssembler implements Opcodes {
                     break;
                 case MOD:
                     mv.visitInsn(DREM);
+                    break;
+                default:
+                    throw new RuntimeException("Not Implemented!");
+            }
+            return t;
+        }
+        else if (t == long.class) {
+            switch (AST.getNodeType(expr)) {
+                case PLUS:
+                    mv.visitInsn(LADD);
+                    break;
+                case MINUS:
+                    mv.visitInsn(LSUB);
+                    break;
+                case MULTIPLY:
+                    mv.visitInsn(LMUL);
+                    break;
+                case DIV:
+                    mv.visitInsn(LDIV);
+                    break;
+                case MOD:
+                    mv.visitInsn(LREM);
                     break;
                 default:
                     throw new RuntimeException("Not Implemented!");
@@ -706,6 +731,9 @@ public class EvalAssembler implements Opcodes {
             else if (varType == double.class) {
                 mv.visitVarInsn(DSTORE, index);
             }
+            else if (varType == long.class) {
+                mv.visitVarInsn(LSTORE, index);
+            }
             else {
                 throw new RuntimeException("Not Implemented!");
             }
@@ -810,6 +838,9 @@ public class EvalAssembler implements Opcodes {
                         }
                         else if (t == double.class) {
                             mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(D)Ljava/lang/StringBuilder;");
+                        }
+                        else if (t == long.class) {
+                            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(J)Ljava/lang/StringBuilder;");
                         }
                         else {
                             throw new RuntimeException("Not Implemented!");
