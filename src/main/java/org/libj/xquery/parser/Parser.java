@@ -8,6 +8,7 @@ import org.libj.xquery.lisp.Cons;
 import java.io.IOException;
 
 import static org.libj.xquery.lexer.TokenType.*;
+import static org.libj.xquery.lisp.Cons.append;
 import static org.libj.xquery.lisp.Cons.list;
 
 public class Parser extends LLkParser {
@@ -306,7 +307,12 @@ public class Parser extends LLkParser {
         if (LA(1) == GROUP) {
             match(GROUP);
             match(BY);
-            return expr();
+            Cons groupby = list(GROUP, expr());
+            while (LA(1) == COMMA) {
+                match(COMMA);
+                groupby = append(groupby, expr());
+            }
+            return groupby;
         }
         else {
             return Cons.NIL;
