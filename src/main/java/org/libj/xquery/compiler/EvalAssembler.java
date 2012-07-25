@@ -972,4 +972,9 @@ public class EvalAssembler implements Opcodes {
     private int defineAnonymous() {
         return locals++;
     }
+
+    public Map<String, Symbol> getFreeVariables() {
+        return freeVariables;
+    }
+
 }

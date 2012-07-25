@@ -16,6 +16,8 @@ public class Compiler {
     private String defaultPackage = "org.libj.xquery.dynamic";
     private Class xmlFactory = Constants.DEFAUL_XML_FACTORY_IMPLEMENTATION_CLASS;
 
+    private boolean disableFreeVariables = false;
+
     public void registerLib(String prefix, Class c) {
         namespace.register(prefix, new LibNamespace(c));
     }
@@ -68,6 +70,9 @@ public class Compiler {
             className = randomClassName();
         }
         Assembler assembler = new Assembler(className, ast, vars, new LocalNamespace(namespace), xmlFactory);
+        if (disableFreeVariables && !assembler.getFreeVariables().isEmpty()) {
+            throw new RuntimeException("Unresolved free variables: "+assembler.getFreeVariables());
+        }
         return assembler.toByteArray();
     }
 
@@ -146,4 +151,10 @@ public class Compiler {
     public static String randomID() {
         return java.util.UUID.randomUUID().toString().replace('-', '_');
     }
+
+    // options
+    public void enableFreeVariables(boolean enable) {
+        disableFreeVariables = !enable;
+    }
+
 }

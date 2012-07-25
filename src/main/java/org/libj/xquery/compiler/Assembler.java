@@ -9,11 +9,14 @@ import static org.libj.xquery.lexer.TokenType.*;
 import org.libj.xquery.parser.AST;
 import org.objectweb.asm.*;
 
+import java.util.Set;
+
 public class Assembler implements Opcodes {
     private Cons ast;
     private ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
     private String compiledClassName;
     private String[] vars;
+    private Set<String> freeVariables;
     private final String evalMainMethodName = "eval_";
     private final String evalMainMethodSignature;
     private final String evalMethodSignature;
@@ -163,7 +166,10 @@ public class Assembler implements Opcodes {
         Cons declares = AST.nthAST(ast, 1);
         Cons code = AST.nthAST(ast, 2);
         visitDeclares(declares);
-        return new EvalAssembler(mv, compiledClassName, vars, namespace).visit(code);
+        EvalAssembler evalAssembler = new EvalAssembler(mv, compiledClassName, vars, namespace);
+        Class clazz = evalAssembler.visit(code);
+        this.freeVariables = evalAssembler.getFreeVariables().keySet();
+        return clazz;
     }
 
     private void visitDeclares(Cons declares) {
@@ -391,5 +397,9 @@ public class Assembler implements Opcodes {
 
     public byte[] toByteArray() {
         return cw.toByteArray();
+    }
+
+    public Set<String> getFreeVariables() {
+        return freeVariables;
     }
 }

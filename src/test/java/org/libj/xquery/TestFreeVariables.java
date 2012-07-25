@@ -2,6 +2,8 @@ package org.libj.xquery;
 
 import org.junit.Test;
 
+import org.libj.xquery.compiler.Compiler;
+
 import static org.junit.Assert.assertEquals;
 import static org.libj.xquery.Asserts.*;
 
@@ -34,5 +36,26 @@ public class TestFreeVariables {
     @Test
     public void testOverride() {
         assertEvalString("for $i in 1 to 10 return $i + $j", "8 9 10 11 12 13 14 15 16 17", env);
+    }
+
+    @Test
+    public void enableFreeVaraibles() {
+        Compiler compiler = new Compiler();
+        compiler.compile("$x");
+    }
+
+    @Test
+    public void disableFreeVaraibles() {
+        Compiler compiler = new Compiler();
+        compiler.enableFreeVariables(false);
+        compiler.compile("$x", "x");
+    }
+
+    @Test(expected=RuntimeException.class)
+    public void disableFreeVaraiblesAndReport() {
+        Compiler compiler = new Compiler();
+        compiler.enableFreeVariables(false);
+        compiler.compile("$x", "x");
+        compiler.compile("$x");
     }
 }
