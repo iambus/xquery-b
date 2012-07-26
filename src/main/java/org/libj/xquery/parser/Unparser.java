@@ -66,6 +66,9 @@ public class Unparser {
                 output(ast.third());
                 builder.append(')');
                 break;
+            case NODE:
+                outputNode(ast);
+                break;
             default:
                 throw new RuntimeException("Not Implemented: " + t);
         }
@@ -120,6 +123,23 @@ public class Unparser {
                 break;
             default:
                 throw new RuntimeException("Not Implemented!");
+        }
+    }
+
+    private void outputNode(Cons ast) {
+        for (Object x: ast.rest()) {
+            Cons expr = (Cons) x;
+            switch ((TokenType) expr.first()) {
+                case TAGOPEN:
+                case TAGCLOSE:
+                case TEXT:
+                    builder.append(expr.second());
+                    break;
+                default:
+                    builder.append('{');
+                    output(x);
+                    builder.append('}');
+            }
         }
     }
 
