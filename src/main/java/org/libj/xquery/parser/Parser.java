@@ -9,6 +9,7 @@ import java.io.IOException;
 
 import static org.libj.xquery.lexer.TokenType.*;
 import static org.libj.xquery.lisp.Cons.append;
+import static org.libj.xquery.lisp.Cons.cons;
 import static org.libj.xquery.lisp.Cons.list;
 
 public class Parser extends LLkParser {
@@ -42,7 +43,6 @@ public class Parser extends LLkParser {
                     return call();
                 }
             case TAGOPEN:
-            case TAGUNIT:
                 return node();
             default:
                 throw new ParserException("Unexpected primary expr token: " + LT(1));
@@ -197,36 +197,64 @@ public class Parser extends LLkParser {
     }
 
     private Cons node() throws IOException {
-        Cons ast = list(NODE);
-        if (LA(1) == TAGUNIT) {
-            Token t = consume(TAGUNIT);
-            ast = Cons.append(ast, list(t.type, t.text));
-            return ast;
+        String tag = consume(TAGOPEN).text;
+        Cons attrs = null;
+        while (LA(1) == WORD) {
+            attrs = append(attrs, readAttr());
         }
-        Token t = consume(TAGOPEN);
-        ast = Cons.append(ast, list(t.type, t.text));
+        if (LA(1) == TAGCLOSE) {
+            consume();
+            return list(ELEMENT, tag, attrs, null);
+        }
+        match(TAGOPENEND);
+        Cons values = null;
         while (LA(1) != TAGCLOSE) {
-            ast = Cons.append(ast, nodeExpr());
+            switch (LA(1)) {
+                case TEXT:
+                    values = append(values, consume().text);
+                    break;
+                case LBRACK:
+                    consume();
+                    values = append(values, expr());
+                    match(RBRACK);
+                    break;
+                case TAGOPEN:
+                    values = append(values, node());
+                    break;
+                default:
+                    throw new RuntimeException("Not Implemented: "+LA(1));
+            }
         }
-        // TODO: check if start and end tag matches
-        t = consume(TAGCLOSE);
-        ast = Cons.append(ast, list(t.type, t.text));
-        return ast;
+        match(TAGCLOSE);
+        return list(ELEMENT, tag, attrs, values);
     }
 
-    private Cons nodeExpr() throws IOException {
-        switch (LA(1)) {
-            case TAGOPEN: case TAGUNIT:
-                return node();
-            case TEXT:
-                return AST.asAst(consume());
-            case LBRACK:
-                match(LBRACK);
-                Cons ast = expr();
-                match(RBRACK);
-                return ast;
-            default:
-                throw new ParserException("Unexpected node expr token: " + LT(1));
+    private Cons readAttr() throws IOException {
+        String a = consume().text;
+        match(EQ);
+        if (LA(1) == ATTROPEN) {
+            consume();
+            Cons values = list();
+            while (LA(1) != ATTRCLOSED) {
+                switch (LA(1)) {
+                    case TEXT:
+                        values = append(values, consume().text);
+                        break;
+                    case LBRACK:
+                        consume();
+                        values = append(values, expr());
+                        match(RBRACK);
+                        break;
+                    default:
+                        throw new RuntimeException("Not Implemented: "+LA(1));
+                }
+            }
+            match(ATTRCLOSED);
+            return list(a, values);
+        }
+        else {
+            String value = consume(ATTR).text;
+            return list(a, value);
         }
     }
 

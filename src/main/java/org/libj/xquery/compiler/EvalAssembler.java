@@ -77,7 +77,7 @@ public class EvalAssembler implements Opcodes {
         }
     }
 
-    private Class visitExpr(Cons expr) {
+    Class visitExpr(Cons expr) {
         switch (AST.getNodeType(expr)) {
             case FLOWER:
                 return visitFlower(expr);
@@ -104,8 +104,8 @@ public class EvalAssembler implements Opcodes {
                 return visitNumber(expr);
             case CAST:
                 return visitCast(expr);
-            case NODE:
-                return visitNode(expr);
+            case ELEMENT:
+                return visitElement(expr);
             default:
                 throw new RuntimeException("Not Implemented: "+toTypeName(AST.getNodeType(expr)));
         }
@@ -809,52 +809,9 @@ public class EvalAssembler implements Opcodes {
             throw new RuntimeException("Not Implemented!");
         }
     }
-    private Class visitNode(Cons expr) {
-        mv.visitVarInsn(ALOAD, 0);
-        Cons subs = Cons.rest(expr);
-        if (subs.size() == 1) {
-            Cons singleton = (Cons) subs.first();
-            switch ((TokenType)singleton.first()) {
-                case TEXT:
-                    pushConst(singleton.second());
-                    break;
-                default:
-                    throw new RuntimeException("Not supposed to happen...");
-            }
-        }
-        else {
-            newObject("java/lang/StringBuilder");
-            for (Object n: subs) {
-                Cons element = (Cons) n;
-                if (AST.getNodeType(element) == TEXT) {
-                    pushConst((String) element.second());
-                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
-                }
-                else {
-                    Class t = visitExpr(element);
-                    if (t.isPrimitive()) {
-                        if (t == int.class) {
-                            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(I)Ljava/lang/StringBuilder;");
-                        }
-                        else if (t == double.class) {
-                            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(D)Ljava/lang/StringBuilder;");
-                        }
-                        else if (t == long.class) {
-                            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(J)Ljava/lang/StringBuilder;");
-                        }
-                        else {
-                            throw new RuntimeException("Not Implemented!");
-                        }
-                    }
-                    else {
-                        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
-                    }
-                }
-            }
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;");
-        }
-        mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "toXML", "(Ljava/lang/String;)L" + XML_INTERFACE + ";");
-        return XML.class;
+
+    private Class visitElement(Cons expr) {
+        return new StringXMLAssembler(this, mv, compiledClassName).visitElement(expr);
     }
 
     private Class visitXPath(Cons expr) {
@@ -930,10 +887,10 @@ public class EvalAssembler implements Opcodes {
     private void pushConst(boolean b) {
         mv.visitInsn(b ? ICONST_1 : ICONST_0);
     }
+
     private void pushConst(Object o) {
         mv.visitLdcInsn(o);
     }
-
 
     private void newObject(String className) {
         mv.visitTypeInsn(NEW, className);

@@ -2,6 +2,7 @@ package org.libj.xquery.compiler;
 
 import org.libj.xquery.lexer.TokenType;
 import org.libj.xquery.lisp.Cons;
+import org.libj.xquery.lisp.Fn;
 import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.*;
 import org.libj.xquery.xml.XML;
@@ -48,8 +49,8 @@ public class Analysis {
                 return walkFlower(expr);
             case IF:
                 return walkIf(expr);
-            case NODE:
-                return walkNode(expr);
+            case ELEMENT:
+                return walkElement(expr);
             case LIST:
                 return walkList(expr);
             case VARIABLE:
@@ -340,70 +341,35 @@ public class Analysis {
         return result;
     }
 
-
-    private Cons walkNode(Cons expr) {
-        ArrayList<Cons> list = new ArrayList<Cons>();
-        flattenNode(expr, list);
-        list = mergeStringNode(list);
-        expr = list(new TypedElement(AST.getTokenType(expr), XML.class));
-        for (Cons<Unit> ast: list) {
-            if (isNodeLiteral(ast)) {
-                expr = Cons.append(expr, ast);
+    private Cons walkElement(Cons expr) {
+        TypedElement t = new TypedElement(AST.getTokenType(expr), XML.class);
+        Cons attrs = map(new Fn() {
+            public Object call(Object x) {
+                return walkAttr((Cons) x);
             }
-            else {
-                expr = Cons.append(expr, walkExpr(ast));
-            }
-        }
-        return expr;
+        }, (Cons) expr.nth(2));
+        Cons content = walkTexts((Cons) expr.nth(3));
+        return list(t, expr.nth(1), attrs, content);
     }
 
-    private void flattenNode(Cons expr, ArrayList<Cons> list) {
-        switch (AST.getNodeType(expr)) {
-            case NODE:
-                for (Object node: Cons.rest(expr)) {
-                    flattenNode((Cons) node, list);
-                }
-                break;
-            default:
-                list.add(expr);
-        }
-    }
-
-    private boolean isNodeLiteral(Cons node) {
-        switch (AST.getNodeType(node)) {
-            case TEXT: case TAGOPEN: case TAGCLOSE: case TAGUNIT:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private ArrayList<Cons> mergeStringNode(ArrayList<Cons> source) {
-        ArrayList<Cons> target = new ArrayList<Cons>();
-        StringBuilder buffer = new StringBuilder();
-        for (int i = 0; i < source.size(); i++) {
-            Cons node = source.get(i);
-            if (isNodeLiteral(node)) {
-                if (buffer.length() == 0 && i + 1 < source.size() && !isNodeLiteral(source.get(i+1))) {
-                    node = node.assoc(0, TEXT);
-                    target.add(node);
+    private Cons walkTexts(Cons value) {
+        value = map(new Fn() {
+            public Object call(Object x) {
+                if (x instanceof String) {
+                    return x;
                 }
                 else {
-                    buffer.append((String) node.second());
+                    return walkExpr((Cons) x);
                 }
             }
-            else {
-                if (buffer.length() != 0) {
-                    target.add(list(TEXT, buffer.toString()));
-                    buffer.setLength(0);
-                }
-                target.add(node);
-            }
-        }
-        if (buffer.length() != 0) {
-            target.add(list(TEXT, buffer.toString()));
-        }
-        return target;
+        }, value);
+        return value;
+    }
+
+    private Cons walkAttr(Cons attr) {
+        Cons value = (Cons) attr.second();
+        value = walkTexts(value);
+        return attr.assoc(1, value);
     }
 
     private Cons walkCall(Cons expr) {

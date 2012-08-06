@@ -12,33 +12,6 @@ import static java.lang.Character.isWhitespace;
 
 public class Lexer extends LL1Reader {
 
-    private ArrayList<Integer> stack = new ArrayList<Integer>();
-    private static final int IN_CODE = 0;
-    private static final int IN_NODE = 1;
-
-    private void enterNode() {
-        stack.add(IN_NODE);
-    }
-    private void exitNode() {
-        if (stack.remove(stack.size()-1) != IN_NODE) {
-            throw new RuntimeException("Wrong node structure");
-        }
-    }
-    private void enterCode() {
-        stack.add(IN_CODE);
-    }
-    private void exitCode() {
-        if (stack.remove(stack.size()-1) != IN_CODE) {
-            throw new RuntimeException("Wrong node structure");
-        }
-    }
-    private boolean inNode() {
-        return !stack.isEmpty() && stack.get(stack.size()-1) == IN_NODE;
-    }
-    private boolean inCode() {
-        return stack.isEmpty() || stack.get(stack.size()-1) == IN_CODE;
-    }
-
     public Lexer(Reader reader) throws IOException {
         super(reader);
         consume();
@@ -48,15 +21,66 @@ public class Lexer extends LL1Reader {
         this(new StringReader(text));
     }
 
-    public Token nextToken() throws IOException {
-//        System.out.println(stack);
-        if (inCode()) {
-            return nextCodeToken();
-        }
-        else {
-            return nextNodeToken();
+    private ArrayList<Integer> stack = new ArrayList<Integer>();
+    private static final int IN_CODE = 0;
+    private static final int IN_NODE = 1;
+    private static final int IN_APOS = 2;
+    private static final int IN_QUOTE = 3;
+    private static final int IN_TEXT = 4;
+
+    public void enter(int x) {
+        stack.add(x);
+    }
+    public void exit(int x) {
+        if (stack.remove(stack.size() - 1) != x) {
+            throw new RuntimeException("Wrong nested structure");
         }
     }
+    private int currentMode() {
+        return stack.isEmpty() ? IN_CODE : stack.get(stack.size()-1);
+    }
+    public boolean in(int x) {
+        return currentMode() == x;
+    }
+
+
+    private void enterNode() {
+        enter(IN_NODE);
+    }
+    private void exitNode() {
+        exit(IN_NODE);
+    }
+
+    private void enterCode() {
+        enter(IN_CODE);
+    }
+    private void exitCode() {
+        exit(IN_CODE);
+    }
+    private boolean inNode() {
+        return in(IN_NODE);
+    }
+    private boolean inCode() {
+        return in(IN_CODE);
+    }
+
+    public Token nextToken() throws IOException {
+        switch (currentMode()) {
+            case IN_CODE:
+                return nextCodeToken();
+            case IN_NODE:
+                return nextNodeToken();
+            case IN_APOS:
+                return nextQuoteToken('\'');
+            case IN_QUOTE:
+                return nextQuoteToken('"');
+            case IN_TEXT:
+                return nextTextToken();
+            default:
+                throw new RuntimeException("Not Implemented: "+currentMode());
+        }
+    }
+
     public Token nextCodeToken() throws IOException {
         while (!eof()) {
             switch (c) {
@@ -126,7 +150,13 @@ public class Lexer extends LL1Reader {
                 case '$':
                     return readVariable();
                 case '<':
-                    return readTag();
+                    consume();
+                    if (isQName()) {
+                        return readTag();
+                    }
+                    else {
+                        return t(LT, "<");
+                    }
                 case '>':
                     consume();
                     if (c == '=') {
@@ -152,41 +182,111 @@ public class Lexer extends LL1Reader {
     }
 
     public Token nextNodeToken() throws IOException {
+        skipWhitespaces();
         if (c == -1) {
-            throw new RuntimeException("Not Implemented!");
+            throw new RuntimeException("Broken XML");
         }
-        if (c == '{') {
-            enterCode();
+        if (isWordStart()) {
+            return t(WORD, readRawWord());
+        }
+        else if (c == '=') {
             consume();
-            return t(LBRACK, "{");
+            return t(EQ, "=");
         }
-        if (c == '<') {
-            return readTag();
-        }
-        StringBuilder buffer = new StringBuilder();
-        while (!eof() && c != '{' && c != '<' && c != '>') {
-            buffer.append((char)c);
+        else if (c == '>') {
             consume();
+            enter(IN_TEXT);
+            return t(TAGOPENEND);
         }
-        if (c == '>') {
-            buffer.append((char)c);
+        else if (c == '/') {
             consume();
-            String t = buffer.toString();
-            if (XMLLexer.isSelfCloseTag(t)) {
-                exitNode();
-                return t(TAGCLOSE, t);
-            }
+            match('>');
+            exitNode();
+            return t(TAGCLOSE, "/>");
         }
-        return t(TEXT, buffer.toString());
+        else if (c == '\'') {
+            consume();
+            enter(IN_APOS);
+            return t(ATTROPEN, "'");
+        }
+        else if (c == '"') {
+            consume();
+            enter(IN_QUOTE);
+            return t(ATTROPEN, "\"");
+        }
+        else {
+            throw new LexerException(("invalid character: " + (char)c));
+        }
     }
 
-    private Token readWord() throws IOException {
+    private Token nextQuoteToken(char q) throws IOException {
+        if (c == -1) {
+            throw new RuntimeException("Broken attribute!");
+        }
+        if (c == '{') {
+            consume();
+            enterCode();
+            return t(LBRACK, "{");
+        } else if (c == q) {
+            consume();
+            exit(q == '"' ? IN_QUOTE : IN_APOS);
+            return t(ATTRCLOSED, "'");
+        } else {
+            StringBuilder builder = new StringBuilder();
+            while (c != -1 && c != q && c != '{') {
+                builder.append((char) c);
+                consume();
+            }
+            if (c == -1) {
+                throw new RuntimeException("Broken attribute!");
+            }
+            return t(TEXT, builder.toString());
+        }
+    }
+
+    private Token nextTextToken() throws IOException {
+        if (c == -1) {
+            throw new RuntimeException("Broken XML!");
+        }
+        if (c == '{') {
+            consume();
+            enterCode();
+            return t(LBRACK, "{");
+        } else if (c == '<') {
+            consume();
+            if (c == '/') {
+                return readClosedTag();
+            }
+            else if (isQName()) {
+                return readTag();
+            }
+            else {
+                throw new RuntimeException("Not Implemented!");
+            }
+        } else {
+            StringBuilder builder = new StringBuilder();
+            while (c != -1 && c != '<' && c != '{') {
+                builder.append((char) c);
+                consume();
+            }
+            if (c == -1) {
+                throw new RuntimeException("Broken XML!");
+            }
+            return t(TEXT, builder.toString());
+        }
+    }
+
+    private String readRawWord() throws IOException {
         StringBuilder builder = new StringBuilder();
         do {
             builder.append((char)c);
             consume();
         } while (isWordPart());
-        String text = builder.toString();
+        return builder.toString();
+    }
+
+    private Token readWord() throws IOException {
+        String text = readRawWord();
         TokenType type = WORD;
         if (text.equals("declare")) {
             type = DECLARE;
@@ -267,7 +367,7 @@ public class Lexer extends LL1Reader {
         match('\'');
         return t(STRING, builder.toString());
     }
-    
+
     private Token readDoubleString() throws IOException {
         consume();
         StringBuilder builder = new StringBuilder();
@@ -296,66 +396,17 @@ public class Lexer extends LL1Reader {
     }
 
     private Token readTag() throws IOException {
-        StringBuilder tag = new StringBuilder();
-        StringBuilder tagName = new StringBuilder();
-        if (c != '<') {
-            throw new RuntimeException("Not Implemented!");
-        }
-        tag.append('<');
-        consume();
-        if (isWhitespace(c)) {
-            return t(LT, ",");
-        }
-        else if (c == '=') {
-            consume();
-            return t(LE, ",");
-        }
-        while (isWhitespace(c)) {
-            tag.append((char) c);
-            consume();
-        }
-        boolean isOpenTag = c != '/';
-        if (c == '/') {
-            tag.append((char)c);
-            consume();
-        }
-        while (isQName()) {
-            tag.append((char)c);
-            tagName.append((char) c);
-            consume();
-        }
-        while (isWhitespace(c)) {
-            tag.append((char) c);
-            consume();
-        }
-        while (c != -1) {
-            if (c == '{') {
-                if (!isOpenTag) {
-                    throw new RuntimeException("Invalid closing xml tag");
-                }
-                enterNode();
-                return t(TAGOPEN, tag.toString());
-            }
-            tag.append((char) c);
-            if (c == '>') {
-                consume();
-                break;
-            }
-            consume();
-        }
-        String text = tag.toString();
-        boolean isUnitTag = XMLLexer.isSelfCloseTag(text);
-        if (!isOpenTag) {
-            exitNode();
-            return t(TAGCLOSE, text);
-        }
-        else if (isUnitTag) {
-            return t(TAGUNIT, text);
-        }
-        else {
-            enterNode();
-            return t(TAGOPEN, text);
-        }
+        enterNode();
+        return t(TAGOPEN,  readRawWord());
+    }
+
+    private Token readClosedTag() throws IOException {
+        exit(IN_TEXT);
+        exitNode();
+        Token t = t(TAGCLOSE, readRawWord());
+        skipWhitespaces();
+        match('>');
+        return t;
     }
 
     private void skipWhitespaces() throws IOException {

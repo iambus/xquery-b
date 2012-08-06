@@ -12,7 +12,13 @@ public enum TokenType {
     STRING,
     VARIABLE,
     XPATH,
+
+    ELEMENT,
+    ATTR,
+    ATTROPEN,
+    ATTRCLOSED,
     TAGOPEN,
+    TAGOPENEND,
     TAGCLOSE,
     TAGUNIT,
     TEXT, // text node
