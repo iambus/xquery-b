@@ -93,7 +93,7 @@ public class EvalAssembler implements Opcodes {
             case EQ: case NE:
             case LT: case LE: case GT: case GE:
             case AND: case OR:
-            case TO: case INDEX: case XPATH:
+            case TO: case INDEX: case XPATH: case ATTR_AT:
                 return visitOp(expr);
             case VARIABLE:
                 return visitVariable(expr);
@@ -169,6 +169,8 @@ public class EvalAssembler implements Opcodes {
                 return visitIndex(expr);
             case XPATH:
                 return visitXPath(expr);
+            case ATTR_AT:
+                return visitAttrAt(expr);
             default:
                 throw new RuntimeException("Not Implemented! "+toTypeName(AST.getNodeType(expr)));
         }
@@ -826,6 +828,14 @@ public class EvalAssembler implements Opcodes {
         }
         pushConst(path);
         mv.visitMethodInsn(INVOKEINTERFACE, XML_INTERFACE, "getElementsByTagNameNS", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;");
+        return AST.getEvalType(expr);
+    }
+
+    private Class visitAttrAt(Cons expr) {
+        visitExpr(AST.nthAST(expr, 1));
+        String attr = (String) expr.third();
+        pushConst(attr);
+        mv.visitMethodInsn(INVOKEINTERFACE, XML_INTERFACE, "getAttribute", "(Ljava/lang/String;)Ljava/lang/String;");
         return AST.getEvalType(expr);
     }
 

@@ -12,6 +12,7 @@ public enum TokenType {
     STRING,
     VARIABLE,
     XPATH,
+    ATTR_AT,
 
     ELEMENT,
     ATTR,

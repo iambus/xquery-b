@@ -44,14 +44,6 @@ public class StringXML implements XML {
         return new StringXML(xml, i);
     }
 
-    public String text() {
-        if (text == null) {
-//            text = XMLUtils.text(toString());
-            text = nextTextNode();
-        }
-        return text;
-    }
-
     protected int selectNode(int i, String subNode) {
         int max = xml.length();
         int tagmax = subNode.length();
@@ -168,6 +160,90 @@ public class StringXML implements XML {
             }
         }
         return builder.toString();
+    }
+
+    protected static boolean isTagChar(char c) {
+        switch (c) {
+            case ' ':
+            case '\t':
+            case '\r':
+            case '\n':
+            case ':':
+            case '<':
+            case '/':
+            case '>':
+            case '=':
+                return false;
+            default:
+                return true;
+        }
+    }
+
+    protected int skipString(int i) {
+        char x = xml.charAt(i++);
+        while (xml.charAt(i++) != x) {
+        }
+        return i;
+    }
+
+    protected String readString(int i) {
+        char x = xml.charAt(i++);
+        String s = xml.substring(i, xml.indexOf(x, i));
+        return s;
+//        StringBuilder builder = new StringBuilder();
+//        while (xml.charAt(i) != x) {
+//            builder.append(xml.charAt(i++));
+//        }
+//        return builder.toString();
+    }
+
+    public String getAttribute(String name) {
+        int n = name.length();
+        int i = start + 1;
+        while (isTagChar(xml.charAt(i)) || xml.charAt(i) == ':') {
+            i++;
+        }
+        while (true) {
+            while (Character.isWhitespace(xml.charAt(i))) {
+                i++;
+            }
+            if (xml.charAt(i) == '/' || xml.charAt(i) == '>') {
+                return null;
+            }
+            int t = 0;
+            while (t < n && xml.charAt(i+t) == name.charAt(t)) {
+                t++;
+            }
+            i += t;
+            if (t == n) {
+                if (xml.charAt(i)=='=' || Character.isWhitespace(i)) {
+                    // we found it!
+                    while (xml.charAt(i++) != '=') {
+                    }
+                    while (Character.isWhitespace(xml.charAt(i))) {
+                        i++;
+                    }
+                    return readString(i);
+                }
+                else {
+                }
+            }
+            // attribute name doesn't starts with xmlns
+            while (xml.charAt(i++) != '=') {
+            }
+            while (Character.isWhitespace(xml.charAt(i))) {
+                i++;
+            }
+            i = skipString(i);
+        }
+    }
+
+    public String text() {
+        if (text == null) {
+//            text = XMLUtils.text(toString());
+            text = nextTextNode();
+        }
+        return text;
     }
 
     public String toString() {

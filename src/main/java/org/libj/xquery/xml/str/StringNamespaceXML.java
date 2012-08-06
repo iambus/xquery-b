@@ -186,23 +186,6 @@ public class StringNamespaceXML extends StringXML {
         return null;
     }
 
-    public static boolean isTagChar(char c) {
-        switch (c) {
-            case ' ':
-            case '\t':
-            case '\r':
-            case '\n':
-            case ':':
-            case '<':
-            case '/':
-            case '>':
-            case '=':
-                return false;
-            default:
-                return true;
-        }
-    }
-
     private SharedNamespace parseNamespace(int i) {
         SharedNamespace ns = null;
         while (true) {
@@ -271,24 +254,6 @@ public class StringNamespaceXML extends StringXML {
             i = skipString(i);
         }
         
-    }
-
-    private int skipString(int i) {
-        char x = xml.charAt(i++);
-        while (xml.charAt(i++) != x) {
-        }
-        return i;
-    }
-
-    private String readString(int i) {
-        char x = xml.charAt(i++);
-        String s = xml.substring(i, xml.indexOf(x, i));
-        return s;
-//        StringBuilder builder = new StringBuilder();
-//        while (xml.charAt(i) != x) {
-//            builder.append(xml.charAt(i++));
-//        }
-//        return builder.toString();
     }
 
 

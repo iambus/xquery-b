@@ -250,6 +250,9 @@ public class Parser extends LLkParser {
                 }
             }
             match(ATTRCLOSED);
+            if (values == null) {
+                values = list("");
+            }
             return list(a, values);
         }
         else {
@@ -270,8 +273,15 @@ public class Parser extends LLkParser {
         Cons ast = primary();
         while (LA(1) == XPATH) {
             consume();
-            String path = consume(WORD).text;
-            ast = Cons.list(XPATH, ast, path);
+            if (LA(1) == ATTR_AT) {
+                consume();
+                String path = consume(WORD).text;
+                ast = Cons.list(ATTR_AT, ast, path);
+            }
+            else {
+                String path = consume(WORD).text;
+                ast = Cons.list(XPATH, ast, path);
+            }
         }
         return ast;
     }

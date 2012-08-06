@@ -25,6 +25,10 @@ public class NonCachedDomXML implements XML {
         throw new UnsupportedOperationException("getElementsByTagNameNS");
     }
 
+    public String getAttribute(String name) {
+        throw new UnsupportedOperationException("getAttribute");
+    }
+
     public String text() {
         return XMLUtils.text(xml);
     }

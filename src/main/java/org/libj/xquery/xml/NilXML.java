@@ -10,6 +10,10 @@ public class NilXML implements XML {
         return this;
     }
 
+    public String getAttribute(String name) {
+        throw new UnsupportedOperationException("getAttribute");
+    }
+
     public String text() {
         return "";
     }

@@ -62,6 +62,10 @@ public class DomSimpleXPathXMLFactory implements XMLFactory {
             throw new UnsupportedOperationException("getElementsByTagNameNS");
         }
 
+        public String getAttribute(String name) {
+            throw new UnsupportedOperationException("getAttribute");
+        }
+
         private void initNode() {
             if (node == null) {
 //                        doc = XMLUtils.doc(xml);

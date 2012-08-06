@@ -20,6 +20,7 @@ public class TestParser {
     }
     @Test
     public void testAttrUnit() throws IOException {
+        parseString("<x a=''/>");
         parseString("<x a='x'/>");
     }
     @Test

@@ -41,7 +41,39 @@ public class TestStringXMLPerformance {
         assertTrue(String.format("Timeout: %d > %d (loop %s) for script: " + breakLine(script), executionMillis, targetMillis, number(n)), executionMillis <= targetMillis);
     }
     @Test
+    public void testAttr() {
+        int n = 1000*1000*5;
+        int targetMillis = 1000;
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < n; i++) {
+            XML x = new StringXML("<x a='3'>1</x>");
+            String a = x.getAttribute("a");
+        }
+        long end = System.currentTimeMillis();
+        long executionMillis = end - start;
+        String script = "$x/@a";
+        logTime(script, executionMillis, n);
+        logSpeed(n, executionMillis);
+        assertTrue(String.format("Timeout: %d > %d (loop %s) for script: " + breakLine(script), executionMillis, targetMillis, number(n)), executionMillis <= targetMillis);
+    }
+    @Test
     public void testText() {
+        int n = 1000*1000*4;
+        int targetMillis = 1000;
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < n; i++) {
+            XML x = new StringXML("<x>1</x>");
+            String s = x.text();
+        }
+        long end = System.currentTimeMillis();
+        long executionMillis = end - start;
+        String script = "string($x)";
+        logTime(script, executionMillis, n);
+        logSpeed(n, executionMillis);
+        assertTrue(String.format("Timeout: %d > %d (loop %s) for script: " + breakLine(script), executionMillis, targetMillis, number(n)), executionMillis <= targetMillis);
+    }
+    @Test
+    public void testText2() {
         int n = 1000*1000*4;
         int targetMillis = 1000;
         long start = System.currentTimeMillis();

@@ -126,6 +126,9 @@ public class Lexer extends LL1Reader {
                 case '/':
                     consume();
                     return t(XPATH, "/");
+                case '@':
+                    consume();
+                    return t(ATTR_AT, "@");
                 case '=':
                     consume();
                     return t(EQ, "=");

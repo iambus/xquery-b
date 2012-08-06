@@ -63,7 +63,7 @@ public class Analysis {
             case EQ: case NE:
             case LT: case LE: case GT: case GE:
             case AND: case OR:
-            case TO: case INDEX: case XPATH:
+            case TO: case INDEX: case XPATH: case ATTR_AT:
                 return walkOp(expr);
             case CALL:
                 return walkCall(expr);
@@ -120,6 +120,8 @@ public class Analysis {
                 return walkIndex(expr);
             case XPATH:
                 return walkXPath(expr);
+            case ATTR_AT:
+                return walkAttrAt(expr);
             default:
                 throw new RuntimeException("Not Implemented! "+toTypeName(type));
         }
@@ -169,6 +171,13 @@ public class Analysis {
             path = path.substring(i+1);
         }
         return list(new TypedElement(TokenType.XPATH, XML_INTERFACE_Class), xml, path, ns);
+    }
+
+    private Cons walkAttrAt(Cons expr) {
+        Cons object = (Cons) expr.second();
+        Cons xml = castTo(walkExpr(object), XML_INTERFACE_Class);
+        String attr = (String) expr.third();
+        return list(new TypedElement(TokenType.ATTR_AT, String.class), xml, attr);
     }
 
     private Cons walkIndex(Cons expr) {
