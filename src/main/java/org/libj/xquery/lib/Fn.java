@@ -102,7 +102,11 @@ public class Fn {
             return Double.parseDouble(((XML) v).text());
         }
         else if (v instanceof String) {
-            return Double.parseDouble((String) v);
+            try {
+                return Double.parseDouble((String) v);
+            } catch (NumberFormatException e) {
+                return Double.NaN;
+            }
         }
         else if (v instanceof Double) {
             return (Double)v;
