@@ -51,6 +51,7 @@ public class TestExpressions {
         assertEval("10 mod 3 != 1", false);
         assertEval("1 < 2", true);
         assertEval("2.2 >= 3", false);
+        assertEval("1 <= 2 and 2 > 1", true);
     }
 
     @Ignore("XML = int is not supported yet")

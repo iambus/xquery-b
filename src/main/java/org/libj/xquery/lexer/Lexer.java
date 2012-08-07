@@ -157,6 +157,10 @@ public class Lexer extends LL1Reader {
                     if (isQName()) {
                         return readTag();
                     }
+                    else if (c == '=') {
+                        consume();
+                        return t(LE, "<=");
+                    }
                     else {
                         return t(LT, "<");
                     }
