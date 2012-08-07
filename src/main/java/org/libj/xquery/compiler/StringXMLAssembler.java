@@ -3,14 +3,12 @@ package org.libj.xquery.compiler;
 import org.libj.xquery.lexer.TokenType;
 import org.libj.xquery.lisp.Cons;
 import org.libj.xquery.parser.AST;
-import org.libj.xquery.xml.XML;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.util.ArrayList;
 
 import static org.libj.xquery.compiler.Constants.XML_INTERFACE;
-import static org.libj.xquery.lexer.TokenType.TEXT;
 
 public class StringXMLAssembler implements Opcodes {
     private EvalAssembler outer;
@@ -23,14 +21,18 @@ public class StringXMLAssembler implements Opcodes {
         this.compiledClassName = compiledClassName;
     }
 
-    Class visitElement(Cons expr) {
-        ArrayList list = new ArrayList();
-        flatten(expr, list);
-        list = mergeStringNode(list);
-        return visitNode(list);
+    void visitElement(Cons expr) {
+        ArrayList list = toList(expr);
+        visitNode(list);
     }
 
-    private void flatten(Cons expr, ArrayList list) {
+    static ArrayList toList(Cons expr) {
+        ArrayList list = new ArrayList();
+        flatten(expr, list);
+        return mergeStringNode(list);
+    }
+
+    private static void flatten(Cons expr, ArrayList list) {
         switch (AST.getNodeType(expr)) {
             case ELEMENT:
                 flattenElement(expr, list);
@@ -40,7 +42,7 @@ public class StringXMLAssembler implements Opcodes {
         }
     }
 
-    private void flattenElement(Cons expr, ArrayList list) {
+    private static void flattenElement(Cons expr, ArrayList list) {
         Object tag = expr.nth(1);
         Cons attrs = (Cons) expr.nth(2);
         Cons contents = (Cons) expr.nth(3);
@@ -65,13 +67,24 @@ public class StringXMLAssembler implements Opcodes {
         }
     }
 
-    private void flattenValues(Cons values, ArrayList list) {
+    private static void flattenValues(Cons values, ArrayList list) {
         for (Object x: values) {
-            list.add(x);
+            if (x instanceof String) {
+                list.add(x);
+            }
+            else if (x instanceof Integer) {
+                list.add(x);
+            }
+            else if (x instanceof Cons) {
+                flatten((Cons) x, list);
+            }
+            else {
+                throw new RuntimeException("Not Implemented: "+x);
+            }
         }
     }
 
-    private ArrayList mergeStringNode(ArrayList source) {
+    private static ArrayList mergeStringNode(ArrayList source) {
         ArrayList target = new ArrayList();
         StringBuilder buffer = new StringBuilder();
         for (int i = 0; i < source.size(); i++) {
@@ -96,55 +109,58 @@ public class StringXMLAssembler implements Opcodes {
         return target;
     }
 
-    private Class visitNode(ArrayList subs) {
+    private void visitNode(ArrayList subs) {
         mv.visitVarInsn(ALOAD, 0);
         if (subs.size() == 1) {
             String singleton = (String) subs.get(0);
-            pushConst(singleton);
+            mv.visitLdcInsn(singleton);
         }
         else {
-            newObject("java/lang/StringBuilder");
+            newStringBuilder(mv, "java/lang/StringBuilder");
             for (Object x: subs) {
                 if (x instanceof String) {
-                    pushConst(x);
+                    mv.visitLdcInsn(x);
                     mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
                 }
                 else {
-                    Cons element = (Cons) x;
-                    Class t = outer.visitExpr(element);
-                    if (t.isPrimitive()) {
-                        if (t == int.class) {
-                            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(I)Ljava/lang/StringBuilder;");
-                        }
-                        else if (t == double.class) {
-                            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(D)Ljava/lang/StringBuilder;");
-                        }
-                        else if (t == long.class) {
-                            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(J)Ljava/lang/StringBuilder;");
-                        }
-                        else {
-                            throw new RuntimeException("Not Implemented!");
-                        }
-                    }
-                    else {
-                        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
-                    }
+                    Cons expr = (Cons) x;
+                    Class t = outer.visitExpr(expr);
+                    appendStringBuilder(mv, t);
                 }
             }
-            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;");
+            stringBuilderToString(mv);
         }
         mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "toXML", "(Ljava/lang/String;)L" + XML_INTERFACE + ";");
-        return XML.class;
     }
 
-    private void pushConst(Object o) {
-        mv.visitLdcInsn(o);
-    }
-
-    private void newObject(String className) {
+    static void newStringBuilder(MethodVisitor mv, String className) {
         mv.visitTypeInsn(NEW, className);
         mv.visitInsn(DUP);
         mv.visitMethodInsn(INVOKESPECIAL, className, "<init>", "()V");
+    }
+
+    static void appendStringBuilder(MethodVisitor mv, Class t) {
+        if (t.isPrimitive()) {
+            if (t == int.class) {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(I)Ljava/lang/StringBuilder;");
+            }
+            else if (t == double.class) {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(D)Ljava/lang/StringBuilder;");
+            }
+            else if (t == long.class) {
+                mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(J)Ljava/lang/StringBuilder;");
+            }
+            else {
+                throw new RuntimeException("Not Implemented!");
+            }
+        }
+        else {
+            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;");
+        }
+    }
+
+    static void stringBuilderToString(MethodVisitor mv) {
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;");
     }
 
 }

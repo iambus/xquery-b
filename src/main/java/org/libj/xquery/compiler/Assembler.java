@@ -9,6 +9,7 @@ import static org.libj.xquery.lexer.TokenType.*;
 import org.libj.xquery.parser.AST;
 import org.objectweb.asm.*;
 
+import java.util.List;
 import java.util.Set;
 
 public class Assembler implements Opcodes {
@@ -17,6 +18,9 @@ public class Assembler implements Opcodes {
     private String compiledClassName;
     private String[] vars;
     private Set<String> freeVariables;
+    private final boolean generateInnerClasses;
+    private List<ClassInfo> innerClasses;
+
     private final String evalMainMethodName = "eval_";
     private final String evalMainMethodSignature;
     private final String evalMethodSignature;
@@ -27,12 +31,13 @@ public class Assembler implements Opcodes {
 
     private MethodVisitor mv;
 
-    public Assembler(String className, Cons ast, String[] vars, Namespace root, Class xmlFactory) {
+    public Assembler(String className, Cons ast, String[] vars, Namespace root, Class xmlFactory, boolean generateInnerClasses) {
         this.compiledClassName = className.replace('.', '/');
         this.ast = ast;
         this.vars = vars != null ? vars : new String[0];
         this.namespace = root;
         XML_FACTORY_IMPLEMENTATION = xmlFactory.getName().replace('.', '/');
+        this.generateInnerClasses = generateInnerClasses;
         String varSignature = "";
         for (int i = 0; i < vars.length; i++) {
             varSignature += "Ljava/lang/Object;";
@@ -44,7 +49,7 @@ public class Assembler implements Opcodes {
     }
 
     public Assembler(String className, Cons ast, String[] vars) {
-        this(className, ast, vars, new DefaultRootNamespace(), DEFAUL_XML_FACTORY_IMPLEMENTATION_CLASS);
+        this(className, ast, vars, new DefaultRootNamespace(), DEFAUL_XML_FACTORY_IMPLEMENTATION_CLASS, true);
     }
 
     public Assembler(String className, Cons ast) {
@@ -166,9 +171,10 @@ public class Assembler implements Opcodes {
         Cons declares = AST.nthAST(ast, 1);
         Cons code = AST.nthAST(ast, 2);
         visitDeclares(declares);
-        EvalAssembler evalAssembler = new EvalAssembler(mv, compiledClassName, vars, namespace);
+        EvalAssembler evalAssembler = new EvalAssembler(mv, compiledClassName, vars, namespace, generateInnerClasses);
         Class clazz = evalAssembler.visit(code);
         this.freeVariables = evalAssembler.getFreeVariables().keySet();
+        this.innerClasses = evalAssembler.getInnerClasses();
         return clazz;
     }
 
@@ -394,6 +400,10 @@ public class Assembler implements Opcodes {
     //////////////////////////////////////////////////
     /// public API
     //////////////////////////////////////////////////
+
+    public Target compile() {
+        return new Target(new ClassInfo(compiledClassName, toByteArray()), innerClasses);
+    }
 
     public byte[] toByteArray() {
         return cw.toByteArray();

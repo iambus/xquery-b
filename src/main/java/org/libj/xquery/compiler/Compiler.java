@@ -7,6 +7,7 @@ import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.Parser;
 
 import java.io.*;
+import java.util.ArrayList;
 
 public class Compiler {
 
@@ -17,6 +18,7 @@ public class Compiler {
     private Class xmlFactory = Constants.DEFAUL_XML_FACTORY_IMPLEMENTATION_CLASS;
 
     private boolean disableFreeVariables = false;
+    private boolean generateInnerClasses = true;
 
     public void registerLib(String prefix, Class c) {
         namespace.register(prefix, new LibNamespace(c));
@@ -65,15 +67,42 @@ public class Compiler {
 
     // generate bytecode
 
-    public byte[] compileToByteArray(Cons ast, String className, String...vars) {
+    public Target compileToTarget(Cons ast, String className, String...vars) {
         if (className == null || className.isEmpty()) {
             className = randomClassName();
         }
-        Assembler assembler = new Assembler(className, ast, vars, new LocalNamespace(namespace), xmlFactory);
+        Assembler assembler = new Assembler(className, ast, vars, new LocalNamespace(namespace), xmlFactory, generateInnerClasses);
         if (disableFreeVariables && !assembler.getFreeVariables().isEmpty()) {
             throw new RuntimeException("Unresolved free variables: "+assembler.getFreeVariables());
         }
-        return assembler.toByteArray();
+        return assembler.compile();
+    }
+
+    public byte[] compileToByteArray(Cons ast, String className, String...vars) {
+        Target t = compileToTarget(ast, className, vars);
+        if (!t.getInnerClasses().isEmpty()) {
+            throw new RuntimeException("There are inner classes!");
+        }
+        return t.getMainClass().getBytes();
+    }
+
+    public void compileToDir(Cons ast, String className, File dir, String... vars) {
+        Target t = compileToTarget(ast, className, vars);
+        ArrayList<ClassInfo> classes = new ArrayList<ClassInfo>(t.getInnerClasses());
+        classes.add(t.getMainClass());
+        try {
+            for (ClassInfo c : classes) {
+                File path = new File(dir, c.getClassName() + ".class");
+                FileOutputStream output = new FileOutputStream(path);
+                try {
+                    output.write(c.getBytes());
+                } finally {
+                    output.close();
+                }
+            }
+        } catch (IOException e) {
+            throw new CompilerException(e);
+        }
     }
 
     public void compileToFile(Cons ast, String className, File path, String...vars) {
@@ -94,7 +123,11 @@ public class Compiler {
         if (className == null || className.isEmpty()) {
             className = randomClassName();
         }
-        return loader.define(className, compileToByteArray(ast, className, vars));
+        Target target = compileToTarget(ast, className, vars);
+        for (ClassInfo c: target.getInnerClasses()) {
+            loader.define(c.getClassName().replace('/', '.'), c.getBytes());
+        }
+        return loader.define(className, target.getMainClass().getBytes());
     }
 
     public XQuery compileToXQuery(Cons ast, String className, String...vars) {
@@ -155,6 +188,10 @@ public class Compiler {
     // options
     public void enableFreeVariables(boolean enable) {
         disableFreeVariables = !enable;
+    }
+
+    public void enableGenerateInnerClasses(boolean enable) {
+        this.generateInnerClasses = enable;
     }
 
 }

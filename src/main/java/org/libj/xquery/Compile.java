@@ -1,6 +1,7 @@
 package org.libj.xquery;
 
 import org.libj.xquery.compiler.Compiler;
+import org.libj.xquery.compiler.Target;
 import org.libj.xquery.lisp.Cons;
 
 import java.io.*;
@@ -22,8 +23,16 @@ public class Compile {
         return new Compiler().compileToAST(path);
     }
 
+    public static Target compileToTarget(Cons ast, String className, String... vars) {
+        return new Compiler().compileToTarget(ast, className, vars);
+    }
+
     public static byte[] compileToByteArray(Cons ast, String className, String...vars) {
         return new Compiler().compileToByteArray(ast, className, vars);
+    }
+
+    public static void compileToDir(Cons ast, String className, File dir, String...vars) {
+        new Compiler().compileToDir(ast, className, dir, vars);
     }
 
     public static void compileToFile(Cons ast, String className, File path, String...vars) {

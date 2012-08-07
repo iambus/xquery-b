@@ -208,6 +208,11 @@ public class Cons<E> implements Iterable<E> {
             if (o == null || getClass() != o.getClass()) return false;
             return true;
         }
+
+        @Override
+        public String toString() {
+            return "nil";
+        }
     }
 
     public static Cons nilList() {
@@ -227,16 +232,41 @@ public class Cons<E> implements Iterable<E> {
         }
     }
 
+    public static Cons filter(Pred pred, Cons list) {
+        if (list == null) {
+            return null;
+        }
+        else {
+            if (pred.call(list.first())) {
+                return cons(list.first(), filter(pred, list.next()));
+            }
+            else {
+                return filter(pred, list.next());
+            }
+        }
+    }
+
+    private String toString(Object x) {
+        if (x == null) {
+            return "nil";
+        }
+        else if (x instanceof String) {
+            return '"'+((String) x).replace("\n", "\\n").replace("\r", "\\r").replace("\"", "\\\"")+'"';
+        } else {
+            return x.toString();
+        }
+    }
+
     public String toString(Cons cons) {
         if (cons == null) {
             return null;
         }
         StringBuilder builder = new StringBuilder();
         builder.append('(');
-        builder.append(first());
+        builder.append(toString(first()));
         for (Object x: rest()) {
             builder.append(' ');
-            builder.append(x);
+            builder.append(toString(x));
         }
         builder.append(')');
         return builder.toString();

@@ -26,6 +26,10 @@ public class XMLUtils {
         // TODO: this is incorrect and inefficient
         return xml.replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;");
     }
+    public static String unescapeXML(String xml) {
+        // TODO: this is incorrect and inefficient
+        return xml.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&");
+    }
 
     public static Document doc(String xml) {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();

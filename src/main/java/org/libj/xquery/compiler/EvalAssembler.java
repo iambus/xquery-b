@@ -1,6 +1,5 @@
 package org.libj.xquery.compiler;
 
-import org.libj.xquery.lexer.TokenType;
 import org.libj.xquery.lisp.Cons;
 import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.*;
@@ -10,6 +9,8 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static org.libj.xquery.lexer.TokenType.*;
@@ -22,12 +23,15 @@ public class EvalAssembler implements Opcodes {
     private int locals;
     private Map<String, Symbol> freeVariables;
     private String[] vars;
+    private boolean generateInnerClasses;
+    private List<ClassInfo> innerClasses = new ArrayList<ClassInfo>();
 
-    public EvalAssembler(MethodVisitor mv, String compiledClassName, String[] vars, Namespace namespace) {
+    public EvalAssembler(MethodVisitor mv, String compiledClassName, String[] vars, Namespace namespace, boolean generateInnerClasses) {
         this.compiledClassName = compiledClassName;
         this.vars = vars;
         this.namespace = namespace;
         this.mv = mv;
+        this.generateInnerClasses = generateInnerClasses;
     }
 
     public Class visit(Cons ast) {
@@ -813,7 +817,14 @@ public class EvalAssembler implements Opcodes {
     }
 
     private Class visitElement(Cons expr) {
-        return new StringXMLAssembler(this, mv, compiledClassName).visitElement(expr);
+        if (generateInnerClasses) {
+            StructuredXMLAssembler x = new StructuredXMLAssembler(this, mv, compiledClassName);
+            x.visitElement(expr);
+            innerClasses.addAll(x.getClasses());
+        } else {
+            new StringXMLAssembler(this, mv, compiledClassName).visitElement(expr);
+        }
+        return XML.class;
     }
 
     private Class visitXPath(Cons expr) {
@@ -944,4 +955,7 @@ public class EvalAssembler implements Opcodes {
         return freeVariables;
     }
 
+    public List<ClassInfo> getInnerClasses() {
+        return innerClasses;
+    }
 }
