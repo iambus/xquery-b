@@ -23,6 +23,14 @@ public class Unparser {
             case FLOWER:
                 outputFlower(ast);
                 break;
+            case IF:
+                builder.append("if (");
+                output(ast.second());
+                builder.append(") then ");
+                output(ast.third());
+                builder.append(" else ");
+                output(ast.nth(3));
+                break;
             case CALL:
                 outputCall(ast);
                 break;
@@ -56,6 +64,18 @@ public class Unparser {
                 break;
             case PLUS:
                 outputBinary(ast, "+");
+                break;
+            case LT:
+                outputBinary(ast, "<");
+                break;
+            case LE:
+                outputBinary(ast, "<=");
+                break;
+            case GT:
+                outputBinary(ast, ">");
+                break;
+            case GE:
+                outputBinary(ast, ">=");
                 break;
             case LIST:
                 builder.append('(');
@@ -206,6 +226,7 @@ public class Unparser {
     }
 
     public static void main(String[] args) {
-        System.out.println(unparse(org.libj.xquery.Compile.compileToAST("<x a='x{3}'>[{1+2}]</x>")));
+        String xquery = "if (1 < 2) then 3 else 4";
+        System.out.println(unparse(org.libj.xquery.Compile.compileToAST(xquery)));
     }
 }
