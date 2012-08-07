@@ -16,6 +16,9 @@ public class Fn {
         if (v instanceof XML) {
             return ((XML) v).text();
         }
+        else if (v == null) {
+            return "";
+        }
         else {
             return v.toString();
         }
