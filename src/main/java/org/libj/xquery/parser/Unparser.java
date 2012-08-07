@@ -54,6 +54,9 @@ public class Unparser {
             case NE:
                 outputBinary(ast, "!=");
                 break;
+            case PLUS:
+                outputBinary(ast, "+");
+                break;
             case LIST:
                 builder.append('(');
                 outputArguments(ast.next());
@@ -66,8 +69,8 @@ public class Unparser {
                 output(ast.third());
                 builder.append(')');
                 break;
-            case NODE:
-                outputNode(ast);
+            case ELEMENT:
+                outputElement(ast);
                 break;
             default:
                 throw new RuntimeException("Not Implemented: " + t);
@@ -126,20 +129,51 @@ public class Unparser {
         }
     }
 
-    private void outputNode(Cons ast) {
-        for (Object x: ast.rest()) {
-            Cons expr = (Cons) x;
-            switch ((TokenType) expr.first()) {
-                case TAGOPEN:
-                case TAGCLOSE:
-                case TEXT:
-                    builder.append(expr.second());
-                    break;
-                default:
-                    builder.append('{');
-                    output(x);
-                    builder.append('}');
+    private void outputElement(Cons ast) {
+        String tag = (String) ast.nth(1);
+        Cons attrs = (Cons) ast.nth(2);
+        Cons contents = (Cons) ast.nth(3);
+        builder.append('<');
+        builder.append(tag);
+        if (attrs != null) {
+            for (Object x : attrs) {
+                Cons a = (Cons) x;
+                String name = (String) a.first();
+                Cons values = (Cons) a.second();
+                builder.append(' ');
+                builder.append(name);
+                builder.append('=');
+                builder.append('"');
+                for (Object v: values) {
+                    if (v instanceof String) {
+                        builder.append(v);
+                    }
+                    else {
+                        builder.append('{');
+                        output(v);
+                        builder.append('}');
+                    }
+                }
+                builder.append('"');
             }
+        }
+        if (contents != null) {
+            for (Object v: contents) {
+                if (v instanceof String) {
+                    builder.append(v);
+                }
+                else {
+                    builder.append('{');
+                    output(v);
+                    builder.append('}');
+                }
+            }
+            builder.append("</");
+            builder.append(tag);
+            builder.append('>');
+        }
+        else {
+            builder.append("/>");
         }
     }
 
@@ -171,4 +205,7 @@ public class Unparser {
         return unparser.builder.toString();
     }
 
+    public static void main(String[] args) {
+        System.out.println(unparse(org.libj.xquery.Compile.compileToAST("<x a='x{3}'>[{1+2}]</x>")));
+    }
 }
