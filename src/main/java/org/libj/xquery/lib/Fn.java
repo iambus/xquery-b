@@ -3,6 +3,7 @@ package org.libj.xquery.lib;
 import org.libj.xquery.annotation.Function;
 import org.libj.xquery.annotation.Namespace;
 import org.libj.xquery.runtime.Op;
+import org.libj.xquery.xml.NilXML;
 import org.libj.xquery.xml.XML;
 
 @Namespace(name="fn")
@@ -126,7 +127,10 @@ public class Fn {
 
     @Function
     public static double number(Object v) {
-        if (v instanceof XML) {
+        if (v instanceof NilXML) {
+            return Double.NaN;
+        }
+        else if (v instanceof XML) {
             try {
                 return Double.parseDouble(((XML) v).text());
             } catch (NumberFormatException e) {
@@ -134,6 +138,9 @@ public class Fn {
             }
         }
         else if (v instanceof String) {
+            if (((String)v).isEmpty()) {
+                return Double.NaN;
+            }
             try {
                 return Double.parseDouble((String) v);
             } catch (NumberFormatException e) {
