@@ -25,6 +25,31 @@ public class Fn {
     }
 
     @Function
+    public static String string(double v) {
+        return Double.toString(v);
+    }
+
+    @Function
+    public static String string(int v) {
+        return Integer.toString(v);
+    }
+
+    @Function
+    public static String string(long v) {
+        return Long.toString(v);
+    }
+
+    @Function
+    public static String string(String v) {
+        return v;
+    }
+
+    @Function
+    public static String string(XML v) {
+        return v == null ? "" : v.text();
+    }
+
+    @Function
     public static String substring(String s, int start) {
         return s.substring(start - 1);
     }
