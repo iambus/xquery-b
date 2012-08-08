@@ -93,6 +93,7 @@ public class Compiler {
         try {
             for (ClassInfo c : classes) {
                 File path = new File(dir, c.getClassName() + ".class");
+                path.getParentFile().mkdirs();
                 FileOutputStream output = new FileOutputStream(path);
                 try {
                     output.write(c.getBytes());
