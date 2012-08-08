@@ -50,6 +50,11 @@ public class Unparser {
                 builder.append('/');
                 builder.append(ast.third());
                 break;
+            case ATTR_AT:
+                output(ast.second());
+                builder.append("/@");
+                builder.append(ast.third());
+                break;
             case INDEX:
                 output(ast.second());
                 builder.append('[');
@@ -226,7 +231,7 @@ public class Unparser {
     }
 
     public static void main(String[] args) {
-        String xquery = "if (1 < 2) then 3 else 4";
+        String xquery = "$x/t/@a";
         System.out.println(unparse(org.libj.xquery.Compile.compileToAST(xquery)));
     }
 }
