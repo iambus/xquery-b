@@ -183,14 +183,20 @@ public class Unparser {
             }
         }
         if (contents != null) {
+            builder.append('>');
             for (Object v: contents) {
                 if (v instanceof String) {
                     builder.append(v);
                 }
                 else {
-                    builder.append('{');
-                    output(v);
-                    builder.append('}');
+                    if (((Cons) v).first() == TokenType.ELEMENT) {
+                        output(v);
+                    }
+                    else {
+                        builder.append('{');
+                        output(v);
+                        builder.append('}');
+                    }
                 }
             }
             builder.append("</");
@@ -231,7 +237,7 @@ public class Unparser {
     }
 
     public static void main(String[] args) {
-        String xquery = "$x/t/@a";
+        String xquery = "<x> <b></b>{2}</x>";
         System.out.println(unparse(org.libj.xquery.Compile.compileToAST(xquery)));
     }
 }
