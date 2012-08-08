@@ -128,7 +128,7 @@ public class StructuredXMLAssembler implements Opcodes {
                 newValues = reverse(newValues);
                 newAttrs = cons(list(a.first(), newValues), newAttrs);
             }
-            attrs = newAttrs;
+            attrs = reverse(newAttrs);
         }
 
         Cons contents = (Cons) expr.nth(3);
@@ -172,7 +172,7 @@ public class StructuredXMLAssembler implements Opcodes {
                 newValues = reverse(newValues);
                 newAttrs = cons(list(a.first(), newValues), newAttrs);
             }
-            attrs = newAttrs;
+            attrs = reverse(newAttrs);
         }
 
         Cons contents = (Cons) expr.nth(3);
