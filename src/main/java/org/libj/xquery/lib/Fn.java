@@ -127,7 +127,11 @@ public class Fn {
     @Function
     public static double number(Object v) {
         if (v instanceof XML) {
-            return Double.parseDouble(((XML) v).text());
+            try {
+                return Double.parseDouble(((XML) v).text());
+            } catch (NumberFormatException e) {
+                return Double.NaN;
+            }
         }
         else if (v instanceof String) {
             try {
