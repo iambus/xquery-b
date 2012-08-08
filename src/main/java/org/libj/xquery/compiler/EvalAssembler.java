@@ -332,7 +332,7 @@ public class EvalAssembler implements Opcodes {
             mv.visitLabel(doneLabel);
             return boolean.class;
         }
-        else if (t == double.class) {
+        else if (t == double.class || t == long.class) {
             Label trueLabel = new Label();
             Label falseLabel = new Label();
             Label doneLabel = new Label();
@@ -359,11 +359,8 @@ public class EvalAssembler implements Opcodes {
                 default:
                     throw new RuntimeException("Not Implemented!");
             }
-            mv.visitInsn(DCMPL);
+            mv.visitInsn(t == double.class ? DCMPL : LCMP);
             mv.visitJumpInsn(instruction, trueLabel);
-            // is this better than DCMPL?
-//            mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "compare", "(DD)I");
-//            mv.visitJumpInsn(instruction, trueLabel);
             mv.visitLabel(falseLabel);
             mv.visitInsn(ICONST_0);
             mv.visitJumpInsn(GOTO, doneLabel);

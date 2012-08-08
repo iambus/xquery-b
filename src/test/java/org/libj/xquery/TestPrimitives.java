@@ -12,6 +12,7 @@ public class TestPrimitives {
         assertEvalString("let $x := java.lang.Integer:longValue(1) return $x", "1");
         assertEvalString("let $x := java.lang.Integer:longValue(1) return $x + 2", "3");
         assertEvalString("<x>{java.lang.Integer:longValue(1)}</x>", "<x>1</x>");
+        assertEvalString("java.lang.Integer:longValue(1) > 0", "true");
     }
     @Test
     public void testNaN() {
