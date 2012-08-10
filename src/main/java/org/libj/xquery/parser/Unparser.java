@@ -61,14 +61,23 @@ public class Unparser {
                 output(ast.third());
                 builder.append(']');
                 break;
+            case PLUS:
+                outputBinary(ast, "+");
+                break;
+            case MINUS:
+                outputBinary(ast, "-");
+                break;
+            case MULTIPLY:
+                outputBinary(ast, "*");
+                break;
+            case DIV:
+                outputBinary(ast, "div");
+                break;
             case EQ:
                 outputBinary(ast, "=");
                 break;
             case NE:
                 outputBinary(ast, "!=");
-                break;
-            case PLUS:
-                outputBinary(ast, "+");
                 break;
             case LT:
                 outputBinary(ast, "<");
@@ -81,6 +90,12 @@ public class Unparser {
                 break;
             case GE:
                 outputBinary(ast, ">=");
+                break;
+            case AND:
+                outputBinary(ast, "and");
+                break;
+            case OR:
+                outputBinary(ast, "or");
                 break;
             case LIST:
                 builder.append('(');
@@ -237,7 +252,7 @@ public class Unparser {
     }
 
     public static void main(String[] args) {
-        String xquery = "<x> <b></b>{2}</x>";
+        String xquery = " 1 and 2 * 3 - 4 or 3 div 3";
         System.out.println(unparse(org.libj.xquery.Compile.compileToAST(xquery)));
     }
 }
