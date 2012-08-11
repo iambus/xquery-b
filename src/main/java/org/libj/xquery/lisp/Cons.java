@@ -9,8 +9,8 @@ import java.util.List;
 public class Cons<E> implements Iterable<E> {
     public static final Cons NIL = null;
 
-    private E car;
-    private Cons<E> cdr;
+    private final E car;
+    private final Cons<E> cdr;
 
     public Cons(E car, Cons<E> cdr) {
         this.cdr = cdr;
