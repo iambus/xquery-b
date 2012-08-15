@@ -211,7 +211,10 @@ public class Parser extends LLkParser {
         while (LA(1) != TAGCLOSE) {
             switch (LA(1)) {
                 case TEXT:
-                    values = append(values, consume().text);
+                    String text = consume().text;
+                    if (!text.trim().isEmpty()) {
+                        values = append(values, text);
+                    }
                     break;
                 case LBRACK:
                     consume();

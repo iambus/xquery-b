@@ -150,9 +150,7 @@ return
                 "        <value>{fn:string($fv1/ns:EventData/Value)}</value>\n" +
                 "    </root>\n" +
                 "";
-        String result = "<root>\n" +
-                "        <value>3</value>\n" +
-                "    </root>";
+        String result = "<root><value>3</value></root>";
         assertEvalString(xquery, result);
     }
     @Test
@@ -171,9 +169,7 @@ return
                 "        <value>{fn:string($fv1/ns:EventData/Value)}</value>\n" +
                 "    </root>\n" +
                 "";
-        String result = "<root>\n" +
-                "        <value>3</value>\n" +
-                "    </root>";
+        String result = "<root><value>3</value></root>";
         assertEvalString(xquery, result);
     }
 
