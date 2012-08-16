@@ -6,6 +6,20 @@ import static org.libj.xquery.Asserts.*;
 
 public class TestBigForLoopPerformance {
     @Test
+    public void simpleFor() {
+        /*
+    for $i in (1 to 1000*1000*1000)
+    where $i = 1
+    return
+        $i
+         */
+        String xquery = "    for $i in (1 to 1000*1000*1000)\n" +
+                "    where $i = 1\n" +
+                "    return\n" +
+                "        $i";
+        assertEvalMillis(xquery, 1000);
+    }
+    @Test
     public void bigFor() {
         /*
     for $i in (1 to 100*1000*1000)

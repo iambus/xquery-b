@@ -57,7 +57,6 @@ public class EvalAssembler implements Opcodes {
     private Class visitResult(Cons expr) {
         switch (AST.getNodeType(expr)) {
             case FLOWER:
-                mv.visitVarInsn(ALOAD, 0);
                 mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
 //                mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "callbackToList", "(L" + CALLBACK + ";)L" + LIST_INTERFACE + ";");
                 mv.visitMethodInsn(INVOKESTATIC, QUERY_BASE_CLASS, "callbackToList", "(L" + CALLBACK + ";)L" + LIST_INTERFACE + ";");
