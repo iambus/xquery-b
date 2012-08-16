@@ -5,19 +5,18 @@ import org.libj.xquery.xml.XML;
 import org.libj.xquery.xml.XMLUtils;
 
 public class StringXML implements XML {
-    protected final String xml;
-    private int end = -1;
-    private String nodeXML;
+    protected String xml;
     private String text;
+    private boolean end;
 
     public StringXML(String xml, int start) {
         this.xml = xml.substring(start);
+        this.end = false;
     }
 
     public StringXML(String xml) {
         this.xml = xml;
-        this.nodeXML = xml;
-        end = xml.length();
+        this.end = true;
     }
 
     public XML eval(String path) {
@@ -247,13 +246,11 @@ public class StringXML implements XML {
     }
 
     public String toString() {
-        if (nodeXML == null) {
-            if (end < 0) {
-                end = skipNode(0);
-            }
-            nodeXML = xml.substring(0, end);
+        if (!end) {
+            xml = xml.substring(0, skipNode(0));
+            end = true;
         }
-        return nodeXML;
+        return xml;
     }
     public static void main(String[] args) {
         XML x = new StringXML("<x><a>2</a></x>");
