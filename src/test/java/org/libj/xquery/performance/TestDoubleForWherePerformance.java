@@ -16,7 +16,7 @@ public class TestDoubleForWherePerformance {
          */
         String xquery = "for $i in (1 to 1000*1000) " +
                 "for $j in (1 to 1000*1000) " +
-                "where $i = <x>1</x>" +
+                "where $i = <x>1</x> " +
                 "return $i+$j";
         assertEvalMillis(xquery, 1000);
     }
@@ -31,7 +31,7 @@ public class TestDoubleForWherePerformance {
          */
         String xquery = "for $i in (1 to 1000*1000) " +
                 "for $j in (1 to 1000*1000) " +
-                "where $i = <x>1</x> and $j = <x>2</x>" +
+                "where $i = <x>1</x> and $j = <x>2</x> " +
                 "return $i+$j";
         assertEvalMillis(xquery, 1000);
     }

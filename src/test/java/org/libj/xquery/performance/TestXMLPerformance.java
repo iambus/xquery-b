@@ -8,8 +8,8 @@ import static org.libj.xquery.Asserts.*;
 public class TestXMLPerformance {
     @Test
     public void testMiniXML() {
-        // without xpath, we can get almost 10 millions per second!
-        assertRepeatedEvalPerSecond("<x>{2}</x>", 1000*1000*8);
+        // without xpath, we can get almost 1 billion per second!
+        assertRepeatedEvalPerSecond("<x>{2}</x>", 1000*1000*1000);
     }
     @Test
     public void testRepeatedXML() {
@@ -17,7 +17,7 @@ public class TestXMLPerformance {
     }
     @Test
     public void testText() {
-        assertRepeatedEvalPerSecond("fn:string(<x>{2}</x>)", 1000 * 1000 * 5);
+        assertRepeatedEvalPerSecond("fn:string(<x>{2}</x>)", 1000 * 1000 * 10);
     }
     @Test
     public void testBiggerXML() {
@@ -30,6 +30,6 @@ public class TestXMLPerformance {
                         "</message>";
         System.out.println(xquery);
         System.out.println(Compile.eval(xquery));
-        assertRepeatedEvalPerSecond(xquery, 1000 * 1000 * 1);
+        assertRepeatedEvalPerSecond(xquery, 1000 * 1000 * 1000);
     }
 }

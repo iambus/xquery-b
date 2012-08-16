@@ -26,7 +26,7 @@ public class TestStringXMLPerformance {
     }
     @Test
     public void testTag() {
-        int n = 1000*1000*5;
+        int n = 1000*1000*10;
         int targetMillis = 1000;
         long start = System.currentTimeMillis();
         for (int i = 0; i < n; i++) {
@@ -42,7 +42,7 @@ public class TestStringXMLPerformance {
     }
     @Test
     public void testAttr() {
-        int n = 1000*1000*5;
+        int n = 1000*1000*10;
         int targetMillis = 1000;
         long start = System.currentTimeMillis();
         for (int i = 0; i < n; i++) {
@@ -58,7 +58,7 @@ public class TestStringXMLPerformance {
     }
     @Test
     public void testText() {
-        int n = 1000*1000*4;
+        int n = 1000*1000*10;
         int targetMillis = 1000;
         long start = System.currentTimeMillis();
         for (int i = 0; i < n; i++) {
@@ -74,7 +74,7 @@ public class TestStringXMLPerformance {
     }
     @Test
     public void testText2() {
-        int n = 1000*1000*4;
+        int n = 1000*1000*5;
         int targetMillis = 1000;
         long start = System.currentTimeMillis();
         for (int i = 0; i < n; i++) {

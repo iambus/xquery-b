@@ -17,6 +17,6 @@ public class TestCompilePerformance {
     @Test
     public void testCompilerObject() {
         Compiler compiler = new Compiler();
-        assertRepeatedCompilePerSecond(compiler, "for $i in (1 to 100) return $i + 2", 1000*2);
+        assertRepeatedCompilePerSecond(compiler, "for $i in (1 to 100) return $i + 2", 1000*1);
     }
 }

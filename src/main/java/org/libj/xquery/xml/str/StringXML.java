@@ -2,7 +2,6 @@ package org.libj.xquery.xml.str;
 
 import org.libj.xquery.xml.NilXML;
 import org.libj.xquery.xml.XML;
-import org.libj.xquery.xml.XMLUtils;
 
 public class StringXML implements XML {
     protected String xml;
