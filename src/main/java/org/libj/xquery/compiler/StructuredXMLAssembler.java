@@ -176,14 +176,11 @@ public class StructuredXMLAssembler implements Opcodes {
         }
 
         Cons contents = (Cons) expr.nth(3);
-        if (contents != null) {
-
-        }
         contents = Cons.map(new Fn() {
             public Object call(Object x) {
                 if (isElement(x)) {
                     return resetFields((Cons) x, start);
-                } else if (x instanceof Cons) {
+                } else if (x instanceof Integer) {
                     return (Integer)x - start;
                 } else {
                     return x;
