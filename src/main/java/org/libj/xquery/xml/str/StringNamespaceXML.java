@@ -27,7 +27,7 @@ public class StringNamespaceXML extends StringXML {
     }
     public XML eval(String path) {
         if (xmlNamespaces == null) {
-            int i = start + 1;
+            int i = 1;
             while (isTagChar(xml.charAt(i)) || xml.charAt(i) == ':') {
                 i++;
             }
@@ -98,7 +98,7 @@ public class StringNamespaceXML extends StringXML {
 
     public Object getElementsByTagNameNS(String namespaceURI, String localName) {
         if (xmlNamespaces == null) {
-            int i = start + 1;
+            int i = 1;
             while (isTagChar(xml.charAt(i)) || xml.charAt(i) == ':') {
                 i++;
             }
@@ -112,7 +112,7 @@ public class StringNamespaceXML extends StringXML {
     }
 
     private StringNamespaceXML getElementByTagNameNS(String namespace, String tag) {
-        int i = start;
+        int i = 0;
         int max = xml.length();
         int tagmax = tag.length();
         // jump to the end of open tag

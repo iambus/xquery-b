@@ -5,24 +5,24 @@ import org.libj.xquery.xml.XML;
 import org.libj.xquery.xml.XMLUtils;
 
 public class StringXML implements XML {
-    final protected String xml;
-    final protected int start;
+    protected final String xml;
     private int end = -1;
     private String nodeXML;
     private String text;
 
     public StringXML(String xml, int start) {
-        this.xml = xml;
-        this.start = start;
+        this.xml = xml.substring(start);
     }
 
     public StringXML(String xml) {
-        this(xml, 0);
+        this.xml = xml;
+        this.nodeXML = xml;
         end = xml.length();
     }
+
     public XML eval(String path) {
         String [] tags = path.substring(1).split("/");
-        int i = start;
+        int i = 0;
         for (String tag: tags) {
             i = selectNode(i, tag);
             if (i < 0) {
@@ -37,7 +37,7 @@ public class StringXML implements XML {
 
     public Object getElementsByTagNameNS(String namespaceURI, String localName) {
 //        return eval("/"+localName);
-        int i = selectNode(start, localName);
+        int i = selectNode(0, localName);
         if (i < 0) {
             return NilXML.NIL;
         }
@@ -107,7 +107,7 @@ public class StringXML implements XML {
     public String nextTextNode() {
 //        int x = xml.indexOf('>') + 1;
         // jump to the end of open tag
-        int i = start;
+        int i = 0;
         while (xml.charAt(++i) != '>') {
         }
         StringBuilder builder = new StringBuilder();
@@ -199,7 +199,7 @@ public class StringXML implements XML {
 
     public String getAttribute(String name) {
         int n = name.length();
-        int i = start + 1;
+        int i = 1;
         while (isTagChar(xml.charAt(i)) || xml.charAt(i) == ':') {
             i++;
         }
@@ -249,9 +249,9 @@ public class StringXML implements XML {
     public String toString() {
         if (nodeXML == null) {
             if (end < 0) {
-                end = skipNode(start);
+                end = skipNode(0);
             }
-            nodeXML = xml.substring(start, end);
+            nodeXML = xml.substring(0, end);
         }
         return nodeXML;
     }
@@ -262,6 +262,7 @@ public class StringXML implements XML {
 //        System.out.println(x.eval("/a/b"));
 //        XML x = new StringXML("<x><w/><a>2</a></x>");
 //        System.out.println(x.eval("/a"));
+        System.out.println(((XML)x.getElementsByTagNameNS(null, "a")));
         System.out.println(((XML)x.getElementsByTagNameNS(null, "a")).text());
     }
 }
