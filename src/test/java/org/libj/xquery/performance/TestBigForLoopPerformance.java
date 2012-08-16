@@ -28,12 +28,12 @@ public class TestBigForLoopPerformance {
     return
         $i
          */
-        String xquery = "    for $i in (1 to 100*1000*1000)\n" +
+        String xquery = "    for $i in (1 to 1000*1000*1000)\n" +
                 "    let $lv1 := 1000 * 100 * 100 * 1000 + 2234 + 7521 - 1.0 div 1.0 + 1024 div 3.1415926535\n" +
                 "    where $i = 1\n" +
                 "    return\n" +
                 "        $i";
-        assertEvalMillis(xquery, 100);
+        assertEvalMillis(xquery, 1000);
     }
     @Test
     public void biggerFor() {
