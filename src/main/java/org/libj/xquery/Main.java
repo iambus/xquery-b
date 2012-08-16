@@ -6,8 +6,45 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import org.libj.xquery.compiler.Compiler;
+import org.libj.xquery.lexer.LexerException;
+import org.libj.xquery.parser.ParserException;
 
 public class Main {
+
+    private static boolean isEOF(Exception e) {
+        return e.getMessage().endsWith("<EOF:<EOF>>");
+    }
+
+    private static void e(Compiler compiler, BufferedReader in) throws IOException {
+        String xquery = "";
+        while (true) {
+            String line = in.readLine();
+            if (line == null) {
+                System.exit(0);
+            }
+            if (line.matches("\\s*")) {
+                continue;
+            }
+            xquery += line;
+            try {
+                System.out.println(compiler.eval(xquery));
+                return;
+            } catch (LexerException e) {
+                if (isEOF(e)) {
+                    continue;
+                } else {
+                    throw e;
+                }
+            } catch (ParserException e) {
+                if (isEOF(e)) {
+                    continue;
+                } else {
+                    throw e;
+                }
+            }
+        }
+    }
+
     public static void repl() throws IOException {
         Compiler compiler = new Compiler();
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
@@ -15,17 +52,9 @@ public class Main {
         while (true) {
             System.out.print(String.format("(: %d :) ", ++n));
             System.out.flush();
-            String line = in.readLine();
-            if (line == null) {
-                break;
-            }
-            if (line.matches("\\s*")) {
-                continue;
-            }
             try {
-                System.out.println(compiler.eval(line));
-            }
-            catch (Exception e) {
+                e(compiler, in);
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
