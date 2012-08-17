@@ -82,11 +82,7 @@ public class EvalAssembler implements Opcodes {
     private Class visitResultWithCallback(Cons expr) {
         switch (AST.getNodeType(expr)) {
             case FLOWER:
-                mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
-//                mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "callbackToList", "(L" + CALLBACK + ";)L" + LIST_INTERFACE + ";");
-                mv.visitMethodInsn(INVOKESTATIC, QUERY_BASE_CLASS, "callbackToList", "(L" + CALLBACK + ";)L" + LIST_INTERFACE + ";");
-                mv.visitVarInsn(ASTORE, LOCAL_CALLBACK_INDEX);
-                return visitFlower(expr, LOCAL_CALLBACK_INDEX, -1, false);
+                return visitFlower(expr, LOCAL_CALLBACK_INDEX, -1, true);
             default:
                 mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
                 Class t = visitExpr(expr);
@@ -507,7 +503,7 @@ public class EvalAssembler implements Opcodes {
     }
 
     private Class visitFlower(Cons expr, int result, int lookingForElementAt) {
-        return visitFlower(expr, result, lookingForElementAt, true);
+        return visitFlower(expr, result, lookingForElementAt, false);
     }
 
     private boolean isPureLets(Cons forlets) {
@@ -520,7 +516,10 @@ public class EvalAssembler implements Opcodes {
         return true;
     }
 
-    private Class visitFlower(Cons expr, int result, int lookingForElementAt, boolean pushResult) {
+    private Class visitFlower(Cons expr, int result, int lookingForElementAt, boolean callback) {
+        if (callback && result < 0) {
+            throw new RuntimeException("Not Implemented!");
+        }
         Label breakLabel = null;
         if (lookingForElementAt > 0) {
             breakLabel = new Label();
@@ -538,13 +537,13 @@ public class EvalAssembler implements Opcodes {
 
         Cons body = expr.next().next();
 
-        Class t = visitForLets(forlets, body, result, lookingForElementAt, breakLabel);
+        Class t = visitForLets(forlets, body, result, lookingForElementAt, breakLabel, callback);
 
         if (lookingForElementAt > 0) {
             mv.visitLabel(breakLabel);
         }
         if (result < 0) {
-            if (pushResult) {
+            if (!callback) {
                 return t;
             }
             else {
@@ -553,7 +552,7 @@ public class EvalAssembler implements Opcodes {
             }
         }
         else {
-            if (pushResult) {
+            if (!callback) {
                 mv.visitVarInsn(ALOAD, result);
                 return LIST_INTERFACE_CLASS;
             }
@@ -563,14 +562,14 @@ public class EvalAssembler implements Opcodes {
         }
     }
 
-    private Class visitForLets(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
+    private Class visitForLets(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel, boolean callback) {
         if (forlets == null || Cons.isNil(forlets)) {
-            return visitFlowerWhereBody(body, result, lookingForElementAt, breakLabel);
+            return visitFlowerWhereBody(body, result, lookingForElementAt, breakLabel, callback);
         }
         else {
             switch (((Cons)forlets.first()).size()) {
                 case 3:
-                    return visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel);
+                    return visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel, callback);
                 case 4:
                     Cons where = (Cons) ((Cons) forlets.first()).nth(3);
                     visitCondition(where);
@@ -578,7 +577,7 @@ public class EvalAssembler implements Opcodes {
                     Label elseLabel = new Label();
                     if (result < 0) {
                         mv.visitJumpInsn(IFEQ, elseLabel);
-                        Class t = visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel);
+                        Class t = visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel, callback);
                         mv.visitJumpInsn(GOTO, endif);
                         mv.visitLabel(elseLabel);
                         mv.visitInsn(ACONST_NULL);
@@ -587,7 +586,7 @@ public class EvalAssembler implements Opcodes {
                     }
                     else {
                         mv.visitJumpInsn(IFEQ, endif);
-                        visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel);
+                        visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel, callback);
                         mv.visitLabel(endif);
                         return null;
                     }
@@ -597,22 +596,22 @@ public class EvalAssembler implements Opcodes {
         }
     }
 
-    private Class visitForLetsNoWhere(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
+    private Class visitForLetsNoWhere(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel, boolean callback) {
         switch (AST.getNodeType(((Cons) forlets.first()))) {
             case FOR:
-                visitForGeneral(forlets, body, result, lookingForElementAt, breakLabel);
+                visitForGeneral(forlets, body, result, lookingForElementAt, breakLabel, callback);
                 return null;
             case FORRANGE:
-                visitForRange(forlets, body, result, lookingForElementAt, breakLabel);
+                visitForRange(forlets, body, result, lookingForElementAt, breakLabel, callback);
                 return null;
             case LET:
-                return visitLet(forlets, body, result, lookingForElementAt, breakLabel);
+                return visitLet(forlets, body, result, lookingForElementAt, breakLabel, callback);
             default:
                 throw new RuntimeException("Not Implemented!");
         }
     }
 
-    private Class visitFlowerWhereBody(Cons expr, int result, int lookingForElementAt, Label breakLabel) {
+    private Class visitFlowerWhereBody(Cons expr, int result, int lookingForElementAt, Label breakLabel, boolean callback) {
         Cons body = AST.nthAST(expr, 0);
         Cons where = AST.nthAST(expr, 1);
         // loop body
@@ -623,7 +622,7 @@ public class EvalAssembler implements Opcodes {
             if (result < 0) {
                 mv.visitJumpInsn(IFEQ, elseLabel);
                 // if body
-                Class t = visitFlowerBody(body, result, lookingForElementAt, breakLabel);
+                Class t = visitFlowerBody(body, result, lookingForElementAt, breakLabel, callback);
                 Caster.cast(mv, t, Object.class);
                 mv.visitJumpInsn(GOTO, endif);
                 // else
@@ -636,19 +635,19 @@ public class EvalAssembler implements Opcodes {
             else {
                 mv.visitJumpInsn(IFEQ, endif);
                 // if body
-                visitFlowerBody(body, result, lookingForElementAt, breakLabel);
+                visitFlowerBody(body, result, lookingForElementAt, breakLabel, callback);
                 // end if
                 mv.visitLabel(endif);
                 return null;
             }
         } else {
-            return visitFlowerBody(body, result, lookingForElementAt, breakLabel);
+            return visitFlowerBody(body, result, lookingForElementAt, breakLabel, callback);
         }
     }
 
-    private Class visitFlowerBody(Cons expr, int result, int lookingForElementAt, Label breakLabel) {
+    private Class visitFlowerBody(Cons expr, int result, int lookingForElementAt, Label breakLabel, boolean callback) {
         if (lookingForElementAt <= 0) {
-            return visitFlowerBody(expr, result);
+            return visitFlowerBody(expr, result, callback);
         }
         else {
             if (result < 0) {
@@ -660,8 +659,17 @@ public class EvalAssembler implements Opcodes {
         }
     }
 
-    private Class visitFlowerBody(Cons body, int result) {
-        if (result < 0) {
+    private Class visitFlowerBody(Cons body, int result, boolean callback) {
+        if (callback) {
+            if (result < 0) {
+                throw new RuntimeException("must be a bug");
+            }
+            mv.visitVarInsn(ALOAD, result);
+            Class t = visitExpr(body);
+            pushToCallback(t);
+            return null;
+        }
+        else if (result < 0) {
             return visitExpr(body);
         }
         else {
@@ -742,7 +750,7 @@ public class EvalAssembler implements Opcodes {
         }
     }
 
-    private void visitForRange(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
+    private void visitForRange(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel, boolean callback) {
         Cons expr = (Cons) forlets.first();
         VariableElement variable = (VariableElement) expr.second();
         Cons range = (Cons) expr.third();
@@ -761,7 +769,7 @@ public class EvalAssembler implements Opcodes {
 
         // do
         mv.visitLabel(loop);
-        visitForLets(forlets.next(), body, result, lookingForElementAt, breakLabel);
+        visitForLets(forlets.next(), body, result, lookingForElementAt, breakLabel, callback);
 
         // i++
         mv.visitIincInsn(i, 1);
@@ -773,7 +781,7 @@ public class EvalAssembler implements Opcodes {
         mv.visitJumpInsn(IF_ICMPLE, loop);
     }
 
-    private void visitForGeneral(Cons forlets, Cons body, int result, int index, Label breakLabel) {
+    private void visitForGeneral(Cons forlets, Cons body, int result, int index, Label breakLabel, boolean callback) {
         Cons expr = (Cons) forlets.first();
         VariableElement variable = (VariableElement) expr.second();
         Cons varExpr = AST.nthAST(expr, 2);
@@ -796,7 +804,7 @@ public class EvalAssembler implements Opcodes {
         mv.visitMethodInsn(INVOKEINTERFACE, "java/util/Iterator", "next", "()Ljava/lang/Object;");
         mv.visitVarInsn(ASTORE, element);
 
-        visitForLets(forlets.next(), body, result, index, breakLabel);
+        visitForLets(forlets.next(), body, result, index, breakLabel, callback);
 
         // loop condition
         mv.visitLabel(condition);
@@ -807,7 +815,7 @@ public class EvalAssembler implements Opcodes {
 
 
 
-    private Class visitLet(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
+    private Class visitLet(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel, boolean callback) {
         Cons expr = (Cons) forlets.first();
         VariableElement variable = (VariableElement) expr.second();
         Cons varExpr = AST.nthAST(expr, 2);
@@ -832,7 +840,7 @@ public class EvalAssembler implements Opcodes {
             mv.visitVarInsn(ASTORE, index);
         }
 
-        return visitForLets(forlets.next(), body, result, lookingForElementAt, breakLabel);
+        return visitForLets(forlets.next(), body, result, lookingForElementAt, breakLabel, callback);
 
     }
 
@@ -1029,6 +1037,17 @@ public class EvalAssembler implements Opcodes {
 
     private void pushToList() {
         mv.visitMethodInsn(INVOKEINTERFACE, MUTABLE_LIST, "add", "(Ljava/lang/Object;)V");
+    }
+
+    private void pushToCallback(Class t) {
+        if (t.isPrimitive()) {
+            Caster.cast(mv, t, Object.class);
+            mv.visitMethodInsn(INVOKEINTERFACE, CALLBACK, "call", "(Ljava/lang/Object;)V");
+        }
+        else {
+            // TODO: run more check
+            mv.visitMethodInsn(INVOKESTATIC, OP, "addToCallback", "(L"+CALLBACK+";Ljava/lang/Object;)V");
+        }
     }
 
     private int defineAnonymous() {

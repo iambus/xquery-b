@@ -14,6 +14,7 @@ public class TestCallbackPerformance {
     public void testTrivial() {
         assertRepeatedEvalMillisCallback(" 1 ", 1000*1000*1000, 1000);
         assertRepeatedEvalMillisCallback(" $w ", 1000*1000*1000, 1000);
+        assertRepeatedEvalMillisCallback(" let $x := 1 return $x ", 1000*1000*100, 1000);
         assertRepeatedEvalMillisCallback(" let $x := $w return $x ", 1000*1000*10, 1000);
         assertRepeatedEvalMillisCallback(" for $x in $w return $x ", 1000*1000*10, 1000);
     }

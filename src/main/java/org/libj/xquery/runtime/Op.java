@@ -1,5 +1,6 @@
 package org.libj.xquery.runtime;
 
+import org.libj.xquery.Callback;
 import org.libj.xquery.annotation.Function;
 import org.libj.xquery.annotation.Namespace;
 import org.libj.xquery.xml.XML;
@@ -75,6 +76,20 @@ public class Op {
             else {
                 return Op.NIL;
             }
+        }
+    }
+
+    public static void addToCallback(Callback callback, Object x) {
+        if (x == null) {
+            return;
+        }
+        else if (x instanceof Iterable) {
+            for (Object v: (Iterable)x) {
+                callback.call(v);
+            }
+        }
+        else {
+            callback.call(x);
         }
     }
     //////////////////////////////////////////////////
