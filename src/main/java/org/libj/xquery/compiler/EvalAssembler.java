@@ -585,11 +585,12 @@ public class EvalAssembler implements Opcodes {
                     if (result < 0) {
                         mv.visitJumpInsn(IFEQ, elseLabel);
                         Class t = visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel, callback);
+                        Caster.cast(mv, t, Object.class);
                         mv.visitJumpInsn(GOTO, endif);
                         mv.visitLabel(elseLabel);
                         mv.visitInsn(ACONST_NULL);
                         mv.visitLabel(endif);
-                        return t;
+                        return Object.class;
                     }
                     else {
                         mv.visitJumpInsn(IFEQ, endif);
