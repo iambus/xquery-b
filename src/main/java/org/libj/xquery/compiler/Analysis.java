@@ -183,10 +183,20 @@ public class Analysis {
         return list(new TypedElement(TokenType.ATTR_AT, String.class), xml, attr);
     }
 
+    private boolean isPureLets(Cons flower) {
+        for (Object x: ((Cons)flower.second()).rest()) {
+            Cons forlet = (Cons) x;
+            if (AST.getNodeType(forlet) != LET) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private Cons walkIndex(Cons expr) {
         Cons list = (Cons) expr.second();
         Cons at = (Cons) expr.third();
-        if (AST.getNodeType(list) == FLOWER) {
+        if (AST.getNodeType(list) == FLOWER && !isPureLets(list)) {
             Cons flower = walkFlower(list);
             Cons flowerAt = castTo(walkExpr(at), int.class);
             expr = list(FLOWERAT);

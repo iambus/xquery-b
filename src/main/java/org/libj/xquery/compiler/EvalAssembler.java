@@ -510,103 +510,167 @@ public class EvalAssembler implements Opcodes {
         return visitFlower(expr, result, lookingForElementAt, true);
     }
 
+    private boolean isPureLets(Cons forlets) {
+        for (Object x: forlets) {
+            Cons forlet = (Cons) x;
+            if (AST.getNodeType(forlet) != LET) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private Class visitFlower(Cons expr, int result, int lookingForElementAt, boolean pushResult) {
         Label breakLabel = null;
         if (lookingForElementAt > 0) {
             breakLabel = new Label();
         }
-        if (result < 0) {
-            newList();
-            result = defineAnonymous();
-            mv.visitVarInsn(ASTORE, result);
-        }
 
         Cons forlets = AST.nthAST(expr, 1);
+
+        if (result < 0) {
+            if (!isPureLets(forlets)) {
+                newList();
+                result = defineAnonymous();
+                mv.visitVarInsn(ASTORE, result);
+            }
+        }
+
         Cons body = expr.next().next();
 
-        visitForLets(forlets, body, result, lookingForElementAt, breakLabel);
+        Class t = visitForLets(forlets, body, result, lookingForElementAt, breakLabel);
 
         if (lookingForElementAt > 0) {
             mv.visitLabel(breakLabel);
         }
-        if (pushResult) {
-            mv.visitVarInsn(ALOAD, result);
-            return LIST_INTERFACE_CLASS;
-        } else {
-            return null;
+        if (result < 0) {
+            if (pushResult) {
+                return t;
+            }
+            else {
+                // pop
+                throw new RuntimeException("Not Implemented!");
+            }
+        }
+        else {
+            if (pushResult) {
+                mv.visitVarInsn(ALOAD, result);
+                return LIST_INTERFACE_CLASS;
+            }
+            else {
+                return null;
+            }
         }
     }
 
-    private void visitForLets(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
+    private Class visitForLets(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
         if (forlets == null || Cons.isNil(forlets)) {
-            visitFlowerWhereBody(body, result, lookingForElementAt, breakLabel);
+            return visitFlowerWhereBody(body, result, lookingForElementAt, breakLabel);
         }
         else {
             switch (((Cons)forlets.first()).size()) {
                 case 3:
-                    visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel);
-                    break;
+                    return visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel);
                 case 4:
                     Cons where = (Cons) ((Cons) forlets.first()).nth(3);
                     visitCondition(where);
                     Label endif = new Label();
-                    mv.visitJumpInsn(IFEQ, endif);
-                    visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel);
-                    mv.visitLabel(endif);
-                    break;
+                    Label elseLabel = new Label();
+                    if (result < 0) {
+                        mv.visitJumpInsn(IFEQ, elseLabel);
+                        Class t = visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel);
+                        mv.visitJumpInsn(GOTO, endif);
+                        mv.visitLabel(elseLabel);
+                        mv.visitInsn(ACONST_NULL);
+                        mv.visitLabel(endif);
+                        return t;
+                    }
+                    else {
+                        mv.visitJumpInsn(IFEQ, endif);
+                        visitForLetsNoWhere(forlets, body, result, lookingForElementAt, breakLabel);
+                        mv.visitLabel(endif);
+                        return null;
+                    }
                 default:
                     throw new RuntimeException("Not Implemented!");
             }
         }
     }
 
-    private void visitForLetsNoWhere(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
+    private Class visitForLetsNoWhere(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
         switch (AST.getNodeType(((Cons) forlets.first()))) {
             case FOR:
                 visitForGeneral(forlets, body, result, lookingForElementAt, breakLabel);
-                break;
+                return null;
             case FORRANGE:
                 visitForRange(forlets, body, result, lookingForElementAt, breakLabel);
-                break;
+                return null;
             case LET:
-                visitLet(forlets, body, result, lookingForElementAt, breakLabel);
-                break;
+                return visitLet(forlets, body, result, lookingForElementAt, breakLabel);
             default:
                 throw new RuntimeException("Not Implemented!");
         }
     }
 
-    private void visitFlowerWhereBody(Cons expr, int result, int lookingForElementAt, Label breakLabel) {
+    private Class visitFlowerWhereBody(Cons expr, int result, int lookingForElementAt, Label breakLabel) {
         Cons body = AST.nthAST(expr, 0);
         Cons where = AST.nthAST(expr, 1);
         // loop body
         if (where != null && !Cons.isNil(where)) {
             visitCondition(where);
+            Label elseLabel = new Label();
             Label endif = new Label();
-            mv.visitJumpInsn(IFEQ, endif);
-            // if body
-            visitFlowerBody(body, result, lookingForElementAt, breakLabel);
-            // end if
-            mv.visitLabel(endif);
+            if (result < 0) {
+                mv.visitJumpInsn(IFEQ, elseLabel);
+                // if body
+                Class t = visitFlowerBody(body, result, lookingForElementAt, breakLabel);
+                Caster.cast(mv, t, Object.class);
+                mv.visitJumpInsn(GOTO, endif);
+                // else
+                mv.visitLabel(elseLabel);
+                mv.visitInsn(ACONST_NULL);
+                // end if
+                mv.visitLabel(endif);
+                return Object.class;
+            }
+            else {
+                mv.visitJumpInsn(IFEQ, endif);
+                // if body
+                visitFlowerBody(body, result, lookingForElementAt, breakLabel);
+                // end if
+                mv.visitLabel(endif);
+                return null;
+            }
         } else {
-            visitFlowerBody(body, result, lookingForElementAt, breakLabel);
+            return visitFlowerBody(body, result, lookingForElementAt, breakLabel);
         }
     }
 
-    private void visitFlowerBody(Cons expr, int result, int lookingForElementAt, Label breakLabel) {
+    private Class visitFlowerBody(Cons expr, int result, int lookingForElementAt, Label breakLabel) {
         if (lookingForElementAt <= 0) {
-            visitFlowerBody(expr, result);
+            return visitFlowerBody(expr, result);
         }
         else {
+            if (result < 0) {
+                // result = -1 only happens to pure lets, and pure lets should not have this for..at...
+                throw new RuntimeException("Not Implemented!");
+            }
             visitFlowerBodyAt(expr, result, lookingForElementAt, breakLabel);
+            return null;
         }
     }
 
-    private void visitFlowerBody(Cons body, int result) {
-        mv.visitVarInsn(ALOAD, result);
-        Class elementType = visitExpr(body);
-        Caster.cast(mv, elementType, Object.class);
-        pushToList();
+    private Class visitFlowerBody(Cons body, int result) {
+        if (result < 0) {
+            return visitExpr(body);
+        }
+        else {
+            mv.visitVarInsn(ALOAD, result);
+            Class elementType = visitExpr(body);
+            Caster.cast(mv, elementType, Object.class);
+            pushToList();
+            return null;
+        }
     }
 
     private void visitFlowerBodyAt(Cons body, int result, int lookingForElementAt, Label breakLabel) {
@@ -743,7 +807,7 @@ public class EvalAssembler implements Opcodes {
 
 
 
-    private void visitLet(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
+    private Class visitLet(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
         Cons expr = (Cons) forlets.first();
         VariableElement variable = (VariableElement) expr.second();
         Cons varExpr = AST.nthAST(expr, 2);
@@ -768,7 +832,7 @@ public class EvalAssembler implements Opcodes {
             mv.visitVarInsn(ASTORE, index);
         }
 
-        visitForLets(forlets.next(), body, result, lookingForElementAt, breakLabel);
+        return visitForLets(forlets.next(), body, result, lookingForElementAt, breakLabel);
 
     }
 
