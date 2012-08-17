@@ -17,6 +17,11 @@ public class TestCallbackPerformance {
     }
 
     @Test
+    public void testVoid() {
+        assertRepeatedEvalMillisCallback(" let $x := 1 return () ", 1000*1000*1000, 1000);
+    }
+
+    @Test
     public void testLetNonObject() {
         assertRepeatedEvalMillisCallback(" let $x := 1 return $x ", 1000*1000*1000, 1000);
     }

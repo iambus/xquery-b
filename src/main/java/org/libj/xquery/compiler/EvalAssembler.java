@@ -466,6 +466,10 @@ public class EvalAssembler implements Opcodes {
     }
 
     private Class visitList(Cons expr) {
+        if (expr.size() == 1) {
+            mv.visitInsn(ACONST_NULL);
+            return Void.class;
+        }
         Class t = newList();
         for (Object e: Cons.rest(expr)) {
             mv.visitInsn(DUP);
@@ -1043,7 +1047,10 @@ public class EvalAssembler implements Opcodes {
     }
 
     private void pushToCallback(Class t) {
-        if (t.isPrimitive()) {
+        if (t == null || t == Void.class) {
+            // do nothing
+        }
+        else if (t.isPrimitive()) {
             Caster.cast(mv, t, Object.class);
             mv.visitMethodInsn(INVOKEINTERFACE, CALLBACK, "call", "(Ljava/lang/Object;)V");
         }
