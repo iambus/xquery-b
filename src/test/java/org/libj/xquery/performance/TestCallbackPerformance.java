@@ -13,13 +13,25 @@ public class TestCallbackPerformance {
     @Test
     public void testTrivial() {
         assertRepeatedEvalMillisCallback(" 1 ", 1000*1000*1000, 1000);
-        assertRepeatedEvalMillisCallback(" $w ", 1000*1000*1000, 1000);
-        assertRepeatedEvalMillisCallback(" let $x := 1 return $x ", 1000*1000*100, 1000);
-        assertRepeatedEvalMillisCallback(" let $x := $w return $x ", 1000*1000*10, 1000);
+        assertRepeatedEvalMillisCallback(" $w ", 1000 * 1000 * 1000, 1000);
+    }
+
+    @Test
+    public void testLetNonObject() {
+        assertRepeatedEvalMillisCallback(" let $x := 1 return $x ", 1000*1000*1000, 1000);
+    }
+
+    @Test
+    public void testLetObject() {
+        assertRepeatedEvalMillisCallback(" let $x := $w return $x ", 1000 * 1000 * 10, 1000);
+    }
+
+    @Test
+    public void testFor() {
         assertRepeatedEvalMillisCallback(" for $x in $w return $x ", 1000*1000*10, 1000);
     }
 
-    public static void assertRepeatedEvalMillisCallback(String script, int n, int targetMillis) {
+    private static void assertRepeatedEvalMillisCallback(String script, int n, int targetMillis) {
         Callback callback = new Callback() {
             public void call(Object result) {
                 // do nothing
