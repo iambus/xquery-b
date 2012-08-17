@@ -44,7 +44,7 @@ public class Constants {
 //    public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION_CLASS = StringXMLFactory.class;
     public static final Class DEFAUL_XML_FACTORY_IMPLEMENTATION_CLASS = StringNamespaceXMLFactory.class;
 
-    public static final int LOCAL_CALLBACK_INDEX = 1;
-    public static final int LOCAL_ENV_INDEX = 2;
-    public static final int LOCAL_VAR_START = 3;
+    public static final int _LOCAL_CALLBACK_INDEX = 1;
+    public static final int _LOCAL_ENV_INDEX = 2;
+    public static final int _LOCAL_VAR_START = 3;
 }

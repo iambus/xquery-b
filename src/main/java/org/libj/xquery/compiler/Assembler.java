@@ -23,6 +23,7 @@ public class Assembler implements Opcodes {
 
     private final String evalMainMethodName = "eval_";
     private final String evalMainMethodSignature;
+    private final String evalCallbackMainMethodSignature;
     private final String evalMethodSignature;
     private final String evalCallbackMethodSignature;
 
@@ -42,9 +43,10 @@ public class Assembler implements Opcodes {
         for (int i = 0; i < vars.length; i++) {
             varSignature += "Ljava/lang/Object;";
         }
-        evalMainMethodSignature = "(L"+CALLBACK+";L"+ENVIRONMENT+";"+varSignature+")Ljava/lang/Object;";
         evalMethodSignature = "("+varSignature+")Ljava/lang/Object;";
         evalCallbackMethodSignature = "(L"+CALLBACK+";"+varSignature+")V";
+        evalMainMethodSignature = "(L"+ENVIRONMENT+";"+varSignature+")Ljava/lang/Object;";
+        evalCallbackMainMethodSignature = "(L"+CALLBACK+";L"+ENVIRONMENT+";"+varSignature+")V";
         visitClass();
     }
 
@@ -62,8 +64,9 @@ public class Assembler implements Opcodes {
                 QUERY_INTERFACE_CLASS);
         visitInit();
         visitFactory();
-//        visitNamespaces();
+        visitNamespaces();
         visitEvalMain();
+        visitEvalCallbackMain();
         visitEvalWithEnvironment();
         visitEval();
         visitEvalCallback();
@@ -111,26 +114,6 @@ public class Assembler implements Opcodes {
         mv.visitEnd();
     }
 
-    private void visitNamespaces() {
-        mv = cw.visitMethod(ACC_PROTECTED, "initNamespaces", "()V", null, null);
-        mv.visitCode();
-
-        for (Object declare: Cons.rest(AST.nthAST(ast, 1))) {
-            if (AST.getNodeType(AST.nthAST(((Cons) declare), 1)) == NAMESPACE) {
-                String alias = (String) AST.nthAST(((Cons) declare), 2).second();
-                String uri = (String) AST.nthAST(((Cons) declare), 3).second();
-                mv.visitVarInsn(ALOAD, 0);
-                pushConst(alias);
-                pushConst(uri);
-                mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, "registerNamespace", "(Ljava/lang/String;Ljava/lang/String;)V");
-            }
-        }
-
-        mv.visitInsn(RETURN);
-        mv.visitMaxs(0, 0);
-        mv.visitEnd();
-    }
-
     private void visitInit() {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
         mv.visitCode();
@@ -146,10 +129,9 @@ public class Assembler implements Opcodes {
     //////////////////////////////////////////////////
 
     private void visitEvalMain() {
-//        mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ ENVIRONMENT +";L"+ CALLBACK +";)Ljava/lang/Object;", null, null);
         mv = cw.visitMethod(ACC_PRIVATE, evalMainMethodName, evalMainMethodSignature, null, null);
         mv.visitCode();
-        Class returnType = visitAST();
+        Class returnType = visitCode(false);
         if (returnType.isPrimitive()) {
             Caster.cast(mv, returnType, Object.class);
             mv.visitInsn(ARETURN);
@@ -167,11 +149,27 @@ public class Assembler implements Opcodes {
         mv.visitEnd();
     }
 
-    private Class visitAST() {
+    //////////////////////////////////////////////////
+    /// eval(Environment, ...)
+    //////////////////////////////////////////////////
+
+    private void visitEvalCallbackMain() {
+        mv = cw.visitMethod(ACC_PRIVATE, evalMainMethodName, evalCallbackMainMethodSignature, null, null);
+        mv.visitCode();
+        Class returnType = visitCode(true);
+        mv.visitInsn(RETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+    }
+
+    private void visitNamespaces() {
         Cons declares = AST.nthAST(ast, 1);
-        Cons code = AST.nthAST(ast, 2);
         visitDeclares(declares);
-        EvalAssembler evalAssembler = new EvalAssembler(mv, compiledClassName, vars, namespace, generateInnerClasses);
+    }
+
+    private Class visitCode(boolean hasCallback) {
+        Cons code = AST.nthAST(ast, 2);
+        EvalAssembler evalAssembler = new EvalAssembler(mv, compiledClassName, vars, namespace, generateInnerClasses, hasCallback);
         Class clazz = evalAssembler.visit(code);
         this.freeVariables = evalAssembler.getFreeVariables().keySet();
         this.innerClasses = evalAssembler.getInnerClasses();
@@ -213,7 +211,6 @@ public class Assembler implements Opcodes {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "eval", "(L"+ ENVIRONMENT +";)Ljava/lang/Object;", null, null);
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
-        mv.visitInsn(ACONST_NULL); // callback
         mv.visitVarInsn(ALOAD, 1); // environment
         for (int i = 0; i < vars.length; i++) {
             mv.visitVarInsn(ALOAD, 1);
@@ -236,7 +233,6 @@ public class Assembler implements Opcodes {
         mv.visitCode();
         mv.visitVarInsn(ALOAD, 0);
         mv.visitInsn(ACONST_NULL);
-        mv.visitInsn(ACONST_NULL);
         for (int i = 0; i < vars.length; i++) {
             mv.visitVarInsn(ALOAD, i+1);
         }
@@ -258,7 +254,7 @@ public class Assembler implements Opcodes {
         for (int i = 0; i < vars.length; i++) {
             mv.visitVarInsn(ALOAD, i+2);
         }
-        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, evalMainMethodName, evalMainMethodSignature);
+        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, evalMainMethodName, evalCallbackMainMethodSignature);
 //        mv.visitInsn(POP);
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);
@@ -280,7 +276,7 @@ public class Assembler implements Opcodes {
             mv.visitLdcInsn("$"+vars[i]);
             mv.visitMethodInsn(INVOKEVIRTUAL, ENVIRONMENT, "getVariable", "(Ljava/lang/String;)Ljava/lang/Object;");
         }
-        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, evalMainMethodName, evalMainMethodSignature);
+        mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, evalMainMethodName, evalCallbackMainMethodSignature);
 //        mv.visitInsn(POP);
         mv.visitInsn(RETURN);
         mv.visitMaxs(0, 0);

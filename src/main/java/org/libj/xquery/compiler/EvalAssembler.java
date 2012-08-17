@@ -25,17 +25,27 @@ public class EvalAssembler implements Opcodes {
     private String[] vars;
     private boolean generateInnerClasses;
     private List<ClassInfo> innerClasses = new ArrayList<ClassInfo>();
+    private boolean hasCallback;
 
-    public EvalAssembler(MethodVisitor mv, String compiledClassName, String[] vars, Namespace namespace, boolean generateInnerClasses) {
+    public int LOCAL_CALLBACK_INDEX = _LOCAL_CALLBACK_INDEX;
+    public int LOCAL_ENV_INDEX = _LOCAL_ENV_INDEX;
+
+    public EvalAssembler(MethodVisitor mv, String compiledClassName, String[] vars, Namespace namespace,
+                         boolean generateInnerClasses, boolean hasCallback) {
         this.compiledClassName = compiledClassName;
         this.vars = vars;
         this.namespace = namespace;
         this.mv = mv;
         this.generateInnerClasses = generateInnerClasses;
+        this.hasCallback = hasCallback;
+        if (!hasCallback) {
+            LOCAL_CALLBACK_INDEX--;
+            LOCAL_ENV_INDEX--;
+        }
     }
 
     public Class visit(Cons ast) {
-        Analysis walker = new Analysis(ast, vars, namespace);
+        Analysis walker = new Analysis(ast, vars, namespace, hasCallback);
         ast = walker.walk();
         locals = walker.getLocals();
         freeVariables = walker.getFreeVariables();
@@ -55,6 +65,21 @@ public class EvalAssembler implements Opcodes {
     }
 
     private Class visitResult(Cons expr) {
+        return hasCallback ? visitResultWithCallback(expr) : visitResultWithoutCallback(expr);
+    }
+
+    private Class visitResultWithoutCallback(Cons expr) {
+        switch (AST.getNodeType(expr)) {
+            case FLOWER:
+                return visitFlower(expr, -1, -1);
+            default:
+                Class t = visitExpr(expr);
+                Caster.cast(mv, t, Object.class);
+                return Object.class;
+        }
+    }
+
+    private Class visitResultWithCallback(Cons expr) {
         switch (AST.getNodeType(expr)) {
             case FLOWER:
                 mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
@@ -63,19 +88,11 @@ public class EvalAssembler implements Opcodes {
                 mv.visitVarInsn(ASTORE, LOCAL_CALLBACK_INDEX);
                 return visitFlower(expr, LOCAL_CALLBACK_INDEX, -1);
             default:
+                mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
                 Class t = visitExpr(expr);
                 Label callback = new Label();
                 Caster.cast(mv, t, Object.class);
-                Label end = new Label();
-                mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
-                mv.visitJumpInsn(IFNONNULL, callback);
-                mv.visitJumpInsn(GOTO, end);
-                mv.visitLabel(callback);
-                mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
-                mv.visitInsn(SWAP);
                 mv.visitMethodInsn(INVOKEINTERFACE, CALLBACK, "call", "(Ljava/lang/Object;)V");
-                mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
-                mv.visitLabel(end);
                 return Object.class;
         }
     }

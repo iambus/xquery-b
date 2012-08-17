@@ -20,11 +20,14 @@ public class Analysis {
     private Scope freeScope = new Scope();
     private Namespace namespace;
 
-    private int locals = LOCAL_VAR_START; // index 2 is used as temporary double variable
+    private int locals = _LOCAL_VAR_START;
 
-    public Analysis(Cons tree, String[] vars, Namespace namespace) {
+    public Analysis(Cons tree, String[] vars, Namespace namespace, boolean hasCallback) {
         ast = tree;
         this.namespace = namespace;
+        if (!hasCallback) {
+            locals--;
+        }
         for (String var: vars) {
             Symbol sym = new Symbol("$"+var, locals++, Object.class);
             scope.define(sym);

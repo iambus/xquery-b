@@ -12,8 +12,8 @@ import static org.libj.xquery.Compile.compile;
 public class TestCallbackPerformance {
     @Test
     public void testTrivial() {
-        assertRepeatedEvalMillisCallback(" 1 ", 1000*1000*10, 1000);
-        assertRepeatedEvalMillisCallback(" $w ", 1000*1000*10, 1000);
+        assertRepeatedEvalMillisCallback(" 1 ", 1000*1000*1000, 1000);
+        assertRepeatedEvalMillisCallback(" $w ", 1000*1000*1000, 1000);
         assertRepeatedEvalMillisCallback(" let $x := $w return $x ", 1000*1000*10, 1000);
         assertRepeatedEvalMillisCallback(" for $x in $w return $x ", 1000*1000*10, 1000);
     }
