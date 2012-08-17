@@ -27,6 +27,11 @@ public class TestCallbackPerformance {
     }
 
     @Test
+    public void testLetExternalObject() {
+        assertRepeatedEvalMillisCallback(" declare variable $w as xs:integer external; let $x := $w return $x ", 1000 * 1000 * 1000, 1000);
+    }
+
+    @Test
     public void testFor() {
         assertRepeatedEvalMillisCallback(" for $x in $w return $x ", 1000*1000*10, 1000);
     }
