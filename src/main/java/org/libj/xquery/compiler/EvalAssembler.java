@@ -1047,7 +1047,7 @@ public class EvalAssembler implements Opcodes {
             Caster.cast(mv, t, Object.class);
             mv.visitMethodInsn(INVOKEINTERFACE, CALLBACK, "call", "(Ljava/lang/Object;)V");
         }
-        else if (t != Object.class && !t.isInterface() && !Iterable.class.isAssignableFrom(t)) {
+        else if (t != Object.class && !Iterable.class.isAssignableFrom(t)) {
             // note: this is not a safe test!
             mv.visitMethodInsn(INVOKEINTERFACE, CALLBACK, "call", "(Ljava/lang/Object;)V");
         }
