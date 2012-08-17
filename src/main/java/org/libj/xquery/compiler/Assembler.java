@@ -9,7 +9,9 @@ import static org.libj.xquery.lexer.TokenType.*;
 import org.libj.xquery.parser.AST;
 import org.objectweb.asm.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class Assembler implements Opcodes {
@@ -17,6 +19,7 @@ public class Assembler implements Opcodes {
     private ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
     private String compiledClassName;
     private String[] vars;
+    private Map<String, Class> externals = new HashMap<String, Class>();
     private Set<String> freeVariables;
     private final boolean generateInnerClasses;
     private List<ClassInfo> innerClasses;
@@ -38,15 +41,21 @@ public class Assembler implements Opcodes {
         this.vars = vars != null ? vars : new String[0];
         this.namespace = root;
         XML_FACTORY_IMPLEMENTATION = xmlFactory.getName().replace('.', '/');
+
+        visitNamespaces();
+
         this.generateInnerClasses = generateInnerClasses;
+        String mainVarSignature = "";
         String varSignature = "";
-        for (int i = 0; i < vars.length; i++) {
-            varSignature += "Ljava/lang/Object;";
+        for (String var: vars) {
+            Class t = getVariableType(var);
+            mainVarSignature += "L" + classToSignature(t) + ";";
+            varSignature += "L" + classToSignature(Object.class) + ";";
         }
         evalMethodSignature = "("+varSignature+")Ljava/lang/Object;";
         evalCallbackMethodSignature = "(L"+CALLBACK+";"+varSignature+")V";
-        evalMainMethodSignature = "(L"+ENVIRONMENT+";"+varSignature+")Ljava/lang/Object;";
-        evalCallbackMainMethodSignature = "(L"+CALLBACK+";L"+ENVIRONMENT+";"+varSignature+")V";
+        evalMainMethodSignature = "(L"+ENVIRONMENT+";"+mainVarSignature+")Ljava/lang/Object;";
+        evalCallbackMainMethodSignature = "(L"+CALLBACK+";L"+ENVIRONMENT+";"+mainVarSignature+")V";
         visitClass();
     }
 
@@ -64,7 +73,6 @@ public class Assembler implements Opcodes {
                 QUERY_INTERFACE_CLASS);
         visitInit();
         visitFactory();
-        visitNamespaces();
         visitEvalMain();
         visitEvalCallbackMain();
         visitEvalWithEnvironment();
@@ -169,7 +177,7 @@ public class Assembler implements Opcodes {
 
     private Class visitCode(boolean hasCallback) {
         Cons code = AST.nthAST(ast, 2);
-        EvalAssembler evalAssembler = new EvalAssembler(mv, compiledClassName, vars, namespace, generateInnerClasses, hasCallback);
+        EvalAssembler evalAssembler = new EvalAssembler(mv, compiledClassName, vars, externals, namespace, generateInnerClasses, hasCallback);
         Class clazz = evalAssembler.visit(code);
         this.freeVariables = evalAssembler.getFreeVariables().keySet();
         this.innerClasses = evalAssembler.getInnerClasses();
@@ -184,14 +192,17 @@ public class Assembler implements Opcodes {
 
     private void visitDeclare(Cons declare) {
         Object declareType = declare.second();
-        if (declareType instanceof Cons && AST.getNodeType((Cons) declareType) == NAMESPACE) {
+        if (declareType == NAMESPACE) {
             visitDeclareNamespace(declare);
+        }
+        else if (declareType == VARIABLE_WORD) {
+            declareVariable(declare);
         }
     }
 
     private void visitDeclareNamespace(Cons declare) {
-        String alias = (String) AST.nthAST(declare, 2).second();
-        String uri = (String) AST.nthAST(declare, 3).second();
+        String alias = (String) declare.nth(2);
+        String uri = (String) declare.nth(3);
         if (uri.startsWith("class:")) {
             namespace.register(alias, namespace.lookup(uri));
         }
@@ -203,6 +214,30 @@ public class Assembler implements Opcodes {
         }
     }
 
+    private void declareVariable(Cons declare) {
+        if (declare.size() == 5 && declare.nth(4) == EXTERNAL) {
+            String v = (String) declare.nth(2);
+            String type = (String) declare.nth(3);
+            externals.put(v.substring(1), xsdTypeToClass(type));
+        }
+    }
+
+    private Class xsdTypeToClass(String t) {
+        if (t.startsWith("class:")) {
+            try {
+                return Class.forName(t.substring(6));
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        else if (t.equals("xs:integer")) {
+            return Integer.class;
+        }
+        else if (t.equals("xs:string")) {
+            return String.class;
+        }
+        return Object.class;
+    }
 
     //////////////////////////////////////////////////
     /// eval(Environment)
@@ -216,6 +251,7 @@ public class Assembler implements Opcodes {
             mv.visitVarInsn(ALOAD, 1);
             mv.visitLdcInsn("$"+vars[i]);
             mv.visitMethodInsn(INVOKEVIRTUAL, ENVIRONMENT, "getVariable", "(Ljava/lang/String;)Ljava/lang/Object;");
+            Caster.cast(mv, Object.class, getVariableType(vars[i]));
         }
         mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, evalMainMethodName, evalMainMethodSignature);
         mv.visitInsn(ARETURN);
@@ -235,6 +271,7 @@ public class Assembler implements Opcodes {
         mv.visitInsn(ACONST_NULL);
         for (int i = 0; i < vars.length; i++) {
             mv.visitVarInsn(ALOAD, i+1);
+            Caster.cast(mv, Object.class, getVariableType(vars[i]));
         }
         mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, evalMainMethodName, evalMainMethodSignature);
         mv.visitInsn(ARETURN);
@@ -253,6 +290,7 @@ public class Assembler implements Opcodes {
         mv.visitInsn(ACONST_NULL); // env
         for (int i = 0; i < vars.length; i++) {
             mv.visitVarInsn(ALOAD, i+2);
+            Caster.cast(mv, Object.class, getVariableType(vars[i]));
         }
         mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, evalMainMethodName, evalCallbackMainMethodSignature);
 //        mv.visitInsn(POP);
@@ -275,6 +313,7 @@ public class Assembler implements Opcodes {
             mv.visitVarInsn(ALOAD, 2);
             mv.visitLdcInsn("$"+vars[i]);
             mv.visitMethodInsn(INVOKEVIRTUAL, ENVIRONMENT, "getVariable", "(Ljava/lang/String;)Ljava/lang/Object;");
+            Caster.cast(mv, Object.class, getVariableType(vars[i]));
         }
         mv.visitMethodInsn(INVOKEVIRTUAL, compiledClassName, evalMainMethodName, evalCallbackMainMethodSignature);
 //        mv.visitInsn(POP);
@@ -327,8 +366,12 @@ public class Assembler implements Opcodes {
     /// helper
     //////////////////////////////////////////////////
 
-    private Class cast(Class source, Class target) {
-        return Caster.cast(mv, source, target);
+    private Class getVariableType(String var) {
+        Class t = externals.get(var);
+        if (t == null) {
+            t = Object.class;
+        }
+        return t;
     }
 
     private void pushConst(int n) {

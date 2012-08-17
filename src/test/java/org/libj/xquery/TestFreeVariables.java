@@ -34,6 +34,15 @@ public class TestFreeVariables {
         assertEquals(q.eval(env), 4);
     }
     @Test
+    public void testExternalVariables() {
+        XQuery q = Compile.compile("declare variable $x as xs:integer external; declare variable $y as xs:integer external; $x + $y", "x", "y");
+        assertEquals(q.eval(1, 3), 4);
+        Environment env = new Environment();
+        env.putVariable("x", 1);
+        env.putVariable("y", 3);
+        assertEquals(q.eval(env), 4);
+    }
+    @Test
     public void testOverride() {
         assertEvalString("for $i in 1 to 10 return $i + $j", "8 9 10 11 12 13 14 15 16 17", env);
     }

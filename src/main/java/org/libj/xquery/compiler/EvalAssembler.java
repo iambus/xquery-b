@@ -23,6 +23,7 @@ public class EvalAssembler implements Opcodes {
     private int locals;
     private Map<String, Symbol> freeVariables;
     private String[] vars;
+    private Map<String, Class> externals;
     private boolean generateInnerClasses;
     private List<ClassInfo> innerClasses = new ArrayList<ClassInfo>();
     private boolean hasCallback;
@@ -30,10 +31,11 @@ public class EvalAssembler implements Opcodes {
     public int LOCAL_CALLBACK_INDEX = _LOCAL_CALLBACK_INDEX;
     public int LOCAL_ENV_INDEX = _LOCAL_ENV_INDEX;
 
-    public EvalAssembler(MethodVisitor mv, String compiledClassName, String[] vars, Namespace namespace,
+    public EvalAssembler(MethodVisitor mv, String compiledClassName, String[] vars, Map<String, Class> externals, Namespace namespace,
                          boolean generateInnerClasses, boolean hasCallback) {
         this.compiledClassName = compiledClassName;
         this.vars = vars;
+        this.externals = externals;
         this.namespace = namespace;
         this.mv = mv;
         this.generateInnerClasses = generateInnerClasses;
@@ -45,7 +47,7 @@ public class EvalAssembler implements Opcodes {
     }
 
     public Class visit(Cons ast) {
-        Analysis walker = new Analysis(ast, vars, namespace, hasCallback);
+        Analysis walker = new Analysis(ast, vars, externals, namespace, hasCallback);
         ast = walker.walk();
         locals = walker.getLocals();
         freeVariables = walker.getFreeVariables();
@@ -60,6 +62,7 @@ public class EvalAssembler implements Opcodes {
             mv.visitVarInsn(ALOAD, LOCAL_ENV_INDEX);
             mv.visitLdcInsn(varName);
             mv.visitMethodInsn(INVOKEVIRTUAL, ENVIRONMENT, "getVariable", "(Ljava/lang/String;)Ljava/lang/Object;");
+            Caster.cast(mv, Object.class, sym.getType());
             mv.visitVarInsn(ASTORE, varIndex);
         }
     }

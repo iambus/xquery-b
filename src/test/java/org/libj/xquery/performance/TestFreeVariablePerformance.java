@@ -22,6 +22,7 @@ public class TestFreeVariablePerformance {
     public void testLiteral() {
         assertRepeatedEvalPerSecond(" 1 ", 1000*1000*100, env);
     }
+
     @Test
     public void testSimpleExpressions() {
         assertRepeatedEvalPerSecond(" $i ", 1000*1000*10, env);
@@ -46,6 +47,12 @@ public class TestFreeVariablePerformance {
     public void testStaticXPath() {
         StringXML x = new StringXML("<x><a>2</a></x>");
         assertRepeatedEvalMillisVar2(" $i/a ", 1000*1000*10, 1000, x, 1);
+    }
+
+    @Test
+    public void testExternal() {
+        assertRepeatedEvalMillisVar2(" $i + $j ", 1000*1000*100, 1000, 1, 1);
+        assertRepeatedEvalMillisVar2("declare variable $i as xs:integer external; declare variable $j as xs:integer external; $i + $j", 1000*1000*100, 1000, 1, 1);
     }
 
     public static void assertRepeatedEvalMillisVar2(String script, int n, int targetMillis, Object var1, Object var2) {

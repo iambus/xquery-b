@@ -103,12 +103,12 @@ public class Caster implements Opcodes {
     }
 
     public static Class castToInt(MethodVisitor mv) {
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;");
-        return Integer.class;
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I");
+        return int.class;
     }
     public static Class castToDouble(MethodVisitor mv) {
-        mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "valueOf", "(I)Ljava/lang/Double;");
-        return Double.class;
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Double", "doubleValue", "()D");
+        return double.class;
     }
     public static Class castToIntegerObject(MethodVisitor mv) {
         mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;");

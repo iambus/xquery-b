@@ -372,6 +372,9 @@ public class Parser extends LLkParser {
         if (LA(2) == NAMESPACE) {
             return declareNamespace();
         }
+        else if (LA(2) == VARIABLE_WORD) {
+            return declareVariable();
+        }
         else {
             return declareAnyOther();
         }
@@ -380,11 +383,23 @@ public class Parser extends LLkParser {
     public Cons declareNamespace() throws IOException {
         Cons ast = list(DECLARE);
         consume(DECLARE);
-        ast = Cons.append(ast, AST.asAst(consume(NAMESPACE)));
-        ast = Cons.append(ast, AST.asAst(consume(WORD)));
+        ast = Cons.append(ast, consume(NAMESPACE).type);
+        ast = Cons.append(ast, consume(WORD).text);
         match(EQ);
-        ast = Cons.append(ast, AST.asAst(consume(STRING)));
-        ast = Cons.append(ast, AST.asAst(consume(SEMI)));
+        ast = Cons.append(ast, consume(STRING).text);
+        match(SEMI);
+        return ast;
+    }
+
+    public Cons declareVariable() throws IOException {
+        Cons ast = list(DECLARE);
+        consume(DECLARE);
+        ast = Cons.append(ast, consume(VARIABLE_WORD).type);
+        ast = Cons.append(ast, variable().second());
+        match(AS);
+        ast = Cons.append(ast, consume(WORD).text);
+        ast = Cons.append(ast, consume(EXTERNAL).type);
+        match(SEMI);
         return ast;
     }
 

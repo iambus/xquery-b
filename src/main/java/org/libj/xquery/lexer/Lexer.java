@@ -352,6 +352,12 @@ public class Lexer extends LL1Reader {
         else if (text.equals("namespace")) {
             type = NAMESPACE;
         }
+        else if (text.equals("variable")) {
+            type = VARIABLE_WORD;
+        }
+        else if (text.equals("external")) {
+            type = EXTERNAL;
+        }
         return t(type, text);
     }
 

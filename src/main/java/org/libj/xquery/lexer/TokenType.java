@@ -61,6 +61,8 @@ public enum TokenType {
     RETURN,
 
     NAMESPACE,
+    VARIABLE_WORD,
+    EXTERNAL,
 
     AND,
     OR,

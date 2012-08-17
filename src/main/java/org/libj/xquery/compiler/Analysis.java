@@ -16,22 +16,28 @@ import java.util.Map;
 
 public class Analysis {
     private Cons ast;
+    private Map<String, Class> externals;
     private Scope scope = new Scope();
     private Scope freeScope = new Scope();
     private Namespace namespace;
 
     private int locals = _LOCAL_VAR_START;
 
-    public Analysis(Cons tree, String[] vars, Namespace namespace, boolean hasCallback) {
+    public Analysis(Cons tree, String[] vars, Map<String, Class> externals, Namespace namespace, boolean hasCallback) {
         ast = tree;
         this.namespace = namespace;
         if (!hasCallback) {
             locals--;
         }
         for (String var: vars) {
-            Symbol sym = new Symbol("$"+var, locals++, Object.class);
+            Class<Object> t = externals.get(var);
+            if (t == null) {
+                t = Object.class;
+            }
+            Symbol sym = new Symbol("$"+var, locals++, t);
             scope.define(sym);
         }
+        this.externals = externals;
     }
 
     public int getLocals() {
@@ -40,6 +46,10 @@ public class Analysis {
 
     public Map<String, Symbol> getFreeVariables() {
         return freeScope.getSymbols();
+    }
+
+    private Map<String, Class> collectExternalVarialbes() {
+        throw new RuntimeException("Not Implemented!");
     }
 
     public Cons walk() {
@@ -100,8 +110,8 @@ public class Analysis {
             return list(new VariableElement(resolveType(variable), resolve(variable)));
         }
         else {
-            int index = resolveFree(variable);
-            return list(new VariableElement(Object.class, index));
+            Symbol symbol = resolveFree(variable);
+            return list(new VariableElement(symbol.getType(), symbol.getIndex()));
         }
     }
 
@@ -500,8 +510,17 @@ public class Analysis {
         Class leftType = AST.getEvalType(leftTree);
         Class rightType = AST.getEvalType(rightTree);
         if (leftType == rightType) {
-            expr = assocType(expr, leftType);
-            return expr;
+            if (leftType == Integer.class) {
+                expr = assocType(expr, int.class);
+                expr = assoc1(expr, castTo(leftTree, int.class));
+                expr = assoc2(expr, castTo(rightTree, int.class));
+                return expr;
+            }
+            // TODO: add more: double + double, long + long, etc.
+            else {
+                expr = assocType(expr, leftType);
+                return expr;
+            }
         }
         else if (leftType.isPrimitive() && rightType.isPrimitive()) {
             // convert primitive to primitive
@@ -601,12 +620,16 @@ public class Analysis {
         return index;
     }
 
-    private int defineFree(String name) {
+    private Symbol defineFree(String name) {
         int index = locals;
         locals += 2;
-        Symbol sym = new Symbol(name, index);
+        Class t = externals.get(name.substring(1));
+        if (t == null) {
+            t = Object.class;
+        }
+        Symbol sym = new Symbol(name, index, t);
         freeScope.define(sym);
-        return index;
+        return sym;
     }
 
     private boolean isFree(String name) {
@@ -629,12 +652,14 @@ public class Analysis {
         return s.getType();
     }
 
-    private int resolveFree(String name) {
+    private Symbol resolveFree(String name) {
         Symbol s = freeScope.resolve(name);
-        if (s == null) {
+        if (s != null) {
+            return s;
+        }
+        else {
             return defineFree(name);
         }
-        return s.getIndex();
     }
 
     //////////////////////////////////////////////////
