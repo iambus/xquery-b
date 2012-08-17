@@ -86,7 +86,7 @@ public class EvalAssembler implements Opcodes {
 //                mv.visitMethodInsn(INVOKESPECIAL, compiledClassName.replace('.', '/'), "callbackToList", "(L" + CALLBACK + ";)L" + LIST_INTERFACE + ";");
                 mv.visitMethodInsn(INVOKESTATIC, QUERY_BASE_CLASS, "callbackToList", "(L" + CALLBACK + ";)L" + LIST_INTERFACE + ";");
                 mv.visitVarInsn(ASTORE, LOCAL_CALLBACK_INDEX);
-                return visitFlower(expr, LOCAL_CALLBACK_INDEX, -1);
+                return visitFlower(expr, LOCAL_CALLBACK_INDEX, -1, false);
             default:
                 mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
                 Class t = visitExpr(expr);
@@ -506,8 +506,11 @@ public class EvalAssembler implements Opcodes {
         return visitFlower(AST.nthAST(expr, 1), -1, index);
     }
 
-
     private Class visitFlower(Cons expr, int result, int lookingForElementAt) {
+        return visitFlower(expr, result, lookingForElementAt, true);
+    }
+
+    private Class visitFlower(Cons expr, int result, int lookingForElementAt, boolean pushResult) {
         Label breakLabel = null;
         if (lookingForElementAt > 0) {
             breakLabel = new Label();
@@ -526,8 +529,12 @@ public class EvalAssembler implements Opcodes {
         if (lookingForElementAt > 0) {
             mv.visitLabel(breakLabel);
         }
-        mv.visitVarInsn(ALOAD, result);
-        return LIST_INTERFACE_CLASS;
+        if (pushResult) {
+            mv.visitVarInsn(ALOAD, result);
+            return LIST_INTERFACE_CLASS;
+        } else {
+            return null;
+        }
     }
 
     private void visitForLets(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel) {
