@@ -90,10 +90,8 @@ public class EvalAssembler implements Opcodes {
             default:
                 mv.visitVarInsn(ALOAD, LOCAL_CALLBACK_INDEX);
                 Class t = visitExpr(expr);
-                Label callback = new Label();
-                Caster.cast(mv, t, Object.class);
-                mv.visitMethodInsn(INVOKEINTERFACE, CALLBACK, "call", "(Ljava/lang/Object;)V");
-                return Object.class;
+                pushToCallback(t);
+                return Void.class;
         }
     }
 
