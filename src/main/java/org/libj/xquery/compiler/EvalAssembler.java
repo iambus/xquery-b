@@ -1,5 +1,6 @@
 package org.libj.xquery.compiler;
 
+import org.libj.xquery.lexer.TokenType;
 import org.libj.xquery.lisp.Cons;
 import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.*;
@@ -309,8 +310,17 @@ public class EvalAssembler implements Opcodes {
     }
 
     private Class visitCompare(Cons expr) {
-        visitExpr(AST.nthAST(expr, 1));
-        Class t = visitExpr(AST.nthAST(expr, 2));
+        Cons left = AST.nthAST(expr, 1);
+        Cons right = AST.nthAST(expr, 2);
+        if (AST.getNodeType(expr) == EQ || AST.getNodeType(expr) == NE) {
+            if (AST.getEvalType(left) == String.class && AST.getEvalType(right) == String.class) {
+                if (left.first() instanceof ConstantElement || right.first() instanceof ConstantElement) {
+                    return visitConstantStringCompare(AST.getNodeType(expr), left, right);
+                }
+            }
+        }
+        visitExpr(left);
+        Class t = visitExpr(right);
         if (t == int.class) {
             Label trueLabel = new Label();
             Label falseLabel = new Label();
@@ -414,6 +424,35 @@ public class EvalAssembler implements Opcodes {
         else {
             throw new RuntimeException("Not Implemented!");
         }
+    }
+
+    private Class<Boolean> visitConstantStringCompare(TokenType nodeType, Cons left, Cons right) {
+        if (left.first() instanceof ConstantElement) {
+            visitExpr(left);
+            visitExpr(right);
+        }
+        else {
+            visitExpr(right);
+            visitExpr(left);
+        }
+        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/String", "equals", "(Ljava/lang/Object;)Z");
+        switch (nodeType) {
+            case EQ:
+                break;
+            case NE:
+                Label trueLabel = new Label();
+                mv.visitJumpInsn(IFEQ, trueLabel);
+                mv.visitInsn(ICONST_0);
+                Label endLabel = new Label();
+                mv.visitJumpInsn(GOTO, endLabel);
+                mv.visitLabel(trueLabel);
+                mv.visitInsn(ICONST_1);
+                mv.visitLabel(endLabel);
+                break;
+            default:
+                throw new RuntimeException("Must be a bug!");
+        }
+        return boolean.class;
     }
 
     private Class visitAnd(Cons expr) {

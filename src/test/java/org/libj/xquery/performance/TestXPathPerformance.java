@@ -22,32 +22,19 @@ public class TestXPathPerformance {
 
     @Test
     public void testMiniDefaultXPath() {
-        assertRepeatedEvalPerSecond("let $x := <x><a>2</a></x> return $x/a", 1000*1000*3);
-    }
-    @Test
-    public void testMiniDomXPath() {
-        org.libj.xquery.compiler.Compiler compiler = new Compiler();
-        compiler.setXMLFactory(DomXMLFactory.class);
-        assertRepeatedEvalPerSecond(compiler, "let $x := <x><a>2</a></x> return $x/a", 500);
-    }
-    @Test
-    public void testMiniDomSimpleXPath() {
-        org.libj.xquery.compiler.Compiler compiler = new Compiler();
-        compiler.setXMLFactory(DomSimpleXPathXMLFactory.class);
-        assertRepeatedEvalPerSecond(compiler, "let $x := <x><a>2</a></x> return $x/a", 1000);
-    }
-    @Test
-    public void testMiniStringXPath() {
-        org.libj.xquery.compiler.Compiler compiler = new Compiler();
-        compiler.setXMLFactory(StringXMLFactory.class);
-        assertRepeatedEvalPerSecond(compiler, "let $x := <x><a>2</a></x> return $x/a", 1000*1000*3);
+        assertRepeatedEvalPerSecond("let $x := <x><a>2</a></x> return $x/a", 1000*1000*1000);
     }
 
     @Test
     public void testMiniStringNamespaceXPath() {
         org.libj.xquery.compiler.Compiler compiler = new Compiler();
-        compiler.setXMLFactory(StringNamespaceXMLFactory.class);
-        assertRepeatedEvalPerSecond(compiler, "let $x := <x><a>2</a></x> return $x/a", 1000*1000*3);
+        compiler.enableGenerateInnerClasses(false);
+        assertRepeatedEvalPerSecond(compiler, "let $x := <x><a>2</a></x> return $x/a", 1000*1000*5);
+    }
+
+    @Test
+    public void testMiniFilterXPath() {
+        assertRepeatedEvalPerSecond("let $x := <x><a>2</a></x> where $x/a = 2 return $x/a", 1000*1000*1000);
     }
 
     //
