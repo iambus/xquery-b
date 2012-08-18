@@ -577,6 +577,37 @@ public class Analysis {
     }
 
     private Cons castTo(Cons expr, Class target) {
+        if (isConstant(expr)) {
+            return castConstant(expr, target);
+        }
+        else {
+            return castNonConstant(expr, target);
+        }
+    }
+
+    private boolean isConstant(Cons expr) {
+        return expr.first() instanceof ConstantElement;
+    }
+
+    private Cons castConstant(Cons expr, Class target) {
+        ConstantElement constant = (ConstantElement) expr.first();
+        Object value = constant.getValue();
+        if (value instanceof Number && target == String.class) {
+            value = value.toString();
+            return list(new ConstantElement(STRING, value, String.class), value);
+        }
+        else if ((value instanceof Integer) && target == double.class) {
+            value = ((Integer)value).doubleValue();
+            return list(new ConstantElement(NUMBER, value, double.class), value);
+        }
+        else if ((value instanceof Double) && target == int.class) {
+            value = ((Double)value).intValue();
+            return list(new ConstantElement(NUMBER, value, int.class), value);
+        }
+        return castNonConstant(expr, target);
+    }
+
+    private Cons castNonConstant(Cons expr, Class target) {
         Class source = AST.getEvalType(expr);
         if (source == target) {
             return expr;
