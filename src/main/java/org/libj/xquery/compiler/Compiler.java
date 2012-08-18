@@ -112,7 +112,7 @@ public class Compiler {
         return loader.define(target.getMainClass().getClassName().replace('/', '.'), target.getMainClass().getBytes());
     }
 
-    private XQuery toXQuery(Target target) {
+    public XQuery toXQuery(Target target) {
         return toXQuery(toClass(target));
     }
 
