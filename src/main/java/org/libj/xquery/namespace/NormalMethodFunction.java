@@ -15,6 +15,10 @@ public class NormalMethodFunction implements JavaFunction {
         this.signature = Reflector.getMethodSignature(method);
     }
 
+    public Class getClassType() {
+        return method.getDeclaringClass();
+    }
+
     public String getClassName() {
         return className;
     }

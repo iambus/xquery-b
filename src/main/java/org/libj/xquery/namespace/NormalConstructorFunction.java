@@ -17,6 +17,10 @@ public class NormalConstructorFunction implements JavaFunction {
         this.signature = Reflector.getConstructorSignature(constructor);
     }
 
+    public Class getClassType() {
+        return clazz;
+    }
+
     public String getClassName() {
         return className;
     }

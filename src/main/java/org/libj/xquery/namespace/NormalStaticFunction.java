@@ -54,6 +54,10 @@ public class NormalStaticFunction implements JavaFunction {
         return method.isVarArgs();
     }
 
+    public Class getClassType() {
+        return method.getDeclaringClass();
+    }
+
     public String getClassName() {
         return className;
     }

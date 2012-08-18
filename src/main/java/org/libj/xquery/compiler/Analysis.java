@@ -426,7 +426,7 @@ public class Analysis {
             if (Cons.size(expr) < 1) {
                 throw new RuntimeException("Not Implemented!");
             }
-            expr = Cons.append(expr, castTo((Cons) arguments.first(), Object.class)); // should I cast it to the Method class?
+            expr = Cons.append(expr, castTo((Cons) arguments.first(), fn.getClassType()));
             arguments = Cons.rest(arguments);
         }
 
@@ -610,6 +610,9 @@ public class Analysis {
     private Cons castNonConstant(Cons expr, Class target) {
         Class source = AST.getEvalType(expr);
         if (source == target) {
+            return expr;
+        }
+        else if (target.isAssignableFrom(source)) {
             return expr;
         }
         else if (!source.isPrimitive() && !target.isPrimitive()) {

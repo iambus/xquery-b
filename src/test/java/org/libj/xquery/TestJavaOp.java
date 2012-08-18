@@ -36,6 +36,11 @@ public class TestJavaOp {
     }
 
     @Test
+    public void testCast() {
+        assertEval("java.lang.Integer:equals((1)[1], 1)", true);
+    }
+
+    @Test
     public void testRandom() {
         assertEval("java.util.Random:nextInt(java.util.Random:new(1), 10)", 5);
     }
