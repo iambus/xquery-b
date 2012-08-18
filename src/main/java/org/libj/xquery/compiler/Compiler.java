@@ -7,7 +7,6 @@ import org.libj.xquery.namespace.*;
 import org.libj.xquery.parser.Parser;
 
 import java.io.*;
-import java.util.ArrayList;
 
 public class Compiler {
 
@@ -79,45 +78,15 @@ public class Compiler {
     }
 
     public byte[] compileToByteArray(Cons ast, String className, String...vars) {
-        Target t = compileToTarget(ast, className, vars);
-        if (!t.getInnerClasses().isEmpty()) {
-            throw new RuntimeException("There are inner classes!");
-        }
-        return t.getMainClass().getBytes();
+        return compileToTarget(ast, className, vars).toByteArray();
     }
 
     public void compileToDir(Cons ast, String className, File dir, String... vars) {
-        Target t = compileToTarget(ast, className, vars);
-        ArrayList<ClassInfo> classes = new ArrayList<ClassInfo>(t.getInnerClasses());
-        classes.add(t.getMainClass());
-        try {
-            for (ClassInfo c : classes) {
-                File path = new File(dir, c.getClassName() + ".class");
-                path.getParentFile().mkdirs();
-                FileOutputStream output = new FileOutputStream(path);
-                try {
-                    output.write(c.getBytes());
-                } finally {
-                    output.close();
-                }
-            }
-        } catch (IOException e) {
-            throw new CompilerException(e);
-        }
+        compileToTarget(ast, className, vars).toDir(dir);
     }
 
     public void compileToFile(Cons ast, String className, File path, String...vars) {
-        try {
-            byte[] bytes = compileToByteArray(ast, className, vars);
-            FileOutputStream output = new FileOutputStream(path);
-            try {
-                output.write(bytes);
-            } finally {
-                output.close();
-            }
-        } catch (IOException e) {
-            throw new CompilerException(e);
-        }
+        compileToTarget(ast, className, vars).toFile(path);
     }
 
     public Class compileToClass(Cons ast, String className, String...vars) {
@@ -125,14 +94,29 @@ public class Compiler {
             className = randomClassName();
         }
         Target target = compileToTarget(ast, className, vars);
-        for (ClassInfo c: target.getInnerClasses()) {
-            loader.define(c.getClassName().replace('/', '.'), c.getBytes());
-        }
-        return loader.define(className, target.getMainClass().getBytes());
+        return toClass(target);
     }
 
     public XQuery compileToXQuery(Cons ast, String className, String...vars) {
-        Class c = compileToClass(ast, className, vars);
+        return toXQuery(compileToClass(ast, className, vars));
+    }
+
+    public XQuery compileToXQuery(Cons ast) {
+        return compileToXQuery(ast, randomClassName());
+    }
+
+    public Class toClass(Target target) {
+        for (ClassInfo c: target.getInnerClasses()) {
+            loader.define(c.getClassName().replace('/', '.'), c.getBytes());
+        }
+        return loader.define(target.getMainClass().getClassName().replace('/', '.'), target.getMainClass().getBytes());
+    }
+
+    private XQuery toXQuery(Target target) {
+        return toXQuery(toClass(target));
+    }
+
+    private XQuery toXQuery(Class c) {
         try {
             return (XQuery)c.newInstance();
         } catch (InstantiationException e) {
@@ -140,10 +124,6 @@ public class Compiler {
         } catch (IllegalAccessException e) {
             throw new CompilerException(e);
         }
-    }
-
-    public XQuery compileToXQuery(Cons ast) {
-        return compileToXQuery(ast, randomClassName());
     }
 
     // one step
