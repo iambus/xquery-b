@@ -761,15 +761,23 @@ public class EvalAssembler implements Opcodes {
     private void visitForRange(Cons forlets, Cons body, int result, int lookingForElementAt, Label breakLabel, boolean callback) {
         Cons expr = (Cons) forlets.first();
         VariableElement variable = (VariableElement) expr.second();
+
         Cons range = (Cons) expr.third();
+        Cons from = (Cons) range.first();
+        Cons to = (Cons) range.second();
+
+        visitExpr(from);
 
         int i = variable.getRef();
-        // TODO: if max is literal, use pushConst instead of variable
-        int max = defineAnonymous();
-        visitExpr((Cons) range.first());
         mv.visitVarInsn(ISTORE, i);
-        visitExpr((Cons) range.second());
-        mv.visitVarInsn(ISTORE, max);
+
+
+        int maxVar = ((Element)to.first()).getTokenType() == NUMBER ? -1 : defineAnonymous();
+
+        if (maxVar != -1) {
+            visitExpr(to);
+            mv.visitVarInsn(ISTORE, maxVar);
+        }
 
         Label condition = new Label();
         Label loop = new Label();
@@ -785,7 +793,12 @@ public class EvalAssembler implements Opcodes {
         // if i < max?
         mv.visitLabel(condition);
         mv.visitVarInsn(ILOAD, i);
-        mv.visitVarInsn(ILOAD, max);
+        if (maxVar != -1) {
+            mv.visitVarInsn(ILOAD, maxVar);
+        }
+        else {
+            visitExpr(to);
+        }
         mv.visitJumpInsn(IF_ICMPLE, loop);
     }
 
