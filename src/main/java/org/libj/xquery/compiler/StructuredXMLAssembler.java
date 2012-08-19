@@ -41,9 +41,13 @@ public class StructuredXMLAssembler implements Opcodes {
     }
 
     void visitElement(final Cons expr) {
-        Cons nexpr = replaceFields(annotateNamespace(expr));
-        ClassInfo c = compileToClass(nexpr);
-        ArrayList fields = collectFields(expr);
+        ArrayList<Cons> fields = collectFields(expr);
+        ArrayList<Class> types = new ArrayList<Class>();
+        for (Cons x: fields) {
+            types.add(AST.getEvalType(x));
+        }
+        final Cons nexpr = replaceFields(annotateNamespace(expr));
+        ClassInfo c = compileToClass(nexpr, types);
         if (fields.isEmpty()) {
             mv.visitFieldInsn(GETSTATIC, c.getClassName(), "INSTANCE", "L" + XML_INTERFACE + ";");
         }
@@ -51,10 +55,12 @@ public class StructuredXMLAssembler implements Opcodes {
             mv.visitTypeInsn(NEW, c.getClassName());
             mv.visitInsn(DUP);
             StringBuilder args = new StringBuilder();
-            for (Object x: fields) {
+            for (int i = 0; i < fields.size(); i++) {
+                Object x = fields.get(i);
                 Class t = outer.visitExpr((Cons) x);
-                Caster.cast(mv, t, Object.class);
-                args.append("Ljava/lang/Object;");
+                Class f = types.get(i);
+                Caster.cast(mv, t, f);
+                args.append(toSignature(f));
             }
             mv.visitMethodInsn(INVOKESPECIAL, c.getClassName(), "<init>", "("+args.toString()+")V");
         }
@@ -149,12 +155,19 @@ public class StructuredXMLAssembler implements Opcodes {
         return expr.assoc(2, attrs).assoc(3, contents);
     }
 
-    private static Cons resetFields(Cons expr) {
+    private static int firstField(Cons expr) {
         ArrayList<Integer> fields = collectFields(expr);
         if (fields.isEmpty()) {
+            return -1;
+        }
+        return fields.get(0);
+    }
+
+    private static Cons resetFields(Cons expr) {
+        int start = firstField(expr);
+        if (start < 0) {
             return expr;
         }
-        int start = fields.get(0);
         return resetFields(expr, start);
     }
 
@@ -262,17 +275,21 @@ public class StructuredXMLAssembler implements Opcodes {
         }
     }
 
-    private ClassInfo compileToClass(Cons expr) {
+    private ClassInfo compileToClass(Cons expr, ArrayList<Class> types) {
+        int n = firstField(expr);
+        if (n > 0) {
+            types = new ArrayList<Class>(types.subList(n, types.size()));
+        }
         expr = resetFields(expr);
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         String className = compiledClassName + "$" + (classIndex++);
         int fieldsNumber = countFields(expr);
-        visitInit(cw, className, fieldsNumber);
+        visitInit(cw, className, fieldsNumber, types);
         visitEval(cw);
-        visitAttr(cw, className, (Cons) expr.third());
-        visitTags(cw, className, (Cons) expr.nth(3));
-        visitText(cw, className, (Cons) expr.nth(3));
-        visitToString(cw, className, expr);
+        visitAttr(cw, className, (Cons) expr.third(), types);
+        visitTags(cw, className, (Cons) expr.nth(3), types);
+        visitText(cw, className, (Cons) expr.nth(3), types);
+        visitToString(cw, className, expr, types);
         if (fieldsNumber == 0) {
             visitInstance(cw, className);
         }
@@ -288,15 +305,16 @@ public class StructuredXMLAssembler implements Opcodes {
         return c;
     }
 
-    private static void visitInit(ClassWriter cw, String className, int fieldsNumber) {
+    private static void visitInit(ClassWriter cw, String className, int fieldsNumber, ArrayList<Class> types) {
         cw.visit(V1_5, ACC_PUBLIC + ACC_SUPER, className, null,
                 classToSignature(Object.class),
                 new String[]{XML_INTERFACE});
 
         StringBuilder init = new StringBuilder();
         for (int i = 0; i < fieldsNumber; i++) {
-            cw.visitField(ACC_PRIVATE, "field"+i, "Ljava/lang/Object;", null, null);
-            init.append("Ljava/lang/Object;");
+            String desc = toSignature(types.get(i));
+            cw.visitField(ACC_PRIVATE, "field"+i, desc, null, null);
+            init.append(desc);
         }
 
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "<init>", "(" + init + ")V", null, null);
@@ -305,9 +323,10 @@ public class StructuredXMLAssembler implements Opcodes {
         mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V");
 
         for (int i = 0; i < fieldsNumber; i++) {
+            Class t = types.get(i);
             mv.visitVarInsn(ALOAD, 0);
-            mv.visitVarInsn(ALOAD, i + 1);
-            mv.visitFieldInsn(PUTFIELD, className, "field" + i, "Ljava/lang/Object;");
+            mv.visitVarInsn(toLOAD(t), i + 1);
+            mv.visitFieldInsn(PUTFIELD, className, "field" + i, toSignature(t));
         }
         mv.visitInsn(RETURN);
         mv.visitMaxs(1, 1);
@@ -322,7 +341,7 @@ public class StructuredXMLAssembler implements Opcodes {
         mv.visitEnd();
     }
 
-    private void visitAttr(ClassWriter cw, String className, Cons attrs) {
+    private void visitAttr(ClassWriter cw, String className, Cons attrs, ArrayList<Class> types) {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "getAttribute", "(Ljava/lang/String;)Ljava/lang/String;", null, null);
         mv.visitCode();
         if (attrs != null) {
@@ -345,17 +364,24 @@ public class StructuredXMLAssembler implements Opcodes {
                         if (!(v instanceof Integer)) {
                             throw new RuntimeException("Not Implemented!");
                         }
+                        int i = (Integer)v;
+                        Class t = types.get(i);
                         mv.visitVarInsn(ALOAD, 0);
-                        mv.visitFieldInsn(GETFIELD, className, "field"+v, "Ljava/lang/Object;");
-                        Label nonNull = new Label();
-                        mv.visitJumpInsn(IFNONNULL, nonNull);
-                        mv.visitLdcInsn("");
-                        mv.visitInsn(ARETURN);
-                        mv.visitLabel(nonNull);
-                        mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
-                        mv.visitVarInsn(ALOAD, 0);
-                        mv.visitFieldInsn(GETFIELD, className, "field" + v, "Ljava/lang/Object;");
-                        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "toString", "()Ljava/lang/String;");
+                        mv.visitFieldInsn(GETFIELD, className, "field"+ i, toSignature(t));
+                        if (t.isPrimitive()) {
+                            Caster.cast(mv, t, String.class);
+                        }
+                        else {
+                            Label nonNull = new Label();
+                            mv.visitJumpInsn(IFNONNULL, nonNull);
+                            mv.visitLdcInsn("");
+                            mv.visitInsn(ARETURN);
+                            mv.visitLabel(nonNull);
+                            mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+                            mv.visitVarInsn(ALOAD, 0);
+                            mv.visitFieldInsn(GETFIELD, className, "field" + i, toSignature(t));
+                            mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "toString", "()Ljava/lang/String;");
+                        }
                     }
                 }
                 else {
@@ -372,7 +398,7 @@ public class StructuredXMLAssembler implements Opcodes {
         mv.visitEnd();
     }
 
-    private void visitText(ClassWriter cw, String className, Cons contents) {
+    private void visitText(ClassWriter cw, String className, Cons contents, ArrayList<Class> types) {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "text", "()Ljava/lang/String;", null, null);
         mv.visitCode();
         if (contents != null) {
@@ -382,23 +408,30 @@ public class StructuredXMLAssembler implements Opcodes {
                     mv.visitLdcInsn(XMLUtils.unescapeXML((String) v));
                 }
                 else if (v instanceof Integer) {
+                    int i = (Integer)v;
+                    Class t = types.get(i);
                     mv.visitVarInsn(ALOAD, 0);
-                    mv.visitFieldInsn(GETFIELD, className, "field"+v, "Ljava/lang/Object;");
-                    Label nonNull = new Label();
-                    mv.visitJumpInsn(IFNONNULL, nonNull);
-                    mv.visitLdcInsn("");
-                    mv.visitInsn(ARETURN);
-                    mv.visitLabel(nonNull);
-                    mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
-                    mv.visitVarInsn(ALOAD, 0);
-                    mv.visitFieldInsn(GETFIELD, className, "field" + v, "Ljava/lang/Object;");
-                    // XXX: should I use x.toString(), or Fn.string(x)?
-                    mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "toString", "()Ljava/lang/String;");
+                    mv.visitFieldInsn(GETFIELD, className, "field"+i, toSignature(t));
+                    if (t.isPrimitive()) {
+                        Caster.cast(mv, t, String.class);
+                    }
+                    else {
+                        Label nonNull = new Label();
+                        mv.visitJumpInsn(IFNONNULL, nonNull);
+                        mv.visitLdcInsn("");
+                        mv.visitInsn(ARETURN);
+                        mv.visitLabel(nonNull);
+                        mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
+                        mv.visitVarInsn(ALOAD, 0);
+                        mv.visitFieldInsn(GETFIELD, className, "field" + v, toSignature(t));
+                        // XXX: should I use x.toString(), or Fn.string(x)?
+                        mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "toString", "()Ljava/lang/String;");
+                    }
                 } else if (isElement(v)) {
                     Cons element = (Cons) v;
                     int node = (Integer)element.nth(6);
                     ClassInfo c = nodeClass.get(node);
-                    newXML(mv, className, c, element);
+                    newXML(mv, className, c, element, types);
                     mv.visitMethodInsn(INVOKEINTERFACE, XML_INTERFACE, "text", "()Ljava/lang/String;");
                 } else {
                     throw new RuntimeException("Not Implemented: "+v);
@@ -415,16 +448,17 @@ public class StructuredXMLAssembler implements Opcodes {
                         Cons element = (Cons) x;
                         int node = (Integer)element.nth(6);
                         ClassInfo c = nodeClass.get(node);
-                        newXML(mv, className, c, element);
+                        newXML(mv, className, c, element, types);
                         mv.visitMethodInsn(INVOKEINTERFACE, XML_INTERFACE, "text", "()Ljava/lang/String;");
                         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;");
                     }
                     else {
                         int index = (Integer) x;
+                        Class t = types.get(index);
                         mv.visitVarInsn(ALOAD, 0);
-                        mv.visitFieldInsn(GETFIELD, className, "field" + index, "Ljava/lang/Object;");
+                        mv.visitFieldInsn(GETFIELD, className, "field" + index, toSignature(t));
                         // XXX: should I use x.toString(), or Fn.string(x)?
-                        StringXMLAssembler.appendStringBuilder(mv, Object.class);
+                        StringXMLAssembler.appendStringBuilder(mv, t);
                     }
                 }
                 StringXMLAssembler.stringBuilderToString(mv);
@@ -442,7 +476,7 @@ public class StructuredXMLAssembler implements Opcodes {
         return v instanceof Cons && AST.getNodeType((Cons) v) == TokenType.ELEMENT;
     }
 
-    private void visitTags(ClassWriter cw, String className, Cons contents) {
+    private void visitTags(ClassWriter cw, String className, Cons contents, ArrayList<Class> types) {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "getElementsByTagNameNS", "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/Object;", null, null);
         mv.visitCode();
 
@@ -474,8 +508,8 @@ public class StructuredXMLAssembler implements Opcodes {
                     mv.visitJumpInsn(IFEQ, next);
                 }
                 // find tag!
-                ClassInfo c = compileToClass(element);
-                newXML(mv, className, c, element);
+                ClassInfo c = compileToClass(element, types);
+                newXML(mv, className, c, element, types);
                 
                 mv.visitInsn(ARETURN);
                 mv.visitLabel(next);
@@ -489,7 +523,7 @@ public class StructuredXMLAssembler implements Opcodes {
         mv.visitEnd();
     }
 
-    private static void newXML(MethodVisitor mv, String outerXMLClassName, ClassInfo c, Cons element) {
+    private static void newXML(MethodVisitor mv, String outerXMLClassName, ClassInfo c, Cons element, ArrayList<Class> types) {
         ArrayList<Integer> fields = collectFields(element);
         if (fields.isEmpty()) {
             mv.visitFieldInsn(GETSTATIC, c.getClassName(), "INSTANCE", "L"+XML_INTERFACE+";");
@@ -500,14 +534,14 @@ public class StructuredXMLAssembler implements Opcodes {
             StringBuilder args = new StringBuilder();
             for (int i: fields) {
                 mv.visitVarInsn(ALOAD, 0);
-                mv.visitFieldInsn(GETFIELD, outerXMLClassName, "field"+i, "Ljava/lang/Object;");
-                args.append("Ljava/lang/Object;");
+                mv.visitFieldInsn(GETFIELD, outerXMLClassName, "field"+i, toSignature(types.get(i)));
+                args.append(toSignature(types.get(i)));
             }
             mv.visitMethodInsn(INVOKESPECIAL, c.getClassName(), "<init>", "("+args.toString()+")V");
         }
     }
 
-    private void visitToString(ClassWriter cw, String className, Cons expr) {
+    private void visitToString(ClassWriter cw, String className, Cons expr, ArrayList<Class> types) {
         MethodVisitor mv = cw.visitMethod(ACC_PUBLIC, "toString", "()Ljava/lang/String;", null, null);
         mv.visitCode();
 
@@ -525,9 +559,10 @@ public class StructuredXMLAssembler implements Opcodes {
                 }
                 else {
                     int index = (Integer) x;
+                    Class t = types.get(index);
                     mv.visitVarInsn(ALOAD, 0);
-                    mv.visitFieldInsn(GETFIELD, className, "field"+index, "Ljava/lang/Object;");
-                    StringXMLAssembler.appendStringBuilder(mv, Object.class);
+                    mv.visitFieldInsn(GETFIELD, className, "field"+index, toSignature(t));
+                    StringXMLAssembler.appendStringBuilder(mv, t);
                 }
             }
             StringXMLAssembler.stringBuilderToString(mv);
@@ -551,4 +586,61 @@ public class StructuredXMLAssembler implements Opcodes {
         mv.visitEnd();
     }
 
+    private static String toSignature(Class c) {
+        if (!c.isPrimitive()) {
+            if (c.isArray()) {
+                return toSignature(Object.class);
+            }
+            else {
+                return 'L' + c.getName().replace('.', '/') + ';';
+            }
+        }
+        if (c == int.class) {
+            return "I";
+        }
+        if (c == double.class) {
+            return "D";
+        }
+        if (c == long.class) {
+            return "J";
+        }
+        if (c == boolean.class) {
+            return "Z";
+        }
+        if (c == float.class) {
+            return "F";
+        }
+        if (c == byte.class) {
+            return "B";
+        }
+        if (c == short.class) {
+            return "S";
+        }
+        if (c == char.class) {
+            return "C";
+        }
+        throw new RuntimeException("Not Implemented: " + c);
+    }
+    private static int toLOAD(Class t) {
+        if (t.isPrimitive()) {
+            if (t == int.class || t == boolean.class || t == byte.class || t == short.class || t == char.class) {
+                return ILOAD;
+            }
+            else if (t == double.class) {
+                return DLOAD;
+            }
+            else if (t == long.class) {
+                return LLOAD;
+            }
+            else if (t == float.class) {
+                return FLOAD;
+            }
+            else {
+                throw new RuntimeException("Not Implemented: " + t);
+            }
+        }
+        else {
+            return ALOAD;
+        }
+    }
 }

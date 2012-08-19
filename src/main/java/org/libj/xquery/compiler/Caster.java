@@ -14,31 +14,36 @@ public class Caster implements Opcodes {
         // int -> int
         if (to == String.class) {
             if (from == String.class) {
-                return String.class;
+                // do nothing
             }
             else if (from == XML.class) {
                 mv.visitMethodInsn(INVOKEINTERFACE, Constants.XML_INTERFACE, "text", "()Ljava/lang/String;");
-                return String.class;
             }
             else if (!from.isPrimitive()) {
                 mv.visitMethodInsn(INVOKESTATIC, Constants.FN, "string", "(Ljava/lang/Object;)Ljava/lang/String;");
-                return String.class;
             }
 //            else if (!from.isPrimitive()) {
 //                mv.visitMethodInsn(INVOKESTATIC, "java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;");
-//                return String.class;
 //            }
             else if (from == int.class) {
                 mv.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "toString", "(I)Ljava/lang/String;");
-                return String.class;
             }
             else if (from == double.class) {
                 mv.visitMethodInsn(INVOKESTATIC, "java/lang/Double", "toString", "(D)Ljava/lang/String;");
-                return String.class;
+            }
+            else if (from == boolean.class) {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "toString", "(Z)Ljava/lang/String;");
+            }
+            else if (from == long.class) {
+                mv.visitMethodInsn(INVOKESTATIC, "java/lang/Long", "toString", "(J)Ljava/lang/String;");
+            }
+            else if (from == void.class) {
+                mv.visitLdcInsn("");
             }
             else {
-                throw new RuntimeException("Not Implemented!");
+                throw new RuntimeException("Not Implemented: " + from + " -> " + to);
             }
+            return String.class;
         }
         else if (!from.isPrimitive() && !to.isPrimitive()) {
             if (to.isAssignableFrom(from)) {
@@ -55,7 +60,7 @@ public class Caster implements Opcodes {
                 return castToInt(mv);
             }
             else {
-                throw new RuntimeException("Not Implemented: "+to);
+                throw new RuntimeException("Not Implemented: " + from + " -> " + to);
             }
         }
         else if (from.isPrimitive() && !to.isPrimitive()) {
@@ -79,7 +84,7 @@ public class Caster implements Opcodes {
 //                throw new RuntimeException("Not Implemented! "+from+" to "+to);
             }
             else {
-                throw new RuntimeException("Not Implemented: "+from);
+                throw new RuntimeException("Not Implemented: " + from + " -> " + to);
             }
         }
         else {

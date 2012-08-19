@@ -13,7 +13,6 @@ public class TestStaticXML {
         assertEvalString("<x><y> <c/> </y> {1+1}</x>", "<x><y><c/></y>2</x>");
         assertEvalString("<x>{1}{2}{3}{4}</x>", "<x>1234</x>");
         assertEvalString("<x a='{1}' b='{2}'/>", "<x a=\"1\" b=\"2\"/>");
-        testInnerXML();
     }
 
     @Test

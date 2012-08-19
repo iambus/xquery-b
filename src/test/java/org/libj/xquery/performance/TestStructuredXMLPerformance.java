@@ -14,6 +14,10 @@ public class TestStructuredXMLPerformance {
         assertRepeatedEvalPerSecond("<x><ID>{1 + 1}</ID></x>", 1000*1000*1000);
     }
     @Test
+    public void testConstructLong() {
+        assertRepeatedEvalPerSecond("<x><ID>{ class:java.lang.Integer:longValue(1) }</ID></x>", 1000*1000*1000);
+    }
+    @Test
     public void testTag() {
         XML x = (XML) Compile.eval("<x><ID>1</ID></x>");
         int n = 1000*1000*1000;
