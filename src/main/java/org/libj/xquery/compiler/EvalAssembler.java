@@ -709,6 +709,9 @@ public class EvalAssembler implements Opcodes {
             if (result < 0) {
                 throw new RuntimeException("must be a bug");
             }
+            if (AST.getNodeType(body) == LIST && body.size() == 1) {
+                return null;
+            }
             mv.visitVarInsn(ALOAD, result);
             Class t = visitExpr(body);
             pushToCallback(t);
@@ -1099,7 +1102,8 @@ public class EvalAssembler implements Opcodes {
 
     private void pushToCallback(Class t) {
         if (t == null || t == Void.class) {
-            // do nothing
+            mv.visitInsn(POP);
+            mv.visitInsn(POP);
         }
         else if (t.isPrimitive()) {
             Caster.cast(mv, t, Object.class);

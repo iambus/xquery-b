@@ -166,6 +166,7 @@ public class TestExpressions {
     public void testNil() {
         assertEvalString("()", "");
         assertEvalString("let $x := 2 return ()", "");
+        assertEvalString("for $x in 1 to 3 where $x = 1 return ()", "");
         assertEvalString("(1 to 1)[0]", "");
         assertEvalString("(let $i := 2 where $i != 2 return $i)[1]", "");
     }
