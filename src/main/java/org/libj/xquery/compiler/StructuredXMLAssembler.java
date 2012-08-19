@@ -313,7 +313,7 @@ public class StructuredXMLAssembler implements Opcodes {
         StringBuilder init = new StringBuilder();
         for (int i = 0; i < fieldsNumber; i++) {
             String desc = toSignature(types.get(i));
-            cw.visitField(ACC_PRIVATE, "field"+i, desc, null, null);
+            cw.visitField(ACC_PRIVATE, "field"+i, desc, null, null).visitEnd();
             init.append(desc);
         }
 
@@ -322,11 +322,13 @@ public class StructuredXMLAssembler implements Opcodes {
         mv.visitVarInsn(ALOAD, 0);
         mv.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V");
 
+        int offset = 1;
         for (int i = 0; i < fieldsNumber; i++) {
             Class t = types.get(i);
             mv.visitVarInsn(ALOAD, 0);
-            mv.visitVarInsn(toLOAD(t), i + 1);
+            mv.visitVarInsn(toLOAD(t), offset);
             mv.visitFieldInsn(PUTFIELD, className, "field" + i, toSignature(t));
+            offset += t == long.class || t == double.class ? 2 : 1;
         }
         mv.visitInsn(RETURN);
         mv.visitMaxs(1, 1);
@@ -621,22 +623,22 @@ public class StructuredXMLAssembler implements Opcodes {
         }
         throw new RuntimeException("Not Implemented: " + c);
     }
-    private static int toLOAD(Class t) {
-        if (t.isPrimitive()) {
-            if (t == int.class || t == boolean.class || t == byte.class || t == short.class || t == char.class) {
+    private static int toLOAD(Class c) {
+        if (c.isPrimitive()) {
+            if (c == int.class || c == boolean.class || c == byte.class || c == short.class || c == char.class) {
                 return ILOAD;
             }
-            else if (t == double.class) {
+            else if (c == double.class) {
                 return DLOAD;
             }
-            else if (t == long.class) {
+            else if (c == long.class) {
                 return LLOAD;
             }
-            else if (t == float.class) {
+            else if (c == float.class) {
                 return FLOAD;
             }
             else {
-                throw new RuntimeException("Not Implemented: " + t);
+                throw new RuntimeException("Not Implemented: " + c);
             }
         }
         else {

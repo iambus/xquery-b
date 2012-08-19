@@ -16,17 +16,24 @@ public class TestStaticXML {
     }
 
     @Test
+    public void testLongDouble() {
+        assertEvalString("<x><long>{class:java.lang.Integer:longValue(1)}</long><double>{1.0}</double></x>", "<x><long>1</long><double>1.0</double></x>");
+    }
+
+    @Test
     public void testInnerXML() {
         String xml = "<Event><ID>{1}</ID><name a='1'>{'Me'}</name><status>on</status></Event>";
         assertEvalString(xml + " / name", "<name a=\"1\">Me</name>");
         assertEvalString("fn:string(" + xml + " / name)", "Me");
         assertEvalString("fn:string(" + xml + " /name/@a)", "1");
     }
+
     @Test
     public void testInnerXMLAttribute() {
         String xml = "<Event><ID>{1}</ID><name a='{3}'/><status>on</status></Event>";
         assertEvalString("fn:string(" + xml + " /name/@a)", "3");
     }
+
     @Test
     public void testInnerXML2() {
         String xml = "<Event a='{1}'><X><name>{'Me'}</name></X></Event>";
